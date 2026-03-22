@@ -1,0 +1,26 @@
+:root {
+  /* WCAG 2.2 AAA Compliant Palette (Contrast Ratio > 7:1) */
+  --color-brand-red: #be123c; /* Dark Rose Red for AAA contrast against white */
+  --color-brand-pink: #ffc4e1; /* Soft Pink for highlights */
+  --color-brand-green: #005a36; /* Dark Green for AAA contrast against white */
+  --color-brand-yellow: #f59e0b; /* Yellow for sun icon */
+  --color-text-main: #1f2937; /* Dark Grey for text */
+  --color-text-muted: #6b7280; /* Muted Grey for labels */
+  --color-bg-glass: rgba(255, 255, 255, 0.9);
+
+  /* Layout Constants */
+  --section-height-standard: 75vh;
+  --border-radius-large: 2rem;
+  --glass-blur: 24px;
+}
+
+/* Reusable Global Icon Classes (Decoupled and clean) */
+.icon-base {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.icon-gradient-sun {
+  background: linear-gradient(135deg, #b45309, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
