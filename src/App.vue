@@ -8,10 +8,10 @@ import AppFooter from './components/shared/AppFooter.vue'
 </script>
 
 <template>
-  <div class="min-h-screen d-flex flex-column">
+  <div class="d-flex flex-column">
     <AppNavBar />
 
-    <main class="grow">
+    <main>
       <RouterView />
     </main>
 
@@ -20,7 +20,5 @@ import AppFooter from './components/shared/AppFooter.vue'
 </template>
 
 <style>
-/* Keep this empty because the importing of global style.css
-  and the Bootstrap grid system directly in main.js.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Zilla+Slab:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
 </style>

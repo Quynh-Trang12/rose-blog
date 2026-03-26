@@ -1,22 +1,51 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import WeatherWidget from '@/components/weather/WeatherWidget.vue'
 
-// --- Modular Data Layer  ---
-// Easily extractable to a Pinia store or separate files later.
+// --- RESTORED: Dynamic Navbar Height Measurement ---
+// This guarantees the sections fit the screen flawlessly on all devices.
+const homeRef = ref(null)
+let resizeObserver = null
+
+const updateNavbarHeight = () => {
+  const navbar = document.querySelector('.navbar.sticky-top')
+  if (navbar && homeRef.value) {
+    const h = navbar.getBoundingClientRect().height
+    homeRef.value.style.setProperty('--nav-h', `${h}px`)
+  }
+}
+
+onMounted(() => {
+  const navbar = document.querySelector('.navbar.sticky-top')
+  if (navbar) {
+    resizeObserver = new ResizeObserver(updateNavbarHeight)
+    resizeObserver.observe(navbar)
+  }
+  updateNavbarHeight()
+})
+
+onUnmounted(() => {
+  if (resizeObserver) resizeObserver.disconnect()
+})
+
+// --- Modular Data Layer ---
 const heroData = {
   badge: 'EST. 2026',
   titleNormal: 'Sanctuary for the',
   titleHighlight: 'Botanical Mind',
-  description: 'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
-  image: 'https://images.unsplash.com/photo-1468531428472-ad67ab141fdd?ixlib=rb-4.1.0&auto=format&fit=crop&w=1920&q=80'
+  description:
+    'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
+  image: '/heroImage.png',
 }
 
 const featuredProfile = {
   title: 'The Pink Paradise',
-  description: 'A compact bush rose known for exceptional disease resistance and continuous blooming cycle from early spring to late fall.',
-  image: 'https://images.unsplash.com/photo-1697557167328-eafb1f94a731?ixlib=rb-4.1.0&auto=format&fit=crop&w=1080&q=80',
-  link: '/collection'
+  description:
+    'A compact bush rose known for exceptional disease resistance and continuous blooming cycle from early spring to late fall.',
+  image:
+    'https://images.unsplash.com/photo-1697557167328-eafb1f94a731?ixlib=rb-4.1.0&auto=format&fit=crop&w=1080&q=80',
+  link: '/collection',
 }
 
 const publications = [
@@ -25,135 +54,169 @@ const publications = [
     category: 'PLANTING GUIDE',
     title: 'How to Prune the White Elegance',
     description: 'Learn the best techniques for encouraging new growth...',
-    image: 'https://images.unsplash.com/photo-1623945392355-12af183b7acd?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
-    link: '/news'
+    image:
+      'https://images.unsplash.com/photo-1623945392355-12af183b7acd?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
+    link: '/news',
   },
   {
     id: 2,
     category: 'SHOP UPDATE',
     title: 'Ruby Romance is Back in Stock!',
     description: 'Our most requested deep red climbing rose is available...',
-    image: 'https://images.unsplash.com/photo-1662110497736-06601647fe27?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
-    link: '/news'
-  }
+    image:
+      'https://images.unsplash.com/photo-1662110497736-06601647fe27?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
+    link: '/news',
+  },
 ]
 </script>
 
 <template>
-  <main>
+  <div ref="homeRef">
     <section
-      class="position-relative d-flex align-items-center" style="min-height: 91vh;" aria-label="Welcome to The Rose Blog">
-      <div
+      class="full-height-section position-relative overflow-hidden bg-dark d-flex flex-column justify-content-center"
+      :style="`background: linear-gradient(to top right, rgba(0,0,0,0.2), rgba(0,0,0,0.9)), url(${heroData.image}) center/cover no-repeat;`"
+      aria-label="Welcome to The Rose Blog"
+    >
+      <!-- <div
         class="position-absolute top-0 start-0 w-100 h-100 z-0"
-        :style="`background: linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 100%), url(${heroData.image}) center/cover fixed;`"
+        :style="`background: linear-gradient(to top right, rgba(0,0,0,0.2), rgba(0,0,0,0.9)), url(${heroData.image}) center/cover no-repeat;`"
         aria-hidden="true"
-      ></div>
+      ></div> -->
 
-      <div class="container position-relative z-1 py-5">
-        <div class="row align-items-center gx-5">
-
-          <div class="col-12 col-lg-8 text-white animate-fade-up">
-            <span class="badge bg-white text-dark px-3 py-2 rounded-pill fw-bolder mb-4 border border-dark shadow-sm">
-              {{ heroData.badge }}
-            </span>
-            <h1 class="display-3 fw-bolder mb-4">
-              {{ heroData.titleNormal }} <br>
-              <span style="color: #ffa6c1;">{{ heroData.titleHighlight }}</span>
-            </h1>
-            <p class="fs-4 mb-5 opacity-75 fw-medium" style="max-width: 800px; line-height: 1.6;">
-              {{ heroData.description }}
-            </p>
-            <RouterLink
-              to="/collection"
-              class="btn btn-lg rounded-pill px-5 py-3 fw-bold text-white text-uppercase shadow-sm"
-              style="background-color: #ea063f; letter-spacing: 1px;"
-              aria-label="Explore our rose collection"
-            >
-              Explore Collection
-            </RouterLink>
+      <div class="container position-relative z-1 d-flex flex-column flex-grow-1 py-0 px-5 px-lg-3">
+        <div class="row d-flex flex-column flex-lg-row flex-grow-1">
+          <div
+            class="col-12 col-lg-8 d-flex flex-column justify-content-center flex-grow-1 animate-fade-up"
+          >
+            <div>
+              <span
+                class="badge text-md bg-white text-dark px-3 py-2 rounded-pill fw-bolder my-3 shadow-sm"
+              >
+                {{ heroData.badge }}
+              </span>
+              <h1 class="fs-2 text-gray-200 fw-bold text-break">
+                {{ heroData.titleNormal }} <br />
+                <span class="display-3 fw-bold text-secondary">{{ heroData.titleHighlight }}</span>
+              </h1>
+              <p class="fs-6 fs-lg-5 text-gray-300 fw-medium w-100" style="max-width: 660px">
+                {{ heroData.description }}
+              </p>
+              <RouterLink
+                to="/collection"
+                class="btn rounded-pill btn-primary px-4 py-2 m-0 text-md fw-bold text-white text-uppercase shadow-sm ls-1"
+                aria-label="Explore our rose collection"
+              >
+                Explore Collection
+              </RouterLink>
+            </div>
           </div>
 
-          <div class="col-12 col-lg-4 d-flex justify-content-lg-center" style="padding-bottom: 6rem;">
-            <WeatherWidget />
+          <div
+            class="col-12 col-lg-4 d-flex flex-column flex-grow-1 justify-content-start justify-content-lg-center"
+          >
+            <WeatherWidget style="max-width: 335px" />
           </div>
-
         </div>
       </div>
     </section>
 
-    <section class="bg-white py-3" aria-label="Editorial Content">
-      <div class="container py-3 mb-5 mt-4">
-        <div class="row align-items-stretch" style="--bs-gutter-x: 4.5rem;">
-
-          <article class="col-12 col-lg-5 col-xl-6 d-flex flex-column">
-
+    <section
+      class="bg-white full-height-section d-flex flex-column justify-content-center py-5"
+      aria-label="Editorial Content"
+    >
+      <div class="container">
+        <div class="row align-items-stretch gx-lg-5 gy-5 gy-lg-0">
+          <article class="col-12 col-lg-6 d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-4">
-              <h2 class="h3 fw-bolder mb-0 text-dark">Featured Profile</h2>
-              <div class="flex-grow-1 border-bottom border-2 opacity-100" style="border-color: #be123c !important;"></div>
+              <h2 class="h3 fw-bolder mb-0 text-dark">Rose of the Month</h2>
+              <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
             </div>
 
-            <div class="card thumbnail-hover border-0 rounded-4 overflow-hidden shadow-sm position-relative flex-grow-1 d-flex bg-dark" style="min-height: 406px;">
-              <img :src="featuredProfile.image" :alt="featuredProfile.title" class="position-absolute w-100 h-100 object-fit-cover img-zoom" style="opacity: 0.65;">
-              <div class="position-relative mt-auto w-100 px-4 py-3 px-md-5 py-md-3 z-1" style="background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);">
+            <div
+              class="card img-zoom-hover border-0 rounded-4 overflow-hidden shadow-sm position-relative flex-grow-1 d-flex bg-dark"
+              style="min-height: 50vh"
+            >
+              <img
+                :src="featuredProfile.image"
+                alt="Thumbnail for Rose of the Month"
+                class="position-absolute w-100 h-100 object-fit-cover img-zoom"
+                style="opacity: 0.65"
+              />
+              <div
+                class="position-relative mt-auto w-100 px-4 py-4 px-md-5 z-1"
+                style="background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent)"
+              >
                 <h3 class="text-white fw-bold display-6 mb-2">{{ featuredProfile.title }}</h3>
-                <p class="text-white fs-6 opacity-75 mb-3 fw-medium" style="max-width: 500px;">{{ featuredProfile.description }}</p>
-                <RouterLink :to="featuredProfile.link" class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold" style="margin-bottom: 1.6rem;" :aria-label="`Read full guide on ${featuredProfile.title}`">
+                <p class="text-white fs-6 opacity-75 mb-4 fw-medium">
+                  {{ featuredProfile.description }}
+                </p>
+                <RouterLink
+                  :to="featuredProfile.link"
+                  class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold"
+                  :aria-label="`Read full guide on ${featuredProfile.title}`"
+                >
                   Read Full Guide
                 </RouterLink>
               </div>
             </div>
-
           </article>
 
-          <aside class="col-12 col-lg-7 col-xl-6 d-flex flex-column">
-
+          <div class="col-12 col-lg-6 d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-4">
-              <h2 class="h3 fw-bolder mb-0 text-dark">Latest Publications</h2>
-              <div class="flex-grow-1 border-bottom border-2 opacity-100" style="border-color: #be123c !important;"></div>
+              <h2 class="h3 fw-bolder mb-0 text-dark">Latest Posts</h2>
+              <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
             </div>
 
-            <div class="d-flex flex-column justify-content-between flex-grow-1 gap-4">
-
-              <article v-for="item in publications" :key="item.id" class="card card-hover border-0 bg-transparent h-100 mb-2">
-                <RouterLink :to="item.link" class="text-decoration-none d-block h-100 rounded-4 transition-all" :aria-label="`Read article: ${item.title}`">
+            <div class="d-flex flex-column justify-content-between flex-grow-1 gap-3">
+              <article
+                v-for="item in publications"
+                :key="item.id"
+                class="card card-hover border-0 bg-transparent h-100 rounded-4"
+              >
+                <RouterLink
+                  :to="item.link"
+                  class="text-decoration-none d-block h-100"
+                  :aria-label="`Read article: ${item.title}`"
+                >
                   <div class="row g-0 align-items-center h-100">
-                    <div class="col-4 h-100 overflow-hidden rounded-3 shadow-sm" style="min-height: 120px;">
-                      <img :src="item.image" :alt="`Thumbnail for ${item.title}`" class="w-100 h-100 object-fit-cover">
+                    <div
+                      class="col-4 h-100 overflow-hidden rounded-3 shadow-sm"
+                      style="min-height: 200px"
+                    >
+                      <img
+                        :src="item.image"
+                        :alt="`Thumbnail for ${item.title}`"
+                        class="w-100 h-100 object-fit-cover"
+                      />
                     </div>
                     <div class="col-8 ps-4">
-                      <p class="fw-bolder mb-1 text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; color: #9e0026;" aria-hidden="true">
+                      <p
+                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide"
+                        style="font-size: 0.75rem"
+                        aria-hidden="true"
+                      >
                         {{ item.category }}
                       </p>
-                      <h4 class="h5 fw-bolder text-dark mb-1">{{ item.title }}</h4>
-                      <p class="small mb-0 fw-medium" style="color: #4b5563;">{{ item.description }}</p>
+                      <h3 class="h5 fw-bolder text-dark mb-2">{{ item.title }}</h3>
+                      <p class="small mb-0 fw-medium text-muted">{{ item.description }}</p>
                     </div>
                   </div>
                 </RouterLink>
               </article>
-
             </div>
-          </aside>
-
+          </div>
         </div>
       </div>
     </section>
-  </main>
+  </div>
 </template>
 
 <style scoped>
-/* Eliminated custom classes, maximizing Bootstrap 5 utilities */
-.object-fit-cover { object-fit: cover; }
-
-/* Clean, isolated interactive states */
-.transition-all { transition: all 0.2s ease-in-out; }
-.card-hover:hover { background-color: #f3f4f6 !important; transform: scale(1.02); transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-.thumbnail-hover:hover .img-zoom { transform: scale(1.08); transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-.img-zoom { transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-
-/* Standard Entrance Animation */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+/* RESTORED: Your dynamic height logic utilizing the JavaScript ResizeObserver.
+  This calculates the true visible screen height, completely preventing double scrollbars.
+*/
+.full-height-section {
+  min-height: calc(100vh - var(--nav-h, 0px));
+  min-height: calc(100dvh - var(--nav-h, 0px));
 }
-.animate-fade-up { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 </style>

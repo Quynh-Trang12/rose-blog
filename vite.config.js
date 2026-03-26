@@ -17,4 +17,14 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // These settings disable specific warnings during the build process
+        quietDeps: true,
+        silenceDeprecations: ['import', 'global-builtin', 'color-functions']
+      }
+    }
+  }
 })

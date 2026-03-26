@@ -1,0 +1,438 @@
+// ==========================================
+// 1. BOOTSTRAP CORE FUNCTIONS
+// ==========================================
+@import 'bootstrap/scss/functions';
+
+// ==========================================
+// 2. CUSTOM COLORS & OVERRIDES
+// ==========================================
+$red: #e2065f;
+$pink: #ffcff2;
+$blue-grad: #08111f;
+
+$primary: $red;
+$secondary: $pink;
+
+// ==========================================
+// 3. BOOTSTRAP VARIABLES & MAPS
+// ==========================================
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/variables-dark';
+
+// Merge into theme-colors BEFORE loading maps
+$theme-colors: map-merge(
+  $theme-colors,
+  (
+    'blue-grad': $blue-grad,
+  )
+);
+
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
+@import 'bootstrap/scss/utilities';
+
+// ==========================================
+// 4. UTILITY CUSTOMIZATION (GRAYS)
+// ==========================================
+$gray-utils: ();
+@each $level, $color in $grays {
+  $gray-utils: map-merge(
+    $gray-utils,
+    (
+      'gray-#{$level}': $color,
+    )
+  );
+}
+
+$utilities: map-merge(
+  $utilities,
+  (
+    // 1. Color Utility Merge
+    'color': map-merge(
+        map-get($utilities, 'color'),
+        (
+          values: map-merge(map-get(map-get($utilities, 'color'), 'values'), $gray-utils),
+        )
+      ),
+    // 2. Line Height Utility Override
+    'line-height': map-merge(
+        map-get($utilities, 'line-height'),
+        (
+          values: map-merge(
+              map-get(map-get($utilities, 'line-height'), 'values'),
+              (
+                'xl': 1.8,
+                'lg': 1.2,
+                'md': 0.9,
+              )
+            ),
+        )
+      ),
+    'font-weight': (
+      property: font-weight,
+      class: fw,
+      values: (
+        lighter: $font-weight-lighter,
+        light: $font-weight-light,
+        normal: $font-weight-normal,
+        medium: $font-weight-medium,
+        semibold: $font-weight-semibold,
+        bold: $font-weight-bold,
+        bolder: $font-weight-bolder,
+      ),
+    )
+  )
+);
+
+// ==========================================
+// 5. LOAD BOOTSTRAP & GENERATE UTILITIES
+// ==========================================
+// Safe to use the full import here — all customizations above use Sass's
+// !default guard, so the re-import of variables/maps/utilities inside
+// bootstrap.scss will NOT overwrite our merged $theme-colors or $utilities.
+@import 'bootstrap/scss/bootstrap';
+
+// ==========================================
+// CUSTOM DESIGN TOKENS
+// ==========================================
+$hover-scale-amount: 1.15;
+$custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+:root {
+  --color-primary: #{$red};
+  --color-secondary: #{$pink};
+  --color-accent: #e90052;
+
+  // Define the height of your sticky navbar so sections don't hide behind it
+  --navbar-height: 76px;
+}
+
+// ==========================================
+// GLOBAL UTILITIES
+// ==========================================
+
+// --- Typography ---
+// To have a precise font-size when Bootstrap only has .fs-1 to .fs-6
+.text-lg {
+  font-size: 1.12rem;
+}
+.text-md {
+  font-size: 0.9rem;
+}
+.text-sm {
+  font-size: 0.82rem;
+}
+.text-xs {
+  font-size: 0.68rem;
+}
+
+.ls-1 {
+  letter-spacing: 1.2px;
+}
+
+// --- Decorative Backgrounds ---
+.bg-grad-tright {
+  background: linear-gradient(to top right, $blue-900, rgba($blue-900, 0.86));
+}
+
+// Blurred effect for glassmorphism
+.backdrop-blur {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+// --- Form Components ---
+.input-group-focus {
+  border-color: transparent !important;
+  transition: $transition-base;
+  overflow: hidden;
+
+  &:focus-within {
+    border-color: $white !important;
+    box-shadow: 0 0 0 $input-btn-focus-width rgba($white, 0.1);
+  }
+
+  .form-control,
+  .btn {
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
+  .form-control::placeholder {
+    color: $white !important;
+    opacity: 0.8 !important;
+  }
+}
+
+input.bg-opacity-10:active {
+  background-color: rgba($white, 0.1) !important;
+}
+
+// FIX BROWSER AUTOFILL STYLING
+// Targets WebKit (Chrome, Safari, Edge) autofill states
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  // Uses a massive inner shadow to cover the browser's default color with a custom color
+  -webkit-box-shadow: 0 0 0px 1000px $white inset !important;
+
+  // Force the autofilled text to be black
+  -webkit-text-fill-color: $black !important;
+
+  // Maintain the styling of the text cursor
+  caret-color: $black !important;
+}
+
+// ==========================================
+// NAVIGATION & INTERACTION
+// ==========================================
+
+// --- Slide Right + Turn $primary on Hover Effect ---
+// A slide right effect and turn links and icons to $red on :hover
+.hover-slide-primary {
+  transition: $transition-base; // Uses Bootstrap's native transition speed for UI consistency
+  display: inline-block; // Required for 'transform' to work on inline elements like <a> or <span>
+
+  &:hover {
+    color: $primary !important; // Uses the defined $primary = $red variable
+    transform: translateX(4px);
+  }
+}
+
+// --- Generic Hover Effects ---
+.hover-scale {
+  transition: $transition-base;
+  display: inline-block;
+
+  &:hover {
+    transform: scale($hover-scale-amount);
+  }
+}
+
+// --- Smooth Navbar Collapse ---
+.navbar-collapse {
+  transition: $transition-collapse;
+}
+
+// --- Animated Navigation Links ---
+.nav-link-animated {
+  color: $gray-600;
+  transition: $transition-base;
+  position: relative;
+  display: inline-block;
+  font-weight: $font-weight-medium; // Bootstrap's native utility
+
+  &:hover,
+  &.is-active {
+    color: $primary !important;
+    text-shadow: 0 0 0.65px $primary;
+  }
+
+  // Desktop Effects (lg screens and up)
+  @include media-breakpoint-up(lg) {
+    padding-top: 0.12rem;
+    padding-bottom: 0.38rem;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      height: 2.3px;
+      border-radius: $border-radius-sm; // Bootstrap's native utility
+      background-color: $primary;
+      width: 40%;
+      transform: translateX(-50%) scaleX(0);
+      transition: transform 0.3s $custom-timing-function;
+      pointer-events: none;
+    }
+
+    &.is-active::after {
+      transform: translateX(-50%) scaleX(1);
+    }
+  }
+
+  // Mobile & Tablet Effects (below lg screens)
+  @include media-breakpoint-down(lg) {
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      height: 3px;
+      border-radius: $border-radius-sm;
+      background-color: $primary;
+      transition: transform 0.3s $custom-timing-function;
+    }
+
+    &::before {
+      width: 100%;
+      transform: translateX(-50%) scaleX(0);
+    }
+    &::after {
+      width: 40%;
+      transform: translateX(-50%) scaleX(0);
+    }
+    &:hover::before {
+      transform: translateX(-50%) scaleX(1);
+    }
+    &.is-active::after {
+      transform: translateX(-50%) scaleX(1);
+    }
+    &.is-active:hover::before {
+      transform: translateX(-50%) scaleX(0) !important;
+    }
+  }
+}
+
+// --- Desktop Slider Element ---
+.nav-slider-primary {
+  position: absolute;
+  bottom: 2px;
+  height: 2.3px;
+  border-radius: $border-radius-sm;
+  background-color: $primary;
+  pointer-events: none;
+}
+
+// --- Animated Hamburger Menu ---
+.hamburger-animated {
+  width: 30px;
+  height: 24px;
+  position: relative;
+  cursor: pointer;
+  z-index: 10;
+
+  .hamburger-line {
+    display: block;
+    position: absolute;
+    height: 2px;
+    width: 100%;
+    background: $gray-900;
+    border-radius: $border-radius-sm;
+    opacity: 1;
+    left: 0;
+    transition: $transition-base;
+
+    &:nth-child(1) {
+      top: 0px;
+    }
+    &:nth-child(2) {
+      top: 10px;
+    }
+    &:nth-child(3) {
+      top: 20px;
+    }
+  }
+
+  // When the menu is open, animate the lines into an "X"
+  &.open {
+    .hamburger-line {
+      background: $gray-600;
+    }
+    .hamburger-line:nth-child(1) {
+      top: 10px;
+      transform: rotate(135deg);
+    }
+    .hamburger-line:nth-child(2) {
+      opacity: 0;
+      left: -20px;
+    }
+    .hamburger-line:nth-child(3) {
+      top: 10px;
+      transform: rotate(-135deg);
+    }
+  }
+}
+
+// ==========================================
+// LAYOUT & APP WRAPPER
+// ==========================================
+
+// --- Mobile Glassmorphism Dock ---
+.glassmorphism-mobile {
+  @include media-breakpoint-down(lg) {
+    padding: 0 1.5rem;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  @include media-breakpoint-down(sm) {
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+  }
+}
+
+// --- Interactive Hover States ---
+.card-hover {
+  transition:
+    $transition-base,
+    transform 0.3s $custom-timing-function;
+  &:hover {
+    background-color: rgba($gray-200, 0.3) !important;
+    transform: scale(1.02);
+  }
+}
+
+.img-zoom-hover {
+  .img-zoom {
+    transition: transform 0.5s $custom-timing-function;
+  }
+  &:hover .img-zoom {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fadeUp 0.6s $custom-timing-function forwards;
+}
+
+// ==================================
+// GLASSMORPHISM STYLING
+// ==================================
+
+/* Base fallback for older browsers that don't support backdrop-filter */
+.frosted-glass {
+  /* A solid fallback color in case the blur fails, ensuring text contrast */
+  background-color: $white;
+  padding: 1.6rem;
+  border: rgba($white, 0.3); /* Optional: adds a nice glass edge */
+}
+
+/* Progressive Enhancement: Only apply the glass effect IF the browser supports it */
+@supports (backdrop-filter: blur(18px)) or (-webkit-backdrop-filter: blur(18px)) {
+  .frosted-glass {
+    /* The 22% transparent white tint */
+    background: rgba($white, 0.22);
+
+    /* Safari support */
+    -webkit-backdrop-filter: blur(18px);
+
+    /* Standard syntax */
+    backdrop-filter: blur(18px);
+  }
+}
+
+/* Accessibility: Remove transparency if the user has requested reduced motion/transparency in their OS settings */
+@media (prefers-reduced-transparency: reduce) {
+  .frosted-glass {
+    background-color: $gray-200; /* Solid light gray */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
