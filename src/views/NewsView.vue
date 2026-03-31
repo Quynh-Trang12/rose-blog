@@ -32,7 +32,7 @@ const handlePageChange = (page) => {
 
     <div class="container position-relative z-1 pt-4">
       <!-- Header Row -->
-      <div class="d-flex justify-content-between align-items-start mb-5">
+      <div class="d-flex justify-content-between align-items-start mb-5 animate-fade-up">
         <div>
           <h1
             class="display-4 fw-bold fst-italic mb-1"

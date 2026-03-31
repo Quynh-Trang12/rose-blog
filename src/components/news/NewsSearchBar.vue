@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useNewsStore } from '@/stores/newsStore'
 
 const props = defineProps({
@@ -51,7 +51,7 @@ const setCategory = (category) => {
     >
       <div class="news-filter-modal frosted-glass rounded-4 shadow-lg p-4" v-click-outside="close">
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h4 id="filter-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab';">
+          <h4 id="filter-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab'">
             Filter & Search
           </h4>
           <button @click="close" class="btn-close" aria-label="Close filters"></button>
@@ -136,9 +136,7 @@ const setCategory = (category) => {
                 @keyup.enter="applyFilters"
                 aria-label="Search keywords"
               />
-              <button class="btn btn-primary fw-bold px-4" @click="applyFilters">
-                SEARCH
-              </button>
+              <button class="btn btn-primary fw-bold px-4" @click="applyFilters">SEARCH</button>
             </div>
           </div>
         </div>
