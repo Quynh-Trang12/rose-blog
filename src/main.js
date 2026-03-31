@@ -8,8 +8,21 @@ import 'bootstrap'
 
 // Styling: Base Colors
 import './assets/base.scss'
+import 'bootstrap-icons/font/bootstrap-icons.css'
 
 const app = createApp(App)
+
+app.directive('click-outside', {
+  mounted(el, binding) {
+    el.__clickOutside__ = (e) => {
+      if (!el.contains(e.target)) binding.value(e)
+    }
+    document.addEventListener('click', el.__clickOutside__)
+  },
+  unmounted(el) {
+    document.removeEventListener('click', el.__clickOutside__)
+  },
+})
 
 app.use(createPinia())
 app.use(router)

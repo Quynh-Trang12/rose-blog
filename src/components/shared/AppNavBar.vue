@@ -1,10 +1,39 @@
 <script setup>
 import { ref, computed, nextTick, watch, onBeforeUpdate } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 
-const isLoggedIn = ref(false)
+const authStore = useAuthStore()
 const favoritesCount = ref(0)
 const isMenuOpen = ref(false)
+
+const showLoginModal = ref(false)
+const isSignUpMode = ref(false)
+const loginForm = ref({ username: 'rosegarden', password: 'rose123' })
+const signupForm = ref({ username: '', password: '', displayName: '' })
+const authError = ref('')
+
+const handleAuth = () => {
+  if (isSignUpMode.value) {
+    const res = authStore.register(signupForm.value.username, signupForm.value.password, signupForm.value.displayName)
+    if (res.success) {
+      showLoginModal.value = false
+      authError.value = ''
+      isSignUpMode.value = false
+      signupForm.value = { username: '', password: '', displayName: '' }
+    } else {
+      authError.value = res.error
+    }
+  } else {
+    const res = authStore.login(loginForm.value.username, loginForm.value.password)
+    if (res.success) {
+      showLoginModal.value = false
+      authError.value = ''
+    } else {
+      authError.value = res.error
+    }
+  }
+}
 
 const items = [
   { label: 'Home', path: '/' },
@@ -13,8 +42,12 @@ const items = [
   { label: 'About', path: '/about' },
 ]
 
-const toggleLogin = () => {
-  isLoggedIn.value = !isLoggedIn.value
+const toggleLoginModal = () => {
+  if (authStore.isLoggedIn) {
+    authStore.logout()
+  } else {
+    showLoginModal.value = true
+  }
 }
 
 const route = useRoute()
@@ -214,7 +247,7 @@ const sliderStyle = computed(() => ({
 
         <div class="d-flex flex-column flex-lg-row align-items-center gap-4 pb-4 pb-lg-0">
           <RouterLink
-            v-if="isLoggedIn"
+            v-if="authStore.isLoggedIn"
             to="/collection"
             class="position-relative text-decoration-none text-dark d-flex align-items-center gap-3"
           >
@@ -233,8 +266,8 @@ const sliderStyle = computed(() => ({
           </RouterLink>
 
           <button
-            v-if="!isLoggedIn"
-            @click="toggleLogin"
+            v-if="!authStore.isLoggedIn"
+            @click="toggleLoginModal"
             class="btn btn-primary btn-sm rounded-pill px-5 px-lg-4 py-2 fw-bolder shadow-sm"
           >
             Log In
@@ -242,7 +275,7 @@ const sliderStyle = computed(() => ({
 
           <button
             v-else
-            @click="toggleLogin"
+            @click="toggleLoginModal"
             class="btn btn-outline-primary btn-sm rounded-pill px-5 px-lg-4 py-2 fw-bolder"
           >
             Log Out
@@ -250,5 +283,64 @@ const sliderStyle = computed(() => ({
         </div>
       </div>
     </div>
+
+    <!-- Login/Signup Modal via Teleport -->
+    <Teleport to="body">
+      <div v-if="showLoginModal" class="login-modal-overlay d-flex align-items-center justify-content-center frosted-glass position-fixed top-0 start-0 w-100 h-100 p-3" style="z-index: 1055;" @click.self="showLoginModal = false">
+        <div class="card border-0 shadow-lg rounded-4 w-100 p-4" style="max-width: 400px">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0 fw-bold" style="font-family: 'Zilla Slab'; font-style: italic;">
+              {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
+            </h4>
+            <button @click="showLoginModal = false" class="btn-close" aria-label="Close"></button>
+          </div>
+          <form @submit.prevent="handleAuth">
+            <template v-if="!isSignUpMode">
+              <div class="mb-3">
+                <label for="auth-username" class="form-label text-sm fw-bold">Username</label>
+                <input id="auth-username" type="text" class="form-control rounded-3" v-model="loginForm.username" aria-required="true" required>
+              </div>
+              <div class="mb-4">
+                <label for="auth-password" class="form-label text-sm fw-bold">Password</label>
+                <input id="auth-password" type="password" class="form-control rounded-3" v-model="loginForm.password" aria-required="true" required>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="mb-3">
+                <label for="signup-display" class="form-label text-sm fw-bold">Display Name</label>
+                <input id="signup-display" type="text" class="form-control rounded-3" v-model="signupForm.displayName" aria-required="true" required>
+              </div>
+              <div class="mb-3">
+                <label for="signup-username" class="form-label text-sm fw-bold">Username</label>
+                <input id="signup-username" type="text" class="form-control rounded-3" v-model="signupForm.username" aria-required="true" required>
+              </div>
+              <div class="mb-4">
+                <label for="signup-password" class="form-label text-sm fw-bold">Password</label>
+                <input id="signup-password" type="password" class="form-control rounded-3" v-model="signupForm.password" aria-required="true" required>
+              </div>
+            </template>
+
+            <div v-if="authError" class="alert alert-danger py-2 text-sm">{{ authError }}</div>
+            
+            <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
+              {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
+            </button>
+
+            <div class="text-center mt-3 text-sm">
+              <button type="button" class="btn btn-link text-decoration-none p-0 text-muted" @click="isSignUpMode = !isSignUpMode; authError = ''">
+                {{ isSignUpMode ? 'Already have an account? Log In' : "Don't have an account? Sign Up" }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </nav>
 </template>
+
+<style scoped>
+.login-modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+</style>

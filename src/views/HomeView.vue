@@ -29,6 +29,8 @@ onUnmounted(() => {
   if (resizeObserver) resizeObserver.disconnect()
 })
 
+import heroImage22 from '@/assets/images/image22.jpg'
+
 // --- Modular Data Layer ---
 const heroData = {
   badge: 'EST. 2026',
@@ -36,7 +38,7 @@ const heroData = {
   titleHighlight: 'Botanical Mind',
   description:
     'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
-  image: '/heroImage.png',
+  image: heroImage22,
 }
 
 const featuredProfile = {
@@ -74,7 +76,7 @@ const publications = [
   <div ref="homeRef">
     <section
       class="full-height-section position-relative overflow-hidden bg-dark d-flex flex-column justify-content-center"
-      :style="`background: linear-gradient(to top right, rgba(0,0,0,0.2), rgba(0,0,0,0.9)), url(${heroData.image}) center/cover no-repeat;`"
+      :style="`background: linear-gradient(to bottom left, rgba(0,0,0,0.1), rgba(0,0,0,0.6)), url(${heroData.image}) center/cover no-repeat;`"
       aria-label="Welcome to The Rose Blog"
     >
       <!-- <div
@@ -121,14 +123,14 @@ const publications = [
     </section>
 
     <section
-      class="bg-white full-height-section d-flex flex-column justify-content-center py-5"
+      class="bg-white full-height-section d-flex flex-column justify-content-center py-5 py-xl-0"
       aria-label="Editorial Content"
     >
       <div class="container">
-        <div class="row align-items-stretch gx-lg-5 gy-5 gy-lg-0">
-          <article class="col-12 col-lg-6 d-flex flex-column">
+        <div class="row align-items-stretch mx-2 mx-lg-0 gx-lg-5 gy-5 gy-lg-0">
+          <article class="col-12 col-lg-6 col-xl-5 d-flex flex-column px-4">
             <div class="d-flex align-items-center gap-3 mb-4">
-              <h2 class="h3 fw-bolder mb-0 text-dark">Rose of the Month</h2>
+              <h2 class="fs-4 fw-bolder mb-0 text-dark">Rose of the Month</h2>
               <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
             </div>
 
@@ -146,8 +148,8 @@ const publications = [
                 class="position-relative mt-auto w-100 px-4 py-4 px-md-5 z-1"
                 style="background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent)"
               >
-                <h3 class="text-white fw-bold display-6 mb-2">{{ featuredProfile.title }}</h3>
-                <p class="text-white fs-6 opacity-75 mb-4 fw-medium">
+                <h3 class="text-white fw-bold display-7 mb-1">{{ featuredProfile.title }}</h3>
+                <p class="text-white text-md opacity-75 mb-3 fw-medium">
                   {{ featuredProfile.description }}
                 </p>
                 <RouterLink
@@ -161,9 +163,9 @@ const publications = [
             </div>
           </article>
 
-          <div class="col-12 col-lg-6 d-flex flex-column">
-            <div class="d-flex align-items-center gap-3 mb-4">
-              <h2 class="h3 fw-bolder mb-0 text-dark">Latest Posts</h2>
+          <div class="col-12 col-lg-6 col-xl-7 d-flex flex-column px-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <h2 class="fs-4 fw-bolder mb-0 text-dark">Latest Posts</h2>
               <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
             </div>
 
@@ -171,7 +173,7 @@ const publications = [
               <article
                 v-for="item in publications"
                 :key="item.id"
-                class="card card-hover border-0 bg-transparent h-100 rounded-4"
+                class="card card-hover border-0 bg-transparent h-100 p-1 rounded-4"
               >
                 <RouterLink
                   :to="item.link"
@@ -179,20 +181,16 @@ const publications = [
                   :aria-label="`Read article: ${item.title}`"
                 >
                   <div class="row g-0 align-items-center h-100">
-                    <div
-                      class="col-4 h-100 overflow-hidden rounded-3 shadow-sm"
-                      style="min-height: 200px"
-                    >
+                    <div class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm">
                       <img
                         :src="item.image"
                         :alt="`Thumbnail for ${item.title}`"
                         class="w-100 h-100 object-fit-cover"
                       />
                     </div>
-                    <div class="col-8 ps-4">
+                    <div class="col-8 col-md-9 col-lg-8 ps-3 ps-md-4">
                       <p
-                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide"
-                        style="font-size: 0.75rem"
+                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide text-sm"
                         aria-hidden="true"
                       >
                         {{ item.category }}

@@ -1,0 +1,290 @@
+[
+  {
+    "id": 1,
+    "authorName": "Thanh Phương Lê",
+    "authorAvatar": "https://i.pravatar.cc/40?u=1",
+    "date": "2026-03-29T14:00:00Z",
+    "title": "The Whitening Remedy My Grandmother Swore By",
+    "content": "A simple concoction of rose water and lemon juice. This 10-minute facial toner is one of my favorite classic remedies for bright and glowing skin.",
+    "category": "Health & Remedies",
+    "imageUrl": null,
+    "likes": 785,
+    "hearts": 320,
+    "comments": [
+      {
+        "id": 1001,
+        "authorName": "Anna Smith",
+        "authorAvatar": "https://i.pravatar.cc/40?u=anna",
+        "text": "I used to use this all the time! Such a great mix.",
+        "date": "2026-03-29T15:30:00Z"
+      }
+    ],
+    "shares": 155,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 2,
+    "authorName": "Emma Garden",
+    "authorAvatar": "https://i.pravatar.cc/40?u=2",
+    "date": "2026-03-25T09:12:00Z",
+    "title": "First Blooms of Spring",
+    "content": "Walking through the garden this morning felt magical. The David Austin roses are finally opening up, and the fragrance is entirely intoxicating. I can't wait to share more photos.",
+    "category": "Garden Stories",
+    "imageUrl": "https://images.unsplash.com/photo-1596434440055-668ca31b2695?w=800&q=80",
+    "likes": 402,
+    "hearts": 120,
+    "comments": [
+      {
+        "id": 1002,
+        "authorName": "Lilly Flow",
+        "authorAvatar": "https://i.pravatar.cc/40?u=lilly",
+        "text": "Absolutely stunning photography! What camera do you use?",
+        "date": "2026-03-25T10:00:00Z"
+      }
+    ],
+    "shares": 34,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 3,
+    "authorName": "John Reflections",
+    "authorAvatar": "https://i.pravatar.cc/40?u=3",
+    "date": "2026-01-15T18:45:00Z",
+    "title": "Why I Started Growing Roses",
+    "content": "There is a profound peace in tending to something that demands patience, attention, and gentle care. When I planted my first climbing rose ten years ago, I didn't realize it would become a lifelong meditative practice. The soil teaches you resilience, the thorns teach you boundaries, and the blossoms teach you that beauty is often fleeting but always worth the wait. Every morning spent pruning and watering is a gentle reminder that some of the deepest rewards in life come from steady, quiet dedication over long seasons.",
+    "category": "Life & Reflections",
+    "imageUrl": null,
+    "likes": 1024,
+    "hearts": 515,
+    "comments": [
+      {
+        "id": 1003,
+        "authorName": "Sarah Jane",
+        "authorAvatar": "https://i.pravatar.cc/40?u=sarah",
+        "text": "This deeply resonates with my own experience. Thank you for sharing.",
+        "date": "2026-01-16T08:20:00Z"
+      }
+    ],
+    "shares": 890,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 4,
+    "authorName": "Chloe Blooms",
+    "authorAvatar": "https://i.pravatar.cc/40?u=4",
+    "date": "2026-03-30T08:00:00Z",
+    "title": "Rosehip Tea for Winter Colds",
+    "content": "Don't throw away those rosehips! They are packed with Vitamin C and make the most comforting, immunity-boosting winter tea.",
+    "category": "Health & Remedies",
+    "imageUrl": null,
+    "likes": 210,
+    "hearts": 45,
+    "comments": [
+      {
+        "id": 1004,
+        "authorName": "Diana Ross",
+        "authorAvatar": "https://i.pravatar.cc/40?u=diana",
+        "text": "I've been meaning to try making this. Any specific recipe?",
+        "date": "2026-03-30T09:12:00Z"
+      }
+    ],
+    "shares": 12,
+    "isPublic": false,
+    "userReaction": null
+  },
+  {
+    "id": 5,
+    "authorName": "Marcus Green",
+    "authorAvatar": "https://i.pravatar.cc/40?u=5",
+    "date": "2026-03-20T11:30:00Z",
+    "title": "The Secret to Fighting Black Spot",
+    "content": "If you live in a humid climate, black spot on your rose leaves is practically inevitable. However, a weekly spray of diluted neem oil combined with a pinch of baking soda can work wonders. Be sure to strip away the infected leaves immediately and never water your plants from above in the evening, as standing water overnight is a breeding ground for fungal spores. Keeping the base of the plant clear of debris also promotes crucial air circulation.",
+    "category": "Garden Stories",
+    "imageUrl": null,
+    "likes": 340,
+    "hearts": 60,
+    "comments": [
+      {
+        "id": 1005,
+        "authorName": "Pete Planter",
+        "authorAvatar": "https://i.pravatar.cc/40?u=pete",
+        "text": "The baking soda tip saved my Floribundas this year. Cheers!",
+        "date": "2026-03-21T14:45:00Z"
+      }
+    ],
+    "shares": 45,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 6,
+    "authorName": "Lisa Mindful",
+    "authorAvatar": "https://i.pravatar.cc/40?u=6",
+    "date": "2026-03-05T16:20:00Z",
+    "title": "A Morning Ritual",
+    "content": "Nothing centers me quite like stepping outside with my morning coffee to simply observe the garden as it wakes up.",
+    "category": "Life & Reflections",
+    "imageUrl": "https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=800&q=80",
+    "likes": 880,
+    "hearts": 220,
+    "comments": [
+      {
+        "id": 1006,
+        "authorName": "Jen Zen",
+        "authorAvatar": "https://i.pravatar.cc/40?u=jen",
+        "text": "A perfect start to any day.",
+        "date": "2026-03-05T17:00:00Z"
+      }
+    ],
+    "shares": 67,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 7,
+    "authorName": "Sophie Healer",
+    "authorAvatar": "https://i.pravatar.cc/40?u=7",
+    "date": "2026-02-28T10:00:00Z",
+    "title": "DIY Rose Oil Extraction at Home",
+    "content": "Extracting your own rose oil isn't as complicated as it sounds. You just need fresh petals (preferably damask if you can find them), a carrier oil like jojoba or sweet almond, and a mason jar. First, gently bruise the petals to release their natural oils, then cover them completely in your chosen carrier oil. Seal the jar tightly and place it in a sunny windowsill for about three to four weeks. Every few days, give it a gentle shake. Once ready, strain out the petals. The resulting oil is incredibly luxurious and perfect for dry winter skin.",
+    "category": "Health & Remedies",
+    "imageUrl": null,
+    "likes": 1250,
+    "hearts": 440,
+    "comments": [
+      {
+        "id": 1007,
+        "authorName": "Olivia O",
+        "authorAvatar": "https://i.pravatar.cc/40?u=olivia",
+        "text": "Does it have to be Damask roses, or can I use my own garden variety?",
+        "date": "2026-03-01T09:30:00Z"
+      }
+    ],
+    "shares": 310,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 8,
+    "authorName": "David Planter",
+    "authorAvatar": "https://i.pravatar.cc/40?u=8",
+    "date": "2026-03-27T14:40:00Z",
+    "title": "Soil Composition for Climbing Roses",
+    "content": "Rich, loamy soil with excellent drainage is the absolute secret. I amend my beds with compost every spring.",
+    "category": "Garden Stories",
+    "imageUrl": null,
+    "likes": 56,
+    "hearts": 12,
+    "comments": [
+      {
+        "id": 1008,
+        "authorName": "Greg Dirt",
+        "authorAvatar": "https://i.pravatar.cc/40?u=greg",
+        "text": "What ratio of compost to native soil do you usually aim for?",
+        "date": "2026-03-28T11:15:00Z"
+      }
+    ],
+    "shares": 4,
+    "isPublic": false,
+    "userReaction": null
+  },
+  {
+    "id": 9,
+    "authorName": "Rachel Poetic",
+    "authorAvatar": "https://i.pravatar.cc/40?u=9",
+    "date": "2026-03-22T20:15:00Z",
+    "title": "The Art of Pressing Roses",
+    "content": "Preserving a beautiful bloom in a heavy book feels like capturing a moment in amber. I love revisiting old books and finding forgotten flowers.",
+    "category": "Life & Reflections",
+    "imageUrl": "https://images.unsplash.com/photo-1533038590840-1cde6e668a91?w=800&q=80",
+    "likes": 670,
+    "hearts": 390,
+    "comments": [
+      {
+        "id": 1009,
+        "authorName": "Mia Craft",
+        "authorAvatar": "https://i.pravatar.cc/40?u=mia",
+        "text": "I do this too! It makes opening an old book so special.",
+        "date": "2026-03-23T08:50:00Z"
+      }
+    ],
+    "shares": 112,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 10,
+    "authorName": "Aria Wellness",
+    "authorAvatar": "https://i.pravatar.cc/40?u=10",
+    "date": "2026-03-10T08:30:00Z",
+    "title": "Calming Rose Petal Bath Soak",
+    "content": "After a long week, drawing a hot bath infused with dried rose petals, Epsom salts, and a few drops of lavender essential oil is pure bliss.",
+    "category": "Health & Remedies",
+    "imageUrl": "https://images.unsplash.com/photo-1605349779344-937171e5491f?w=800&q=80",
+    "likes": 415,
+    "hearts": 180,
+    "comments": [
+      {
+        "id": 1010,
+        "authorName": "Sam Relax",
+        "authorAvatar": "https://i.pravatar.cc/40?u=sam",
+        "text": "Trying this tonight, it sounds amazing.",
+        "date": "2026-03-10T19:20:00Z"
+      }
+    ],
+    "shares": 75,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 11,
+    "authorName": "Thomas Roots",
+    "authorAvatar": "https://i.pravatar.cc/40?u=11",
+    "date": "2025-11-05T09:45:00Z",
+    "title": "Preparing Your Roses for the Deep Freeze",
+    "content": "Winterizing your garden is a crucial chore if you live in zones 4-6. The process begins in late fall, right after the first hard frost. I highly recommend mounding soil or a protective mulch collar around the base of the plant—about 8 to 10 inches high. This protects the delicate bud union from extreme temperature fluctuations. For tender hybrid teas, a burlap wrap provides an excellent windbreak. Don't prune heavily in autumn; leave that for the early spring, otherwise, you risk wind desiccation at the freshly cut tips.",
+    "category": "Garden Stories",
+    "imageUrl": null,
+    "likes": 88,
+    "hearts": 14,
+    "comments": [
+      {
+        "id": 1011,
+        "authorName": "Fiona Frost",
+        "authorAvatar": "https://i.pravatar.cc/40?u=fiona",
+        "text": "Living in Minnesota, this advice is an absolute lifesaver.",
+        "date": "2025-11-06T10:10:00Z"
+      }
+    ],
+    "shares": 22,
+    "isPublic": true,
+    "userReaction": null
+  },
+  {
+    "id": 12,
+    "authorName": "Elena Muse",
+    "authorAvatar": "https://i.pravatar.cc/40?u=12",
+    "date": "2026-03-29T19:00:00Z",
+    "title": "Finding Beauty in Imperfection",
+    "content": "Not every bloom makes it to full splendor. Some are chewed by beetles, some wither early in the intense summer sun. There is a deep, poetic resonance in acknowledging that true beauty does not require flawlessness.",
+    "category": "Life & Reflections",
+    "imageUrl": null,
+    "likes": 310,
+    "hearts": 195,
+    "comments": [
+      {
+        "id": 1012,
+        "authorName": "Nina Thoughts",
+        "authorAvatar": "https://i.pravatar.cc/40?u=nina",
+        "text": "Wabi-sabi applied to the garden. I love it.",
+        "date": "2026-03-29T21:05:00Z"
+      }
+    ],
+    "shares": 40,
+    "isPublic": true,
+    "userReaction": null
+  }
+]

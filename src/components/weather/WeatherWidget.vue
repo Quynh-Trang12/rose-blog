@@ -63,7 +63,7 @@ const fetchWeather = async () => {
 
   let lat = -37.814
   let lon = 144.9633
-  locationDisplay.value = 'Melbourne, AU'
+  locationDisplay.value = 'Find Current Location...'
 
   try {
     if ('geolocation' in navigator) {
@@ -147,6 +147,7 @@ onMounted(fetchWeather)
 <template>
   <div
     class="card border-1 shadow-lg rounded-4 w-100 frosted-glass animate-fade-up"
+    style="padding: 1.6rem"
     aria-live="polite"
     aria-atomic="true"
   >
@@ -159,12 +160,12 @@ onMounted(fetchWeather)
             Live Gardening Weather
           </p>
 
-          <p
+          <div
             class="fs-5 fw-bolder text-primary fst-italic ls-1 m-0 p-0"
             style="text-shadow: 0 0 3px var(--color-primary); font-family: 'Zilla Slab'"
           >
             {{ locationDisplay }}
-          </p>
+          </div>
           <p
             v-if="isLocationBlocked"
             class="text-md fw-normal text-secondary m-0 p-0"
@@ -172,7 +173,7 @@ onMounted(fetchWeather)
           >
             Location Access Blocked
           </p>
-          <div class="text-light w-100 text-sm fw-semibold lh-lg m-0 p-0">
+          <div class="text-gray-300 w-100 text-sm fw-semibold lh-lg m-0 p-0">
             {{ isLoading ? 'Analyzing data...' : advisoryQuote }}
           </div>
         </div>
