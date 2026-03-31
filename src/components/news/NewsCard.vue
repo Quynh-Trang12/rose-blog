@@ -23,10 +23,8 @@ const isLongContent = computed(() => props.item.content.length > 150)
 
 // Truncated content for Type C
 const truncatedContent = computed(() => {
-  if (props.item.content.length > 150) {
-    return props.item.content.substring(0, 120) + '... '
-  }
-  return props.item.content
+  const stripped = props.item.content.replace(/<[^>]*>/g, '')
+  return stripped.length > 150 ? stripped.substring(0, 120) : stripped
 })
 
 const isExpanded = ref(false)
@@ -262,7 +260,11 @@ const handleShare = async (platform) => {
         v-if="hasImage"
         class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm z-0"
       >
-        <div class="image-wrapper" :style="`background-image: url('${item.imageUrl}')`"></div>
+        <img
+          v-lazy-load="item.imageUrl"
+          :alt="`Cover image for ${item.title}`"
+          class="type-b-img w-100 h-100 object-fit-cover"
+        />
         <div class="position-absolute bottom-0 start-0 w-100 p-4 pt-5 overlay-gradient text-white">
           <h2
             class="fs-4 mb-2 fw-bold text-shadow"
@@ -285,23 +287,35 @@ const handleShare = async (platform) => {
           {{ item.title }}
         </h2>
 
+        <!-- Not long — render HTML directly -->
         <p
-          class="mb-0 text-muted lh-base"
-          style="font-family: 'Roboto Condensed'"
           v-if="!isLongContent"
-        >
-          {{ item.content }}
-        </p>
+          class="mb-0 text-muted lh-base rte-rendered"
+          style="font-family:'Roboto Condensed'"
+          v-html="item.content"
+        ></p>
 
-        <p class="mb-0 text-muted lh-base" style="font-family: 'Roboto Condensed'" v-else>
-          {{ isExpanded ? item.content : truncatedContent }}
+        <!-- Long content — truncate plain-text but expand to full HTML -->
+        <div v-else>
+          <p
+            v-if="!isExpanded"
+            class="mb-0 text-muted lh-base rte-rendered"
+            style="font-family:'Roboto Condensed'"
+            v-html="truncatedContent + '...'"
+          ></p>
+          <div
+            v-else
+            class="mb-0 text-muted lh-base rte-rendered"
+            style="font-family:'Roboto Condensed'"
+            v-html="item.content"
+          ></div>
           <button
             class="btn btn-link p-0 m-0 align-baseline text-primary fw-semibold text-decoration-none"
             @click="isExpanded = !isExpanded"
           >
             {{ isExpanded ? 'Read less' : 'Read more' }}
           </button>
-        </p>
+        </div>
       </div>
     </div>
 
@@ -478,6 +492,20 @@ const handleShare = async (platform) => {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
+
+.type-b-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+:deep(.rte-rendered a)          { color: #e2065f; text-decoration: underline; }
+:deep(.rte-rendered blockquote) { border-left: 3px solid #e2065f; padding-left: 1rem; color: #6c757d; font-style: italic; }
+:deep(.rte-rendered ul),
+:deep(.rte-rendered ol)         { padding-left: 1.5rem; margin-bottom: 0; }
+:deep(.rte-rendered p)          { margin-bottom: 0.5rem; }
+:deep(.rte-rendered p:last-child) { margin-bottom: 0; }
 
 .image-wrapper {
   width: 100%;

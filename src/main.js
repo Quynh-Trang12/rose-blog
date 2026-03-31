@@ -9,6 +9,7 @@ import 'bootstrap'
 // Styling: Base Colors
 import './assets/base.scss'
 import 'bootstrap-icons/font/bootstrap-icons.css'
+import { lazyLoad } from './directives/lazyLoad.js'
 
 const app = createApp(App)
 
@@ -23,6 +24,9 @@ app.directive('click-outside', {
     document.removeEventListener('click', el.__clickOutside__)
   },
 })
+
+// v-lazy-load (new)
+app.directive('lazy-load', lazyLoad)
 
 app.use(createPinia())
 app.use(router)

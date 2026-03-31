@@ -183,7 +183,7 @@ const publications = [
                   <div class="row g-0 align-items-center h-100">
                     <div class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm">
                       <img
-                        :src="item.image"
+                        v-lazy-load="item.image"
                         :alt="`Thumbnail for ${item.title}`"
                         class="w-100 h-100 object-fit-cover"
                       />

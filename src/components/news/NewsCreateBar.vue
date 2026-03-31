@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useNewsStore } from '@/stores/newsStore'
+import RichTextEditor from './RichTextEditor.vue'
 
 const authStore = useAuthStore()
 const newsStore = useNewsStore()
@@ -16,7 +17,10 @@ const form = ref({
 })
 
 const currentUser = computed(() => authStore.currentUser)
-const isValid = computed(() => form.value.title.trim() && form.value.content.trim())
+const isValid = computed(() => {
+  const textContent = form.value.content.replace(/<[^>]*>/g, '').trim()
+  return form.value.title.trim() !== '' && textContent !== ''
+})
 
 const openModal = () => {
   showModal.value = true
@@ -119,14 +123,11 @@ const submitPost = () => {
 
               <div>
                 <label for="post-content" class="form-label text-sm fw-bold">Content</label>
-                <textarea
+                <RichTextEditor
                   id="post-content"
-                  class="form-control rounded-3"
-                  rows="4"
                   v-model="form.content"
-                  aria-required="true"
-                  required
-                ></textarea>
+                  placeholder="Share your rose story, garden tips, or health remedy..."
+                />
               </div>
 
               <div class="row g-3">

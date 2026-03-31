@@ -12,7 +12,9 @@ const authStore = useAuthStore()
 const showFilterModal = ref(false)
 
 const isOwner = (item) => {
-  return authStore.currentUser && authStore.currentUser.displayName === item.authorName
+  if (!authStore.currentUser) return false
+  if (authStore.isAdmin) return true // admins own everything
+  return authStore.currentUser.displayName === item.authorName
 }
 
 const handlePageChange = (page) => {
@@ -163,7 +165,7 @@ const handlePageChange = (page) => {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(#fffcd8, 0.52);
+    background: linear-gradient(to top right, rgba($pink-200, 0.6), rgba($yellow-100, 0.8));
   }
 }
 

@@ -1,16 +1,12 @@
-/**
- * Vue Router Configuration
- * Maps URL paths to specific View components.
- */
-
 import { createRouter, createWebHistory } from 'vue-router'
 
 import HomeView from '../views/HomeView.vue'
 import CollectionView from '../views/CollectionView.vue'
 import NewsView from '../views/NewsView.vue'
 import AboutView from '../views/AboutView.vue'
+import AdminView from '../views/AdminView.vue'
+import UnauthorizedView from '../views/UnauthorizedView.vue'
 
-// 1. Define the routes array separately
 const routes = [
   {
     path: '/',
@@ -19,8 +15,9 @@ const routes = [
   },
   {
     path: '/collection',
-    name: 'collecion',
+    name: 'collection',
     component: CollectionView,
+    meta: { requiresAuth: true }, // login required
   },
   {
     path: '/news',
@@ -32,12 +29,49 @@ const routes = [
     name: 'about',
     component: AboutView,
   },
+  {
+    path: '/admin',
+    name: 'admin',
+    component: AdminView,
+    meta: { requiresAuth: true, requiresAdmin: true }, // admin only
+  },
+  {
+    path: '/unauthorized',
+    name: 'unauthorized',
+    component: UnauthorizedView,
+  },
+  // Catch-all — always last
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
+  },
 ]
 
-// 2. Pass the routes variable into the router config
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes, // This is short for `routes: routes`
+  routes,
+  scrollBehavior: () => ({ top: 0, behavior: 'smooth' }),
+})
+
+// ─── Navigation Guard ──────────────────────────────────────────────────────
+// Import lazily to avoid circular dependency with Pinia
+router.beforeEach((to, _from, next) => {
+  // Dynamically import so the guard always reads fresh store state
+  import('@/stores/authStore').then(({ useAuthStore }) => {
+    const auth = useAuthStore()
+
+    if (to.meta.requiresAuth && !auth.isLoggedIn) {
+      // Not logged in → redirect to unauthorized page
+      return next({ name: 'unauthorized' })
+    }
+
+    if (to.meta.requiresAdmin && !auth.isAdmin) {
+      // Logged in but not admin → redirect to unauthorized page
+      return next({ name: 'unauthorized' })
+    }
+
+    next()
+  })
 })
 
 export default router

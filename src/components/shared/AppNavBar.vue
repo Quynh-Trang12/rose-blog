@@ -242,6 +242,21 @@ const sliderStyle = computed(() => ({
             </RouterLink>
           </li>
 
+          <!-- Admin nav link — only visible when isAdmin -->
+          <li
+            v-if="authStore.isAdmin && authStore.isLoggedIn"
+            class="nav-item m-0 p-lg-0 py-2"
+          >
+            <RouterLink
+              class="nav-link nav-link-animated px-3 px-lg-4 text-primary fw-bold"
+              to="/admin"
+              @click="isMenuOpen = false"
+            >
+              <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:-3px">shield</span>
+              Admin
+            </RouterLink>
+          </li>
+
           <li class="nav-slider-primary d-none d-lg-block" :style="sliderStyle"></li>
         </ul>
 
@@ -273,6 +288,14 @@ const sliderStyle = computed(() => ({
             Log In
           </button>
 
+          <span
+            v-if="authStore.isAdmin && authStore.isLoggedIn"
+            class="badge bg-primary rounded-pill text-xs fw-bolder px-2 py-1 me-2"
+            title="Admin"
+          >
+            <span class="material-symbols-outlined" style="font-size:0.85rem">shield</span>
+            Admin
+          </span>
           <button
             v-else
             @click="toggleLoginModal"

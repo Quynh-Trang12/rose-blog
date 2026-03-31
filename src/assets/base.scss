@@ -37,6 +37,7 @@ $gray-utils: ();
     )
   );
 }
+$colors-utils: map-merge-multiple($pinks, $yellows, $gray-utils);
 
 $utilities: map-merge(
   $utilities,
@@ -45,7 +46,7 @@ $utilities: map-merge(
     'color': map-merge(
         map-get($utilities, 'color'),
         (
-          values: map-merge(map-get(map-get($utilities, 'color'), 'values'), $gray-utils),
+          values: map-merge(map-get(map-get($utilities, 'color'), 'values'), $colors-utils),
         )
       ),
     // 2. Line Height Utility Override
