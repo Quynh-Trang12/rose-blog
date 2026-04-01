@@ -11,47 +11,63 @@ const authStore = useAuthStore()
 
 const showFilterModal = ref(false)
 
+// METHODS
+/**
+ * Checks if the current user owns the news item or is an admin.
+ * @param {Object} item - The news item object
+ * @returns {boolean} True if the user has owner privileges
+ */
 const isOwner = (item) => {
   if (!authStore.currentUser) return false
-  if (authStore.isAdmin) return true // admins own everything
+  if (authStore.isAdmin) return true // Admins own everything
   return authStore.currentUser.displayName === item.authorName
 }
 
+/**
+ * Handles page navigation and scrolls to top smoothly.
+ * @param {number} page - The target page number
+ */
 const handlePageChange = (page) => {
   if (page >= 1 && page <= newsStore.totalPages) {
     newsStore.setPage(page)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
+
+/**
+ * Dynamically assigns layout A, B, or C based on the loop index.
+ * @param {number} index - The current index in the v-for loop
+ * @returns {string} Layout identifier ('A', 'B', or 'C')
+ */
+const getDynamicLayout = (index) => {
+  if (index % 5 === 0) return 'C'
+  if (index % 4 === 0) return 'B'
+  return 'A'
+}
 </script>
 
 <template>
-  <div class="position-relative min-vh-100 py-5">
-    <!-- Background Layer -->
-    <div class="news-bg-layer position-fixed top-0 start-0 w-100 h-100" aria-hidden="true"></div>
+  <div class="news-view position-relative min-vh-100 py-5">
+    <div
+      class="news-view__bg-layer position-fixed top-0 start-0 w-100 h-100"
+      aria-hidden="true"
+    ></div>
 
     <div class="container position-relative z-1 pt-4">
-      <!-- Header Row -->
       <div class="d-flex justify-content-between align-items-start mb-5 animate-fade-up">
         <div>
-          <h1
-            class="display-4 fw-bold fst-italic mb-1"
-            style="font-family: 'Zilla Slab'; color: #333"
-          >
-            News
-          </h1>
-          <p class="text-muted text-md fw-normal mb-0" style="font-family: 'Roboto Condensed'">
+          <h1 class="news-view__title display-4 fw-bold fst-italic mb-1 text-dark">News</h1>
+          <p class="news-view__subtitle text-muted text-md fw-normal mb-0">
             Stories, rituals, and inspirations from the world of roses.
           </p>
         </div>
 
-        <!-- FLOATING SEARCH BUBBLE -->
         <div class="d-flex flex-column align-items-center gap-1 position-relative">
-          <p class="text-muted text-xs fst-italic mb-1" style="font-family: 'Zilla Slab'">
+          <p class="news-view__search-hint text-muted text-xs fst-italic mb-1">
             Click to<br />Search & Filter
           </p>
           <button
-            class="search-bubble frosted-glass border-0 shadow-lg d-flex align-items-center justify-content-center"
+            class="news-view__search-bubble frosted-glass border-0 shadow-lg d-flex align-items-center justify-content-center"
             @click.stop="showFilterModal = true"
             aria-label="Open search and filter panel"
             :aria-expanded="showFilterModal"
@@ -61,14 +77,17 @@ const handlePageChange = (page) => {
         </div>
       </div>
 
-      <!-- Create Bar -->
       <NewsCreateBar v-if="authStore.isLoggedIn" class="mb-4" />
 
-      <!-- News Feed -->
-      <div class="news-columns" v-if="newsStore.paginatedArticles.length > 0">
-        <div class="news-card-wrapper" v-for="item in newsStore.paginatedArticles" :key="item.id">
+      <div class="news-view__columns" v-if="newsStore.paginatedArticles.length > 0">
+        <div
+          class="news-view__card-wrapper"
+          v-for="(item, index) in newsStore.paginatedArticles"
+          :key="item.id"
+        >
           <NewsCard
             :item="item"
+            :layout="getDynamicLayout(index)"
             :is-authed="authStore.isLoggedIn"
             :is-owner="isOwner(item)"
             @react="newsStore.reactToArticle"
@@ -80,10 +99,11 @@ const handlePageChange = (page) => {
         </div>
       </div>
 
-      <!-- Empty State -->
       <div v-else class="text-center py-5 animate-fade-up">
         <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">search_off</span>
-        <p class="text-muted fst-italic text-lg">No articles match your search.</p>
+        <p class="news-view__empty-text text-muted fst-italic text-lg">
+          No articles match your search.
+        </p>
         <button
           class="btn btn-sm btn-outline-primary rounded-pill mt-2 fw-medium"
           @click="newsStore.clearFilters()"
@@ -92,7 +112,6 @@ const handlePageChange = (page) => {
         </button>
       </div>
 
-      <!-- Pagination -->
       <nav
         v-if="newsStore.totalPages > 1"
         class="d-flex justify-content-center mt-5 mb-5 align-items-center"
@@ -102,8 +121,7 @@ const handlePageChange = (page) => {
           class="d-flex gap-2 align-items-center frosted-glass rounded-pill p-2 shadow-sm border border-light bg-white bg-opacity-50"
         >
           <button
-            class="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm hover-scale transition-base"
-            style="width: 36px; height: 36px"
+            class="news-view__page-btn btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm transition-base"
             :disabled="newsStore.currentPage === 1"
             aria-label="Previous page"
             @click="handlePageChange(newsStore.currentPage - 1)"
@@ -115,8 +133,7 @@ const handlePageChange = (page) => {
             <button
               v-for="page in newsStore.totalPages"
               :key="page"
-              class="btn btn-sm rounded-circle fw-bold transition-base d-flex align-items-center justify-content-center border-0"
-              style="width: 36px; height: 36px"
+              class="news-view__page-btn btn btn-sm rounded-circle fw-bold transition-base d-flex align-items-center justify-content-center border-0"
               :class="
                 newsStore.currentPage === page
                   ? 'btn-primary shadow-sm text-white'
@@ -130,8 +147,7 @@ const handlePageChange = (page) => {
           </div>
 
           <button
-            class="btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm hover-scale transition-base"
-            style="width: 36px; height: 36px"
+            class="news-view__page-btn btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm transition-base"
             :disabled="newsStore.currentPage === newsStore.totalPages"
             aria-label="Next page"
             @click="handlePageChange(newsStore.currentPage + 1)"
@@ -142,7 +158,6 @@ const handlePageChange = (page) => {
       </nav>
     </div>
 
-    <!-- Filter Modal component -->
     <NewsSearchBar v-model="showFilterModal" />
   </div>
 </template>
@@ -155,65 +170,82 @@ const handlePageChange = (page) => {
 @import 'bootstrap/scss/mixins';
 @import 'bootstrap/scss/utilities';
 
-.news-bg-layer {
-  z-index: -1;
-  background-image: url('@/assets/images/image5.jpg');
-  background-size: cover;
-  background-position: center;
+.news-view {
+  &__bg-layer {
+    z-index: -1;
+    background-image: url('@/assets/images/image5.jpg');
+    background-size: cover;
+    background-position: center;
 
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top right, rgba($pink-200, 0.6), rgba($yellow-100, 0.8));
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top right, rgba($pink-200, 0.6), rgba($yellow-100, 0.8));
+    }
+  }
+
+  &__title {
+    font-family: 'Zilla Slab', serif;
+  }
+
+  &__subtitle {
+    font-family: 'Roboto Condensed', sans-serif;
+  }
+
+  &__search-hint {
+    font-family: 'Zilla Slab', serif;
+  }
+
+  &__search-bubble {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+
+    &:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 32px rgba($pink, 0.25) !important;
+    }
+  }
+
+  &__columns {
+    columns: 2;
+    column-gap: 1.25rem;
+
+    @include media-breakpoint-down(md) {
+      columns: 1;
+    }
+  }
+
+  &__card-wrapper {
+    break-inside: avoid;
+    display: inline-block;
+    width: 100%;
+    margin-bottom: 1.25rem;
+
+    /* Safari fix */
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  &__page-btn {
+    width: 36px;
+    height: 36px;
+
+    &:hover:not(:disabled) {
+      transform: scale(1.1);
+    }
   }
 }
 
-.search-bubble {
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-
-  &:hover {
-    transform: scale(1.08);
-    box-shadow: 0 8px 32px rgba($pink, 0.25) !important;
-  }
-}
-
-.news-columns {
-  columns: 2;
-  column-gap: 1.25rem;
-
-  @include media-breakpoint-down(md) {
-    columns: 1;
-  }
-}
-
-.news-columns .news-card-wrapper {
-  break-inside: avoid;
-  display: inline-block;
-  width: 100%;
-  margin-bottom: 1.25rem;
-
-  /* Safari fix */
-  -webkit-column-break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-.hover-bg-light:hover {
-  background-color: var(--bs-gray-200);
-}
-
+/* Base Transition Utilities used across the component */
 .transition-base {
   transition: all 0.2s ease-in-out;
 }
 
-.hover-scale {
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.hover-scale:hover:not(:disabled) {
-  transform: scale(1.1);
+.hover-bg-light:hover {
+  background-color: var(--bs-gray-200);
 }
 </style>

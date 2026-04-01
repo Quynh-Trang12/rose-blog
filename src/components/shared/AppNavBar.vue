@@ -1,56 +1,43 @@
 <script setup>
+/**
+ * The main application navigation bar. Handles routing,
+ * responsive menu toggling, desktop slider animations, and
+ * orchestrates the authentication modal visibility.
+ */
+
 import { ref, computed, nextTick, watch, onBeforeUpdate } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import AuthModal from '@/components/auth/AuthModal.vue'
 
+// ==========================================
+// 1. STATE & STORES
+// ==========================================
 const authStore = useAuthStore()
-const favoritesCount = ref(0)
-const isMenuOpen = ref(false)
-
-const showLoginModal = ref(false)
-const isSignUpMode = ref(false)
-const loginForm = ref({ username: 'rosegarden', password: 'rose123' })
-const signupForm = ref({ username: '', password: '', displayName: '' })
-const authError = ref('')
-
-const handleAuth = () => {
-  if (isSignUpMode.value) {
-    const res = authStore.register(signupForm.value.username, signupForm.value.password, signupForm.value.displayName)
-    if (res.success) {
-      showLoginModal.value = false
-      authError.value = ''
-      isSignUpMode.value = false
-      signupForm.value = { username: '', password: '', displayName: '' }
-    } else {
-      authError.value = res.error
-    }
-  } else {
-    const res = authStore.login(loginForm.value.username, loginForm.value.password)
-    if (res.success) {
-      showLoginModal.value = false
-      authError.value = ''
-    } else {
-      authError.value = res.error
-    }
-  }
-}
-
-const items = [
-  { label: 'Home', path: '/' },
-  { label: 'Collection', path: '/collection' },
-  { label: 'News', path: '/news' },
-  { label: 'About', path: '/about' },
-]
-
-const toggleLoginModal = () => {
-  if (authStore.isLoggedIn) {
-    authStore.logout()
-  } else {
-    showLoginModal.value = true
-  }
-}
-
 const route = useRoute()
+
+const isMenuOpen = ref(false)
+const isAuthModalOpen = ref(false)
+const favoritesCount = computed(() => authStore.favoritesCount)
+
+// Dynamic Navigation Links: Admin dynamically injected as a first-class link
+const navItems = computed(() => {
+  const baseItems = [
+    { label: 'Home', path: '/' },
+    { label: 'News', path: '/news' },
+    { label: 'About', path: '/about' },
+  ]
+
+  if (authStore.isAdmin && authStore.isLoggedIn) {
+    baseItems.push({ label: 'Admin', path: '/admin', icon: 'shield' })
+  }
+
+  return baseItems
+})
+
+// ==========================================
+// 2. ANIMATION & SLIDER REFS
+// ==========================================
 const activeIndex = ref(0)
 const itemRefs = ref([])
 const lastHoveredIndex = ref(-1)
@@ -61,19 +48,32 @@ const sliderWidth = ref(0)
 const sliderOpacity = ref(0)
 const sliderTransition = ref('')
 
+const SLIDER_TIMING = 300
+
 onBeforeUpdate(() => {
   itemRefs.value = []
 })
 
 const isMobileOrTablet = () => window.innerWidth <= 991
 
+// ==========================================
+// 3. METHODS & WATCHERS
+// ==========================================
+const toggleLoginModal = () => {
+  isMenuOpen.value = false
+  isAuthModalOpen.value = true
+}
+
+const handleLogout = () => {
+  authStore.logout()
+}
+
+// Watch both the route AND the length of navItems (in case of login/logout)
 watch(
-  () => route.path,
-  (newPath) => {
-    const index = items.findIndex((item) => item.path === newPath)
-    if (index !== -1) {
-      activeIndex.value = index
-    }
+  [() => route.path, () => navItems.value.length],
+  ([newPath]) => {
+    const index = navItems.value.findIndex((item) => item.path === newPath)
+    activeIndex.value = index !== -1 ? index : -1
   },
   { immediate: true },
 )
@@ -116,7 +116,7 @@ const onItemEnter = async (i) => {
     if (isCurrentActive) {
       setTimeout(() => {
         if (lastHoveredIndex.value === i) sliderOpacity.value = 0
-      }, 300)
+      }, SLIDER_TIMING)
     }
   } else {
     if (!isCurrentActive) {
@@ -155,7 +155,7 @@ const onItemLeave = (i) => {
 
       setTimeout(() => {
         if (lastHoveredIndex.value === -1) sliderOpacity.value = 0
-      }, 300)
+      }, SLIDER_TIMING)
     }
     lastHoveredIndex.value = -1
   }, 20)
@@ -178,9 +178,12 @@ const handleNavClick = (i) => {
     if (activeIndex.value === i && lastHoveredIndex.value === i) {
       sliderOpacity.value = 0
     }
-  }, 300)
+  }, SLIDER_TIMING)
 }
 
+// ==========================================
+// 4. COMPUTED STYLES
+// ==========================================
 const sliderStyle = computed(() => ({
   left: `${sliderLeft.value}px`,
   width: `${sliderWidth.value}px`,
@@ -194,13 +197,12 @@ const sliderStyle = computed(() => ({
     <div class="container">
       <RouterLink class="navbar-brand d-flex align-items-center gap-2 z-3" to="/">
         <div
-          class="bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center"
-          style="width: 32px; height: 32px"
+          class="logo-box bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center"
         >
           <span class="material-symbols-outlined fs-5">local_florist</span>
         </div>
         <div class="d-flex flex-column lh-1">
-          <span class="fw-bold text-dark fs-5" style="letter-spacing: -0.5px">The Rose Blog</span>
+          <span class="fw-bold text-dark fs-5 brand-text">The Rose Blog</span>
         </div>
       </RouterLink>
 
@@ -222,8 +224,8 @@ const sliderStyle = computed(() => ({
         >
           <li
             class="nav-item m-0 p-lg-0 py-2"
-            v-for="(item, index) in items"
-            :key="index"
+            v-for="(item, index) in navItems"
+            :key="item.path"
             :ref="
               (el) => {
                 if (el) itemRefs[index] = el
@@ -233,27 +235,15 @@ const sliderStyle = computed(() => ({
             @mouseleave="onItemLeave(index)"
           >
             <RouterLink
-              class="nav-link nav-link-animated px-3 px-lg-4"
+              class="nav-link nav-link-animated px-3 px-lg-4 d-flex align-items-center justify-content-center gap-1"
               :class="{ 'is-active': activeIndex === index }"
               :to="item.path"
               @click="handleNavClick(index)"
             >
+              <span v-if="item.icon" class="material-symbols-outlined icon-sm">{{
+                item.icon
+              }}</span>
               {{ item.label }}
-            </RouterLink>
-          </li>
-
-          <!-- Admin nav link — only visible when isAdmin -->
-          <li
-            v-if="authStore.isAdmin && authStore.isLoggedIn"
-            class="nav-item m-0 p-lg-0 py-2"
-          >
-            <RouterLink
-              class="nav-link nav-link-animated px-3 px-lg-4 text-primary fw-bold"
-              to="/admin"
-              @click="isMenuOpen = false"
-            >
-              <span class="material-symbols-outlined me-1" style="font-size:1rem;vertical-align:-3px">shield</span>
-              Admin
             </RouterLink>
           </li>
 
@@ -271,13 +261,12 @@ const sliderStyle = computed(() => ({
                 >favorite</span
               >
               <span
-                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary shadow-sm"
-                style="font-size: 6.3px"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary shadow-sm badge-favorites"
               >
                 {{ favoritesCount }}
               </span>
             </div>
-            <span class="d-lg-none text-muted text-lg fw-medium">My Favorites</span>
+            <span class="d-lg-none text-muted text-lg fw-medium">My Collection</span>
           </RouterLink>
 
           <button
@@ -288,17 +277,9 @@ const sliderStyle = computed(() => ({
             Log In
           </button>
 
-          <span
-            v-if="authStore.isAdmin && authStore.isLoggedIn"
-            class="badge bg-primary rounded-pill text-xs fw-bolder px-2 py-1 me-2"
-            title="Admin"
-          >
-            <span class="material-symbols-outlined" style="font-size:0.85rem">shield</span>
-            Admin
-          </span>
           <button
             v-else
-            @click="toggleLoginModal"
+            @click="handleLogout"
             class="btn btn-outline-primary btn-sm rounded-pill px-5 px-lg-4 py-2 fw-bolder"
           >
             Log Out
@@ -307,63 +288,23 @@ const sliderStyle = computed(() => ({
       </div>
     </div>
 
-    <!-- Login/Signup Modal via Teleport -->
-    <Teleport to="body">
-      <div v-if="showLoginModal" class="login-modal-overlay d-flex align-items-center justify-content-center frosted-glass position-fixed top-0 start-0 w-100 h-100 p-3" style="z-index: 1055;" @click.self="showLoginModal = false">
-        <div class="card border-0 shadow-lg rounded-4 w-100 p-4" style="max-width: 400px">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0 fw-bold" style="font-family: 'Zilla Slab'; font-style: italic;">
-              {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
-            </h4>
-            <button @click="showLoginModal = false" class="btn-close" aria-label="Close"></button>
-          </div>
-          <form @submit.prevent="handleAuth">
-            <template v-if="!isSignUpMode">
-              <div class="mb-3">
-                <label for="auth-username" class="form-label text-sm fw-bold">Username</label>
-                <input id="auth-username" type="text" class="form-control rounded-3" v-model="loginForm.username" aria-required="true" required>
-              </div>
-              <div class="mb-4">
-                <label for="auth-password" class="form-label text-sm fw-bold">Password</label>
-                <input id="auth-password" type="password" class="form-control rounded-3" v-model="loginForm.password" aria-required="true" required>
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="mb-3">
-                <label for="signup-display" class="form-label text-sm fw-bold">Display Name</label>
-                <input id="signup-display" type="text" class="form-control rounded-3" v-model="signupForm.displayName" aria-required="true" required>
-              </div>
-              <div class="mb-3">
-                <label for="signup-username" class="form-label text-sm fw-bold">Username</label>
-                <input id="signup-username" type="text" class="form-control rounded-3" v-model="signupForm.username" aria-required="true" required>
-              </div>
-              <div class="mb-4">
-                <label for="signup-password" class="form-label text-sm fw-bold">Password</label>
-                <input id="signup-password" type="password" class="form-control rounded-3" v-model="signupForm.password" aria-required="true" required>
-              </div>
-            </template>
-
-            <div v-if="authError" class="alert alert-danger py-2 text-sm">{{ authError }}</div>
-            
-            <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
-              {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
-            </button>
-
-            <div class="text-center mt-3 text-sm">
-              <button type="button" class="btn btn-link text-decoration-none p-0 text-muted" @click="isSignUpMode = !isSignUpMode; authError = ''">
-                {{ isSignUpMode ? 'Already have an account? Log In' : "Don't have an account? Sign Up" }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </Teleport>
+    <AuthModal :is-open="isAuthModalOpen" @close="isAuthModalOpen = false" />
   </nav>
 </template>
 
 <style scoped>
-.login-modal-overlay {
-  background: rgba(0, 0, 0, 0.4);
+.logo-box {
+  width: 32px;
+  height: 32px;
+}
+.brand-text {
+  letter-spacing: -0.5px;
+}
+.badge-favorites {
+  font-size: 0.65rem;
+}
+.icon-sm {
+  font-size: 1rem;
+  vertical-align: -2px;
 }
 </style>

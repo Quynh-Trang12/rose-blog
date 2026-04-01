@@ -59,7 +59,7 @@ function createObserver(el) {
 
 export const lazyLoad = {
   // Use inserted instead of beforeMount or mounted. Vue 3 directives have different hooks. Wait, the prompt provided:
-  beforeMount(el, binding) {
+  mounted(el, binding) {
     const src = binding.value
     if (!src) return
 

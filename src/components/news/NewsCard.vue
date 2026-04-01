@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps({
   item: {
@@ -16,14 +17,18 @@ const props = defineProps({
   },
 })
 
+const authStore = useAuthStore()
 const emit = defineEmits(['react', 'comment', 'share', 'edit', 'delete'])
 
-const hasImage = computed(() => !!props.item.imageUrl)
-const isLongContent = computed(() => props.item.content.length > 150)
+const hasImage = computed(
+  () => (props.item.images && props.item.images.length > 0) || !!props.item.image,
+)
+const contentText = computed(() => props.item.content || props.item.description || '')
+const isLongContent = computed(() => contentText.value.length > 150)
 
 // Truncated content for Type C
 const truncatedContent = computed(() => {
-  const stripped = props.item.content.replace(/<[^>]*>/g, '')
+  const stripped = contentText.value.replace(/<[^>]*>/g, '')
   return stripped.length > 150 ? stripped.substring(0, 120) : stripped
 })
 
@@ -48,10 +53,16 @@ const commentText = ref('')
 const isEditing = ref(false)
 const editTitle = ref('')
 const editContent = ref('')
-const isSaved = ref(false)
+const isSaved = computed(() =>
+  authStore.mySavedPostIds.some((id) => String(id) === String(props.item.id)),
+)
 
 const toggleSave = () => {
-  isSaved.value = !isSaved.value
+  if (!props.isAuthed) {
+    alert('Please log in to save news items.')
+    return
+  }
+  authStore.toggleSavePost(props.item.id)
   closeEllipsis()
 }
 
@@ -79,7 +90,7 @@ const initiateEdit = () => {
   if (!props.isOwner) return
   isEditing.value = true
   editTitle.value = props.item.title
-  editContent.value = props.item.content
+  editContent.value = contentText.value
 }
 
 const saveEdit = () => {
@@ -145,7 +156,7 @@ const handleShare = async (platform) => {
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex align-items-center gap-2 mb-2">
         <img
-          :src="item.authorAvatar"
+          :src="item.authorAvatar || 'https://i.pravatar.cc/150?u=anonymous'"
           :alt="`Avatar for ${item.id}`"
           class="rounded-circle"
           width="40"
@@ -153,7 +164,7 @@ const handleShare = async (platform) => {
         />
         <div>
           <p class="fw-semibold text-dark mb-0 text-md" style="font-family: 'Roboto Condensed'">
-            {{ item.authorName }}
+            {{ item.authorName || 'Guest Gardener' }}
           </p>
           <div class="d-flex align-items-center gap-1">
             <span class="text-muted text-xs" style="font-family: 'Roboto Condensed'">{{
@@ -164,7 +175,7 @@ const handleShare = async (platform) => {
               style="font-size: 0.85rem"
               aria-hidden="true"
             >
-              {{ item.isPublic ? 'public' : 'lock' }}
+              {{ item.isPublic !== false ? 'public' : 'lock' }}
             </span>
           </div>
         </div>
@@ -174,7 +185,7 @@ const handleShare = async (platform) => {
         <span
           class="badge rounded-pill text-xs fw-bolder ls-1 text-primary text-uppercase glassmorphism-pink p-2"
         >
-          {{ item.category }}
+          {{ item.type || item.category || 'Rose News' }}
         </span>
 
         <div class="position-relative">
@@ -196,7 +207,10 @@ const handleShare = async (platform) => {
           >
             <button
               class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+              :disabled="!isAuthed"
+              :class="{ 'text-muted': !isAuthed }"
               @click="toggleSave"
+              :title="!isAuthed ? 'Log in to save news items' : ''"
             >
               <span class="material-symbols-outlined fs-5">{{
                 isSaved ? 'bookmark_added' : 'bookmark_add'
@@ -257,11 +271,11 @@ const handleShare = async (platform) => {
     <div v-else>
       <!-- TYPE B (Image) -->
       <div
-        v-if="hasImage"
+        v-if="item.layoutType === 'B' && hasImage"
         class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm z-0"
       >
         <img
-          v-lazy-load="item.imageUrl"
+          v-lazy-load="item.images && item.images.length > 0 ? item.images[0] : item.image"
           :alt="`Cover image for ${item.title}`"
           class="type-b-img w-100 h-100 object-fit-cover"
         />
@@ -273,7 +287,7 @@ const handleShare = async (platform) => {
             {{ item.title }}
           </h2>
           <p class="mb-0 text-sm opacity-75 text-truncate" style="font-family: 'Roboto Condensed'">
-            {{ item.content }}
+            {{ contentText }}
           </p>
         </div>
       </div>
@@ -291,8 +305,8 @@ const handleShare = async (platform) => {
         <p
           v-if="!isLongContent"
           class="mb-0 text-muted lh-base rte-rendered"
-          style="font-family:'Roboto Condensed'"
-          v-html="item.content"
+          style="font-family: 'Roboto Condensed'"
+          v-html="contentText"
         ></p>
 
         <!-- Long content — truncate plain-text but expand to full HTML -->
@@ -300,14 +314,14 @@ const handleShare = async (platform) => {
           <p
             v-if="!isExpanded"
             class="mb-0 text-muted lh-base rte-rendered"
-            style="font-family:'Roboto Condensed'"
+            style="font-family: 'Roboto Condensed'"
             v-html="truncatedContent + '...'"
           ></p>
           <div
             v-else
             class="mb-0 text-muted lh-base rte-rendered"
-            style="font-family:'Roboto Condensed'"
-            v-html="item.content"
+            style="font-family: 'Roboto Condensed'"
+            v-html="contentText"
           ></div>
           <button
             class="btn btn-link p-0 m-0 align-baseline text-primary fw-semibold text-decoration-none"
@@ -344,7 +358,7 @@ const handleShare = async (platform) => {
                     : 'thumb_up'
             }}
           </span>
-          <span class="fw-semibold text-sm">{{ item.likes + item.hearts }}</span>
+          <span class="fw-semibold text-sm">{{ (item.likes || 0) + (item.hearts || 0) }}</span>
         </button>
 
         <div
@@ -395,7 +409,7 @@ const handleShare = async (platform) => {
         :aria-expanded="showComments"
       >
         <span class="material-symbols-outlined fs-5">chat_bubble_outline</span>
-        <span class="fw-semibold text-sm">{{ item.comments.length }}</span>
+        <span class="fw-semibold text-sm">{{ (item.comments || []).length }}</span>
       </button>
 
       <!-- Share -->
@@ -407,7 +421,7 @@ const handleShare = async (platform) => {
           :aria-expanded="showShareMenu"
         >
           <span class="material-symbols-outlined fs-5">share</span>
-          <span class="fw-semibold text-sm">{{ item.shares }}</span>
+          <span class="fw-semibold text-sm">{{ item.shares || 0 }}</span>
         </button>
 
         <div
@@ -442,7 +456,7 @@ const handleShare = async (platform) => {
     <Transition name="fade">
       <div v-show="showComments" class="pt-3 border-top border-light mt-1 w-100">
         <div class="d-flex flex-column gap-3 mb-3">
-          <div v-for="c in item.comments" :key="c.id" class="d-flex gap-2">
+          <div v-for="c in item.comments || []" :key="c.id" class="d-flex gap-2">
             <img
               :src="c.authorAvatar"
               alt="Commenter Avatar"
@@ -493,6 +507,18 @@ const handleShare = async (platform) => {
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 
+:deep(.rte-rendered) {
+  /* Prevent large injected elements from breaking the layout */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+}
+
 .type-b-img {
   display: block;
   width: 100%;
@@ -500,12 +526,27 @@ const handleShare = async (platform) => {
   object-fit: cover;
 }
 
-:deep(.rte-rendered a)          { color: #e2065f; text-decoration: underline; }
-:deep(.rte-rendered blockquote) { border-left: 3px solid #e2065f; padding-left: 1rem; color: #6c757d; font-style: italic; }
+:deep(.rte-rendered a) {
+  color: #e2065f;
+  text-decoration: underline;
+}
+:deep(.rte-rendered blockquote) {
+  border-left: 3px solid #e2065f;
+  padding-left: 1rem;
+  color: #6c757d;
+  font-style: italic;
+}
 :deep(.rte-rendered ul),
-:deep(.rte-rendered ol)         { padding-left: 1.5rem; margin-bottom: 0; }
-:deep(.rte-rendered p)          { margin-bottom: 0.5rem; }
-:deep(.rte-rendered p:last-child) { margin-bottom: 0; }
+:deep(.rte-rendered ol) {
+  padding-left: 1.5rem;
+  margin-bottom: 0;
+}
+:deep(.rte-rendered p) {
+  margin-bottom: 0.5rem;
+}
+:deep(.rte-rendered p:last-child) {
+  margin-bottom: 0;
+}
 
 .image-wrapper {
   width: 100%;

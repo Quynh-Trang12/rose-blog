@@ -405,7 +405,7 @@ input:-webkit-autofill:active {
 .frosted-glass {
   /* A solid fallback color in case the blur fails, ensuring text contrast */
   background-color: $gray-300;
-  border: rgba($gray-300, 0.3); /* Optional: adds a nice glass edge */
+  border: 1px solid rgba($gray-300, 0.3); /* Optional: adds a nice glass edge */
 }
 
 /* Progressive Enhancement: Only apply the glass effect IF the browser supports it */
@@ -424,8 +424,7 @@ input:-webkit-autofill:active {
 
 /* Accessibility: Remove transparency if the user has requested reduced motion/transparency in their OS settings */
 @media (prefers-reduced-transparency: reduce) {
-  .frosted-glass,
-  .glassmorphism-pink {
+  .frosted-glass {
     background-color: $gray-300; /* Solid light gray */
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -436,7 +435,7 @@ input:-webkit-autofill:active {
 .glassmorphism-pink {
   /* A solid fallback color in case the blur fails, ensuring text contrast */
   background-color: $pink;
-  border: rgba($pink, 0.3); /* Optional: adds a nice glass edge */
+  border: 1px solid rgba($pink, 0.3); /* Optional: adds a nice glass edge */
 }
 
 /* Progressive Enhancement: Only apply the glass effect IF the browser supports it */
@@ -450,5 +449,13 @@ input:-webkit-autofill:active {
 
     /* Standard syntax */
     backdrop-filter: blur(28px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glassmorphism-pink {
+    background-color: $pink; /* Solid light gray */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

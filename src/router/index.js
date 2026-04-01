@@ -54,24 +54,24 @@ const router = createRouter({
 })
 
 // ─── Navigation Guard ──────────────────────────────────────────────────────
-// Import lazily to avoid circular dependency with Pinia
-router.beforeEach((to, _from, next) => {
-  // Dynamically import so the guard always reads fresh store state
-  import('@/stores/authStore').then(({ useAuthStore }) => {
-    const auth = useAuthStore()
+// Converted to async/await to prevent race conditions with the router
+router.beforeEach(async (to, _from) => {
+  // Dynamically import and await so the guard reads fresh store state synchronously
+  const { useAuthStore } = await import('@/stores/authStore')
+  const auth = useAuthStore()
 
-    if (to.meta.requiresAuth && !auth.isLoggedIn) {
-      // Not logged in → redirect to unauthorized page
-      return next({ name: 'unauthorized' })
-    }
+  if (to.meta.requiresAuth && !auth.isLoggedIn) {
+    // Not logged in → redirect to unauthorized page
+    return { name: 'unauthorized' }
+  }
 
-    if (to.meta.requiresAdmin && !auth.isAdmin) {
-      // Logged in but not admin → redirect to unauthorized page
-      return next({ name: 'unauthorized' })
-    }
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
+    // Logged in but not admin → redirect to unauthorized page
+    return { name: 'unauthorized' }
+  }
 
-    next()
-  })
+  // Returning undefined (or true) allows the navigation to proceed
+  return true
 })
 
 export default router
