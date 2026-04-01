@@ -91,7 +91,7 @@ export default {
       // Default coordinates (Melbourne, AU)
       var lat = -37.814
       var lon = 144.9633
-      this.locationDisplay = 'Find Current Location...'
+      this.locationDisplay = 'Loading Location...'
 
       // 2. Geolocation logic
       var getGeoLocation = new Promise(function (resolve) {
@@ -197,7 +197,7 @@ export default {
           </p>
 
           <div
-            class="fs-5 fw-bolder text-primary fst-italic ls-1 m-0 p-0"
+            class="fs-4 fw-bolder text-primary fst-italic ls-1 m-0 p-0"
             style="text-shadow: 0 0 3px var(--color-primary); font-family: 'Zilla Slab'"
           >
             {{ locationDisplay }}
@@ -219,7 +219,7 @@ export default {
 
         <!-- Visual Feedback Area (Icon & Temp) -->
         <div
-          class="text-end flex-shrink-0 flex-wrap flex-column align-items-start justify-content-between"
+          class="text-end flex-shrink-0 flex-wrap flex-column align-items-start justify-content-center"
         >
           <!-- Loading Spinner -->
           <div v-if="isLoading" class="spinner-border text-muted" role="status">
@@ -227,19 +227,22 @@ export default {
           </div>
 
           <!-- Weather Visuals -->
-          <template v-else>
+          <div v-else class="d-flex flex-column">
             <div
               class="material-symbols-outlined icon-solid top-0"
-              style="font-size: 2.3rem"
+              style="font-size: 2.4rem"
               :class="iconGradient"
               aria-hidden="true"
             >
               {{ weatherIcon }}
             </div>
-            <div class="fw-bolder text-secondary fs-2 lh-md" aria-label="temperature">
-              {{ temperature }}&deg;C
+            <div class="fw-bolder text-secondary fs-3 lh-md" aria-label="temperature">
+              {{ temperature }}
             </div>
-          </template>
+            <div class="fw-bolder text-secondary fs-3 lh-md" aria-label="degrees Celsius">
+              &deg;C
+            </div>
+          </div>
         </div>
       </div>
     </div>
