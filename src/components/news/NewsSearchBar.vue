@@ -1,47 +1,112 @@
-<script setup>
-import { ref, watch } from 'vue'
-import { useNewsStore } from '@/stores/newsStore'
+<script>
+/**
+ * ==========================================
+ * COMPONENT: NewsSearchBar.vue
+ * ==========================================
+ * Description:
+ * A slide-down modal component that provides advanced filtering options
+ * for the news article list, including date ranges, categories,
+ * and keyword-based search.
+ */
+import { mapState, mapActions } from 'vuex'
 
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    default: false,
+export default {
+  name: 'NewsSearchBar',
+
+  // ==========================================
+  // PROPS
+  // ==========================================
+  props: {
+    modelValue: {
+      type: Boolean,
+      default: false,
+    },
   },
-})
 
-const emit = defineEmits(['update:modelValue'])
+  // ==========================================
+  // EMITS
+  // ==========================================
+  emits: ['update:modelValue'],
 
-const newsStore = useNewsStore()
-
-const localFilters = ref({ ...newsStore.filters })
-
-watch(
-  () => props.modelValue,
-  (val) => {
-    if (val) {
-      localFilters.value = { ...newsStore.filters }
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      // Explanation: Local filter state synced from the store when the modal opens.
+      localFilters: {
+        date: 'all',
+        category: 'all',
+        keyword: '',
+      },
     }
   },
-)
 
-const close = () => {
-  emit('update:modelValue', false)
-}
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapState('news', ['filters']),
+  },
 
-const applyFilters = () => {
-  newsStore.applyFilters(localFilters.value)
-  close()
-}
+  // ==========================================
+  // WATCH
+  // ==========================================
+  watch: {
+    /**
+     * When the modal opens, synchronize the local filter state with the global store.
+     */
+    modelValue: function (val) {
+      if (val) {
+        this.localFilters = { ...this.filters }
+      }
+    },
+  },
 
-const isCategoryActive = (category) => localFilters.value.category === category
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('news', ['applyFilters']),
 
-const setCategory = (category) => {
-  localFilters.value.category = category
+    /**
+     * Closes the filter modal by emitting a false value for v-model.
+     */
+    close: function () {
+      this.$emit('update:modelValue', false)
+    },
+
+    /**
+     * Submits the locally modified filters to the Vuex news store.
+     */
+    handleApplyFilters: function () {
+      // Explanation: Dispatches the local filter state to the news module action.
+      this.applyFilters(this.localFilters)
+      this.close()
+    },
+
+    /**
+     * Helper to check if a category is currently selected in the local filter state.
+     * @param {string} category - Category name to check
+     * @returns {boolean}
+     */
+    isCategoryActive: function (category) {
+      return this.localFilters.category === category
+    },
+
+    /**
+     * Updates the local category selection.
+     * @param {string} category - Category name
+     */
+    setCategory: function (category) {
+      this.localFilters.category = category
+    },
+  },
 }
 </script>
 
 <template>
-  <Transition name="drop-down">
+  <transition name="drop-down">
     <div
       v-if="modelValue"
       class="news-filter-overlay"
@@ -50,6 +115,7 @@ const setCategory = (category) => {
       aria-labelledby="filter-modal-title"
     >
       <div class="news-filter-modal frosted-glass rounded-4 shadow-lg p-4" v-click-outside="close">
+        <!-- Modal Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 id="filter-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab'">
             Filter & Search
@@ -58,7 +124,7 @@ const setCategory = (category) => {
         </div>
 
         <div class="d-flex flex-column gap-4">
-          <!-- DATE -->
+          <!-- DATE FILTER SECTION -->
           <div>
             <label class="text-xs fw-bold text-uppercase ls-1 text-muted mb-2">Date</label>
             <select
@@ -74,10 +140,11 @@ const setCategory = (category) => {
             </select>
           </div>
 
-          <!-- CATEGORY -->
+          <!-- CATEGORY FILTER SECTION -->
           <div>
             <label class="text-xs fw-bold text-uppercase ls-1 text-muted mb-2">Category</label>
             <div class="d-flex flex-wrap gap-2">
+              <!-- Explanation: Category badge buttons that toggle local selection -->
               <button
                 class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
                 :class="isCategoryActive('all') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
@@ -87,33 +154,21 @@ const setCategory = (category) => {
               </button>
               <button
                 class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="
-                  isCategoryActive('Health & Remedies')
-                    ? 'btn-primary shadow-sm'
-                    : 'btn-outline-secondary'
-                "
+                :class="isCategoryActive('Health & Remedies') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
                 @click="setCategory('Health & Remedies')"
               >
                 Health & Remedies
               </button>
               <button
                 class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="
-                  isCategoryActive('Garden Stories')
-                    ? 'btn-primary shadow-sm'
-                    : 'btn-outline-secondary'
-                "
+                :class="isCategoryActive('Garden Stories') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
                 @click="setCategory('Garden Stories')"
               >
                 Garden Stories
               </button>
               <button
                 class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="
-                  isCategoryActive('Life & Reflections')
-                    ? 'btn-primary shadow-sm'
-                    : 'btn-outline-secondary'
-                "
+                :class="isCategoryActive('Life & Reflections') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
                 @click="setCategory('Life & Reflections')"
               >
                 Life & Reflections
@@ -121,7 +176,7 @@ const setCategory = (category) => {
             </div>
           </div>
 
-          <!-- KEYWORDS -->
+          <!-- KEYWORD SEARCH SECTION -->
           <div>
             <label class="text-xs fw-bold text-uppercase ls-1 text-muted mb-2">Keywords</label>
             <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
@@ -133,16 +188,16 @@ const setCategory = (category) => {
                 class="form-control border-0 ps-1"
                 placeholder="Search articles..."
                 v-model="localFilters.keyword"
-                @keyup.enter="applyFilters"
+                @keyup.enter="handleApplyFilters"
                 aria-label="Search keywords"
               />
-              <button class="btn btn-primary fw-bold px-4" @click="applyFilters">SEARCH</button>
+              <button class="btn btn-primary fw-bold px-4" @click="handleApplyFilters">SEARCH</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </Transition>
+  </transition>
 </template>
 
 <style scoped lang="scss">

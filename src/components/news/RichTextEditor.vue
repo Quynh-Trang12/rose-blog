@@ -1,5 +1,15 @@
-<!-- src/components/news/RichTextEditor.vue -->
 <script setup>
+// NOTE: RichTextEditor intentionally retains <script setup> because it depends on
+// useEditor() from @tiptap/vue-3, a hook that only works in the Composition API context.
+/**
+ * ==========================================
+ * COMPONENT: RichTextEditor.vue
+ * ==========================================
+ * Description:
+ * A modern rich-text editor based on TipTap. Provides a toolbar for
+ * formatting (Bold, Italic, Bullets, Links, etc.) and integrates
+ * seamlessly with v-model for parent components.
+ */
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'

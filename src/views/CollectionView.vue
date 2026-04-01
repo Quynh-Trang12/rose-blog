@@ -1,27 +1,93 @@
-<script setup>
-import { computed } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
-import { useNewsStore } from '@/stores/newsStore'
+<script>
+/**
+ * ==========================================
+ * COMPONENT: CollectionView.vue
+ * ==========================================
+ * Description:
+ * A dedicated gallery for authenticated users to view their saved news
+ * articles and curated rose information. Restricted by navigation guards.
+ */
+import { mapState, mapGetters, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
 
-const authStore = useAuthStore()
-const newsStore = useNewsStore()
+export default {
+  name: 'CollectionView',
 
-const savedArticles = computed(() => {
-  return newsStore.filteredArticles.filter((a) =>
-    authStore.mySavedPostIds.some((id) => String(id) === String(a.id)),
-  )
-})
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+  components: {
+    NewsCard,
+  },
 
-const isOwner = (item) => {
-  if (!authStore.isLoggedIn) return false
-  return authStore.currentUser.displayName === item.authorName
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      // Explanation: selectedRose state for the (optional/legacy) detail modal.
+      selectedRose: null,
+    }
+  },
+
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapState('auth', ['currentUser']),
+    ...mapState('news', ['articles']),
+    ...mapGetters('auth', ['isLoggedIn', 'mySavedPostIds']),
+    ...mapGetters('news', ['filteredArticles']),
+
+    /**
+     * Filters the global news articles to only include those saved by the current user.
+     * @returns {Array} List of saved article objects
+     */
+    savedArticles: function () {
+      var self = this
+      return this.filteredArticles.filter(function (article) {
+        return self.mySavedPostIds.some(function (savedId) {
+          return String(savedId) === String(article.id)
+        })
+      })
+    },
+  },
+
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('news', [
+      'reactToArticle',
+      'addComment',
+      'incrementShare',
+      'updateArticle',
+      'deleteArticle',
+    ]),
+
+    /**
+     * Checks if the current user is the author of a specific item.
+     * @param {Object} item - The news item object
+     * @returns {boolean}
+     */
+    isOwner: function (item) {
+      if (!this.isLoggedIn) return false
+      return this.currentUser.displayName === item.authorName
+    },
+
+    /**
+     * Closes the rose detail modal.
+     */
+    closeDetail: function () {
+      this.selectedRose = null
+    },
+  },
 }
 </script>
 
 <template>
   <div class="position-relative min-vh-100 py-5">
-    <!-- Background layer -->
+    <!-- Visual Background Layer -->
     <div
       class="position-fixed top-0 start-0 w-100 h-100"
       aria-hidden="true"
@@ -32,7 +98,7 @@ const isOwner = (item) => {
     ></div>
 
     <div class="container position-relative z-1 pt-4">
-      <!-- Header -->
+      <!-- Page Header -->
       <div class="mb-5">
         <h1
           class="display-4 fw-bold fst-italic mb-1 animate-fade-up"
@@ -45,94 +111,28 @@ const isOwner = (item) => {
         </p>
       </div>
 
+      <!-- Stats Summary -->
       <div class="mb-4">
         <p class="text-muted text-sm" style="font-family: 'Roboto Condensed'">
           Showing saved articles: <strong>{{ savedArticles.length }}</strong> of
-          <strong>{{ newsStore.articles.length }}</strong>
+          <strong>{{ articles.length }}</strong>
         </p>
       </div>
 
-      <div v-if="!authStore.isLoggedIn" class="text-center py-5 animate-fade-up">
+      <!-- Unauthorized State -->
+      <div v-if="!isLoggedIn" class="text-center py-5 animate-fade-up">
         <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">lock</span>
         <p class="text-muted fst-italic text-lg">Please login to view your collection.</p>
       </div>
 
+      <!-- Empty Collection State -->
       <div v-else-if="savedArticles.length === 0" class="text-center py-5 animate-fade-up">
         <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">bookmark_border</span>
         <p class="text-muted fst-italic text-lg">You have no saved articles yet.</p>
       </div>
 
-      <!-- Rose Grid -->
-      <!-- <div v-else class="row g-4">
-        <div
-          v-for="rose in newsStore.filteredRoses"
-          :key="rose.id"
-          class="col-12 col-sm-6 col-lg-4"
-        >
-          <article
-            class="card border-0 rounded-4 overflow-hidden shadow-sm h-100 img-zoom-hover"
-            :class="{ 'border-2 border-primary': rose.isFeatured }"
-            role="button"
-            tabindex="0"
-            :aria-label="`View details for ${rose.name}`"
-            @click="openDetail(rose)"
-            @keyup.enter="openDetail(rose)"
-          > -->
-      <!-- Image with lazy load -->
-      <!-- <div style="height:220px;overflow:hidden;position:relative">
-              <img
-                v-lazy-load="rose.imageUrl"
-                :alt="`${rose.name} rose`"
-                class="img-zoom w-100 h-100"
-                style="object-fit:cover"
-              /> -->
-      <!-- Featured badge -->
-      <!-- <span
-                v-if="rose.isFeatured"
-                class="position-absolute top-0 end-0 m-2 badge rounded-pill bg-primary text-white text-xs fw-bold px-2 py-1"
-              >
-                ⭐ Featured
-              </span>
-            </div>
-
-            <div class="card-body p-4">
-              <div class="d-flex align-items-center gap-2 mb-2"> -->
-      <!-- Color dot -->
-      <!-- <span
-                  class="rounded-circle border"
-                  style="width:14px;height:14px;flex-shrink:0"
-                  :style="{ backgroundColor: colorDotMap[rose.color] || '#ccc' }"
-                  :title="rose.color"
-                ></span>
-                <span class="badge rounded-pill glassmorphism-pink text-primary text-xs fw-bold px-2">
-                  {{ rose.type }}
-                </span>
-              </div>
-              <h3 class="h5 fw-bold text-dark mb-1" style="font-family:'Zilla Slab';font-style:italic">
-                {{ rose.name }}
-              </h3>
-              <p class="text-muted text-sm mb-3" style="font-family:'Roboto Condensed';display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
-                {{ rose.description }}
-              </p> -->
-
-      <!-- Meta chips -->
-      <!-- <div class="d-flex flex-wrap gap-2 mt-auto">
-                <span class="d-flex align-items-center gap-1 text-xs text-muted fw-semibold">
-                  <span class="material-symbols-outlined" style="font-size:0.9rem">air</span>
-                  {{ rose.fragrance }} Fragrance
-                </span>
-                <span class="d-flex align-items-center gap-1 text-xs text-muted fw-semibold">
-                  <span class="material-symbols-outlined" style="font-size:0.9rem">calendar_month</span>
-                  {{ rose.bloomSeason }}
-                </span>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div> -->
-
-      <!-- ─── My Collection (Saved News Posts) ────────────────────────── -->
-      <div v-if="savedArticles.length > 0" class="mt-5 pt-5 animate-fade-up">
+      <!-- Saved Articles Grid -->
+      <div v-if="savedArticles.length > 0" class="mt-5 pt-3 animate-fade-up">
         <div class="mb-4 d-flex align-items-center gap-3">
           <h2
             class="display-5 fw-bold fst-italic mb-0"
@@ -154,34 +154,35 @@ const isOwner = (item) => {
             <NewsCard
               :item="item"
               layout="A"
-              :is-authed="authStore.isLoggedIn"
+              :is-authed="isLoggedIn"
               :is-owner="isOwner(item)"
-              @react="newsStore.reactToArticle"
-              @comment="newsStore.addComment"
-              @share="newsStore.incrementShare"
-              @edit="newsStore.updateArticle"
-              @delete="newsStore.deleteArticle"
+              @react="reactToArticle"
+              @comment="addComment"
+              @share="incrementShare"
+              @edit="updateArticle"
+              @delete="deleteArticle"
             />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ─── Detail Modal ──────────────────────────────────────────────── -->
-    <Teleport to="body">
-      <Transition name="fade">
+    <!-- Rose Detail Modal (Legacy/Optional - triggered by specific card interactions) -->
+    <teleport to="body">
+      <transition name="fade">
         <div
           v-if="selectedRose"
           class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
           style="z-index: 1055; background: rgba(0, 0, 0, 0.55)"
           role="dialog"
-          :aria-label="`Details for ${selectedRose.name}`"
+          :aria-label="'Details for ' + selectedRose.name"
           @click.self="closeDetail"
         >
           <div
             class="card border-0 rounded-4 shadow-lg overflow-hidden animate-fade-up"
             style="max-width: 680px; width: 100%"
           >
+            <!-- Image Area -->
             <div style="position: relative; height: 280px; overflow: hidden">
               <img
                 v-lazy-load="selectedRose.imageUrl"
@@ -213,6 +214,7 @@ const isOwner = (item) => {
                 </h2>
               </div>
             </div>
+            <!-- Body Content -->
             <div class="card-body p-4">
               <p
                 class="text-muted mb-4"
@@ -220,31 +222,32 @@ const isOwner = (item) => {
               >
                 {{ selectedRose.description }}
               </p>
+              <!-- Info grid -->
               <div class="row g-3 text-center">
                 <div
-                  v-for="[label, value] in [
-                    ['Type', selectedRose.type],
-                    ['Color', selectedRose.color],
-                    ['Fragrance', selectedRose.fragrance],
-                    ['Bloom', selectedRose.bloomSeason],
-                    ['Hardiness', selectedRose.hardiness],
+                  v-for="info in [
+                    { label: 'Type', value: selectedRose.type },
+                    { label: 'Color', value: selectedRose.color },
+                    { label: 'Fragrance', value: selectedRose.fragrance },
+                    { label: 'Bloom', value: selectedRose.bloomSeason },
+                    { label: 'Hardiness', value: selectedRose.hardiness },
                   ]"
-                  :key="label"
+                  :key="info.label"
                   class="col-4 col-sm"
                 >
                   <div class="frosted-glass rounded-3 p-3 h-100">
                     <div class="text-xs text-muted fw-bold text-uppercase ls-1 mb-1">
-                      {{ label }}
+                      {{ info.label }}
                     </div>
-                    <div class="fw-bold text-dark text-sm">{{ value }}</div>
+                    <div class="fw-bold text-dark text-sm">{{ info.value }}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </Transition>
-    </Teleport>
+      </transition>
+    </teleport>
   </div>
 </template>
 

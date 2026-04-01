@@ -1,163 +1,270 @@
-<script setup>
-import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+<script>
+/**
+ * ==========================================
+ * COMPONENT: NewsCard.vue
+ * ==========================================
+ * Description:
+ * A versatile news display card that supports multiple layout styles (A, B, C).
+ * Handles social interactions (likes, comments, shares) and provides
+ * edit/delete functionality if the current user is the author.
+ */
+import { mapGetters, mapActions } from 'vuex'
 
-const props = defineProps({
-  item: {
-    type: Object,
-    required: true,
+export default {
+  name: 'NewsCard',
+
+  // ==========================================
+  // PROPS
+  // ==========================================
+  props: {
+    item: {
+      type: Object,
+      required: true,
+    },
+    isAuthed: {
+      type: Boolean,
+      default: false,
+    },
+    isOwner: {
+      type: Boolean,
+      default: false,
+    },
   },
-  isAuthed: {
-    type: Boolean,
-    default: false,
-  },
-  isOwner: {
-    type: Boolean,
-    default: false,
-  },
-})
 
-const authStore = useAuthStore()
-const emit = defineEmits(['react', 'comment', 'share', 'edit', 'delete'])
+  // ==========================================
+  // EMITS
+  // ==========================================
+  emits: ['react', 'comment', 'share', 'edit', 'delete'],
 
-const hasImage = computed(
-  () => (props.item.images && props.item.images.length > 0) || !!props.item.image,
-)
-const contentText = computed(() => props.item.content || props.item.description || '')
-const isLongContent = computed(() => contentText.value.length > 150)
-
-// Truncated content for Type C
-const truncatedContent = computed(() => {
-  const stripped = contentText.value.replace(/<[^>]*>/g, '')
-  return stripped.length > 150 ? stripped.substring(0, 120) : stripped
-})
-
-const isExpanded = ref(false)
-
-// Formatting
-const formattedDate = computed(() => {
-  const d = new Date(props.item.date)
-  return d.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-})
-
-// Menus & Popovers
-const showEllipsisMenu = ref(false)
-const showReactionPicker = ref(false)
-const showComments = ref(false)
-const showShareMenu = ref(false)
-const commentText = ref('')
-const isEditing = ref(false)
-const editTitle = ref('')
-const editContent = ref('')
-const isSaved = computed(() =>
-  authStore.mySavedPostIds.some((id) => String(id) === String(props.item.id)),
-)
-
-const toggleSave = () => {
-  if (!props.isAuthed) {
-    alert('Please log in to save news items.')
-    return
-  }
-  authStore.toggleSavePost(props.item.id)
-  closeEllipsis()
-}
-
-const toggleEllipsis = () => {
-  showEllipsisMenu.value = !showEllipsisMenu.value
-  showShareMenu.value = false
-}
-
-const toggleShare = () => {
-  showShareMenu.value = !showShareMenu.value
-  showEllipsisMenu.value = false
-}
-
-const closeEllipsis = () => {
-  showEllipsisMenu.value = false
-}
-
-const closeShare = () => {
-  showShareMenu.value = false
-}
-
-// Actions
-const initiateEdit = () => {
-  closeEllipsis()
-  if (!props.isOwner) return
-  isEditing.value = true
-  editTitle.value = props.item.title
-  editContent.value = contentText.value
-}
-
-const saveEdit = () => {
-  if (editTitle.value.trim() && editContent.value.trim()) {
-    emit('edit', props.item.id, {
-      title: editTitle.value.trim(),
-      content: editContent.value.trim(),
-    })
-    isEditing.value = false
-  }
-}
-
-const cancelEdit = () => {
-  isEditing.value = false
-}
-
-const requestDelete = () => {
-  closeEllipsis()
-  if (!props.isOwner) return
-  if (window.confirm('Are you sure you want to delete this post?')) {
-    emit('delete', props.item.id)
-  }
-}
-
-const handleReact = (reaction) => {
-  emit('react', { id: props.item.id, reaction })
-  showReactionPicker.value = false
-}
-
-const submitComment = () => {
-  if (commentText.value.trim() && props.isAuthed) {
-    emit('comment', {
-      id: props.item.id,
-      text: commentText.value.trim(),
-      author: { displayName: 'Current User', avatar: 'https://i.pravatar.cc/40' },
-    }) // Assuming newsStore will actually provide real user, passing shell object
-    commentText.value = ''
-  }
-}
-
-const handleShare = async (platform) => {
-  if (platform === 'link') {
-    try {
-      await navigator.clipboard.writeText(
-        window.location.href.split('#')[0] + '#post-' + props.item.id,
-      )
-      alert('Link copied to clipboard')
-    } catch (err) {
-      console.error('Failed to copy', err)
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      isExpanded: false,
+      showEllipsisMenu: false,
+      showReactionPicker: false,
+      showComments: false,
+      showShareMenu: false,
+      commentText: '',
+      isEditing: false,
+      editTitle: '',
+      editContent: '',
     }
-  }
-  emit('share', { id: props.item.id, platform })
-  closeShare()
+  },
+
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapGetters('auth', ['mySavedPostIds']),
+
+    /**
+     * Determines if the current post has associated imagery.
+     */
+    hasImage: function () {
+      return (this.item.images && this.item.images.length > 0) || !!this.item.image
+    },
+
+    /**
+     * Normalizes the content source (handling legacy content vs description fields).
+     */
+    contentText: function () {
+      return this.item.content || this.item.description || ''
+    },
+
+    /**
+     * Flag for content that exceeds standard teaser length.
+     */
+    isLongContent: function () {
+      return this.contentText.length > 150
+    },
+
+    /**
+     * Truncated version of the content for teaser views.
+     */
+    truncatedContent: function () {
+      var stripped = this.contentText.replace(/<[^>]*>/g, '')
+      return stripped.length > 150 ? stripped.substring(0, 120) : stripped
+    },
+
+    /**
+     * Formats the ISO date string into a user-friendly local date.
+     */
+    formattedDate: function () {
+      var d = new Date(this.item.date)
+      return d.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
+    },
+
+    /**
+     * Checks if this post ID is in the current user's saved list via Vuex.
+     */
+    isSaved: function () {
+      var self = this
+      return this.mySavedPostIds.some(function (id) {
+        return String(id) === String(self.item.id)
+      })
+    },
+  },
+
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('auth', ['toggleSavePost']),
+
+    /**
+     * Toggles bookmark state for the current post.
+     */
+    toggleSave: function () {
+      if (!this.isAuthed) {
+        alert('Please log in to save news items.')
+        return
+      }
+      // Explanation: Dispatching to Vuex to update persistent saved list.
+      this.toggleSavePost(this.item.id)
+      this.showEllipsisMenu = false
+    },
+
+    /**
+     * Toggles the post options menu (ellipsis).
+     */
+    toggleEllipsis: function () {
+      this.showEllipsisMenu = !this.showEllipsisMenu
+      this.showShareMenu = false
+    },
+
+    /**
+     * Toggles the share options menu.
+     */
+    toggleShare: function () {
+      this.showShareMenu = !this.showShareMenu
+      this.showEllipsisMenu = false
+    },
+
+    /**
+     * Closes the ellipsis menu.
+     */
+    closeEllipsis: function () {
+      this.showEllipsisMenu = false
+    },
+
+    /**
+     * Closes the share menu.
+     */
+    closeShare: function () {
+      this.showShareMenu = false
+    },
+
+    /**
+     * Prepares the card for inline editing if ownership is verified.
+     */
+    initiateEdit: function () {
+      this.showEllipsisMenu = false
+      if (!this.isOwner) return
+      this.isEditing = true
+      this.editTitle = this.item.title
+      this.editContent = this.contentText
+    },
+
+    /**
+     * Emits the updated content to the parent for persistence.
+     */
+    saveEdit: function () {
+      if (this.editTitle.trim() && this.editContent.trim()) {
+        this.$emit('edit', this.item.id, {
+          title: this.editTitle.trim(),
+          content: this.editContent.trim(),
+        })
+        this.isEditing = false
+      }
+    },
+
+    /**
+     * Exits edit mode without saving.
+     */
+    cancelEdit: function () {
+      this.isEditing = false
+    },
+
+    /**
+     * Emits a delete request if confirmed by the user.
+     */
+    requestDelete: function () {
+      this.showEllipsisMenu = false
+      if (!this.isOwner) return
+      if (window.confirm('Are you sure you want to delete this post?')) {
+        this.$emit('delete', this.item.id)
+      }
+    },
+
+    /**
+     * Emits a reaction event to be handled by the parent.
+     * @param {string} reaction - Type of reaction (favorite, thumb_up, etc.)
+     */
+    handleReact: function (reaction) {
+      this.$emit('react', { id: this.item.id, reaction: reaction })
+      this.showReactionPicker = false
+    },
+
+    /**
+     * Validates and emits a new comment.
+     */
+    submitComment: function () {
+      if (this.commentText.trim() && this.isAuthed) {
+        this.$emit('comment', {
+          id: this.item.id,
+          comment: {
+            id: Date.now(),
+            text: this.commentText.trim(),
+            authorName: this.$store.state.auth.currentUser.displayName,
+            authorAvatar:
+              'https://i.pravatar.cc/40?u=' + this.$store.state.auth.currentUser.username,
+          },
+        })
+        this.commentText = ''
+      }
+    },
+
+    /**
+     * Handles sharing to various platforms.
+     * @param {string} platform - The target platform key
+     */
+    handleShare: function (platform) {
+      // var self = this
+      if (platform === 'link') {
+        try {
+          navigator.clipboard.writeText(
+            window.location.href.split('#')[0] + '#post-' + this.item.id,
+          )
+          alert('Link copied to clipboard')
+        } catch (err) {
+          console.error('Failed to copy', err)
+        }
+      }
+      this.$emit('share', { id: this.item.id, platform: platform })
+      this.showShareMenu = false
+    },
+  },
 }
 </script>
 
 <template>
+  <!-- Main Card Container -->
   <div
     class="news-card frosted-glass rounded-4 shadow-sm p-3 position-relative d-flex flex-column gap-3"
     :id="'post-' + item.id"
   >
-    <!-- 1. Card Header -->
+    <!-- 1. Card Header: Author info and status -->
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex align-items-center gap-2 mb-2">
         <img
           :src="item.authorAvatar || 'https://i.pravatar.cc/150?u=anonymous'"
-          :alt="`Avatar for ${item.id}`"
+          :alt="'Avatar for ' + item.id"
           class="rounded-circle"
           width="40"
           height="40"
@@ -182,12 +289,14 @@ const handleShare = async (platform) => {
       </div>
 
       <div class="d-flex align-items-center gap-3">
+        <!-- Category Badge -->
         <span
           class="badge rounded-pill text-xs fw-bolder ls-1 text-primary text-uppercase glassmorphism-pink p-2"
         >
           {{ item.type || item.category || 'Rose News' }}
         </span>
 
+        <!-- Post Options Menu (Ellipsis) -->
         <div class="position-relative">
           <button
             class="btn btn-sm btn-light rounded-circle p-1 d-flex align-items-center justify-content-center"
@@ -199,12 +308,14 @@ const handleShare = async (platform) => {
             <span class="material-symbols-outlined fs-5">more_horiz</span>
           </button>
 
+          <!-- Dropdown Menu -->
           <div
             v-if="showEllipsisMenu"
             v-click-outside="closeEllipsis"
             class="frosted-glass rounded-3 shadow-lg position-absolute end-0 top-100 mt-1 py-1 d-flex flex-column z-3"
             style="min-width: 150px; border: 1px solid rgba(255, 255, 255, 0.2)"
           >
+            <!-- Save Post -->
             <button
               class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
               :disabled="!isAuthed"
@@ -217,6 +328,7 @@ const handleShare = async (platform) => {
               }}</span>
               {{ isSaved ? 'Unsave' : 'Save' }}
             </button>
+            <!-- Edit Post (Owner only) -->
             <button
               class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
               :disabled="!isAuthed || !isOwner"
@@ -229,6 +341,7 @@ const handleShare = async (platform) => {
             >
               <span class="material-symbols-outlined fs-5">edit</span> Edit
             </button>
+            <!-- Delete Post (Owner only) -->
             <button
               class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
               :disabled="!isAuthed || !isOwner"
@@ -246,7 +359,9 @@ const handleShare = async (platform) => {
       </div>
     </div>
 
-    <!-- 2. Card Body -->
+    <!-- 2. Card Body: Content area -->
+
+    <!-- Inline Edit Form -->
     <div v-if="isEditing" class="edit-form p-2 bg-white rounded-3 mb-2 shadow-sm border">
       <input
         type="text"
@@ -269,14 +384,14 @@ const handleShare = async (platform) => {
     </div>
 
     <div v-else>
-      <!-- TYPE B (Image) -->
+      <!-- Layout Type B: Featured Image with Overlay Text -->
       <div
         v-if="item.layoutType === 'B' && hasImage"
         class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm z-0"
       >
         <img
           v-lazy-load="item.images && item.images.length > 0 ? item.images[0] : item.image"
-          :alt="`Cover image for ${item.title}`"
+          :alt="'Cover image for ' + item.title"
           class="type-b-img w-100 h-100 object-fit-cover"
         />
         <div class="position-absolute bottom-0 start-0 w-100 p-4 pt-5 overlay-gradient text-white">
@@ -292,7 +407,7 @@ const handleShare = async (platform) => {
         </div>
       </div>
 
-      <!-- TYPE A & C (Text) -->
+      <!-- Layout Type A & C: Standard Text Layout -->
       <div v-else class="type-text-card pt-2 pb-1 px-1">
         <h2
           class="fs-4 mb-2 fw-bold"
@@ -301,7 +416,7 @@ const handleShare = async (platform) => {
           {{ item.title }}
         </h2>
 
-        <!-- Not long — render HTML directly -->
+        <!-- Short Content View -->
         <p
           v-if="!isLongContent"
           class="mb-0 text-muted lh-base rte-rendered"
@@ -309,7 +424,7 @@ const handleShare = async (platform) => {
           v-html="contentText"
         ></p>
 
-        <!-- Long content — truncate plain-text but expand to full HTML -->
+        <!-- Long Content View with Read More toggle -->
         <div v-else>
           <p
             v-if="!isExpanded"
@@ -333,9 +448,9 @@ const handleShare = async (platform) => {
       </div>
     </div>
 
-    <!-- 3. Social Row -->
+    <!-- 3. Social Interaction Row (Reactions, Comments, Share) -->
     <div class="d-flex align-items-center gap-3 pt-2 border-top border-light position-relative">
-      <!-- Reaction -->
+      <!-- Reaction Picker and Count -->
       <div
         class="position-relative"
         @mouseenter="showReactionPicker = true"
@@ -361,6 +476,7 @@ const handleShare = async (platform) => {
           <span class="fw-semibold text-sm">{{ (item.likes || 0) + (item.hearts || 0) }}</span>
         </button>
 
+        <!-- Dynamic Reaction Popover -->
         <div
           v-show="showReactionPicker"
           class="position-absolute start-0 z-3 pb-2"
@@ -401,7 +517,7 @@ const handleShare = async (platform) => {
         </div>
       </div>
 
-      <!-- Comment -->
+      <!-- Comment Toggle -->
       <button
         class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn"
         @click="showComments = !showComments"
@@ -412,7 +528,7 @@ const handleShare = async (platform) => {
         <span class="fw-semibold text-sm">{{ (item.comments || []).length }}</span>
       </button>
 
-      <!-- Share -->
+      <!-- Share Menu -->
       <div class="position-relative ms-auto">
         <button
           class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn"
@@ -453,9 +569,10 @@ const handleShare = async (platform) => {
     </div>
 
     <!-- 4. Comments Section (Collapsible) -->
-    <Transition name="fade">
+    <transition name="fade">
       <div v-show="showComments" class="pt-3 border-top border-light mt-1 w-100">
         <div class="d-flex flex-column gap-3 mb-3">
+          <!-- Explanation: Iterates through comments stored in the article object -->
           <div v-for="c in item.comments || []" :key="c.id" class="d-flex gap-2">
             <img
               :src="c.authorAvatar"
@@ -475,6 +592,7 @@ const handleShare = async (platform) => {
           </div>
         </div>
 
+        <!-- New Comment Input (Visible only if logged in) -->
         <div v-if="isAuthed" class="d-flex gap-2 align-items-start mt-2">
           <textarea
             class="form-control rounded-3 border bg-light text-sm"
@@ -491,6 +609,7 @@ const handleShare = async (platform) => {
             <span class="material-symbols-outlined fs-5">send</span>
           </button>
         </div>
+        <!-- Lock placeholder for guests -->
         <div
           v-else
           class="text-center p-2 rounded-3 bg-light d-flex align-items-center justify-content-center gap-2 mt-2 border"
@@ -499,7 +618,7 @@ const handleShare = async (platform) => {
           <p class="mb-0 text-muted fst-italic text-sm">Log in to join the conversation.</p>
         </div>
       </div>
-    </Transition>
+    </transition>
   </div>
 </template>
 
@@ -548,13 +667,6 @@ const handleShare = async (platform) => {
   margin-bottom: 0;
 }
 
-.image-wrapper {
-  width: 100%;
-  padding-top: 75%; /* 4:3 Aspect Ratio */
-  background-size: cover;
-  background-position: center;
-}
-
 .overlay-gradient {
   background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
 }
@@ -593,13 +705,9 @@ const handleShare = async (platform) => {
     padding 0.3s ease,
     max-height 0.3s ease;
   overflow: hidden;
-  //  max-height: 500px;
 }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  //  max-height: 0;
-  //  margin-top: 0 !important;
-  //  padding-top: 0 !important;
 }
 </style>

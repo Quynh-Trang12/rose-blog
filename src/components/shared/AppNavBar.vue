@@ -1,194 +1,266 @@
-<script setup>
+<script>
 /**
- * The main application navigation bar. Handles routing,
- * responsive menu toggling, desktop slider animations, and
- * orchestrates the authentication modal visibility.
+ * ==========================================
+ * COMPONENT: AppNavBar.vue
+ * ==========================================
+ * Description:
+ * The main application navigation bar. Handles routing, responsive menu toggling,
+ * desktop slider animations, and orchestrates the authentication modal visibility.
  */
-
-import { ref, computed, nextTick, watch, onBeforeUpdate } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
+import { mapGetters, mapActions } from 'vuex'
 import AuthModal from '@/components/auth/AuthModal.vue'
 
-// ==========================================
-// 1. STATE & STORES
-// ==========================================
-const authStore = useAuthStore()
-const route = useRoute()
+export default {
+  name: 'AppNavBar',
 
-const isMenuOpen = ref(false)
-const isAuthModalOpen = ref(false)
-const favoritesCount = computed(() => authStore.favoritesCount)
-
-const navItems = computed(() => {
-  return [
-    { label: 'Home', path: '/' },
-    { label: 'News', path: '/news' },
-    { label: 'About', path: '/about' },
-  ]
-})
-
-// ==========================================
-// 2. ANIMATION & SLIDER REFS
-// ==========================================
-const activeIndex = ref(0)
-const itemRefs = ref([])
-const lastHoveredIndex = ref(-1)
-let leaveTimeout = null
-
-const sliderLeft = ref(0)
-const sliderWidth = ref(0)
-const sliderOpacity = ref(0)
-const sliderTransition = ref('')
-
-const SLIDER_TIMING = 300
-
-onBeforeUpdate(() => {
-  itemRefs.value = []
-})
-
-const isMobileOrTablet = () => window.innerWidth <= 991
-
-// ==========================================
-// 3. METHODS & WATCHERS
-// ==========================================
-const toggleLoginModal = () => {
-  isMenuOpen.value = false
-  isAuthModalOpen.value = true
-}
-
-const handleLogout = () => {
-  authStore.logout()
-}
-
-// Watch both the route AND the length of navItems (in case of login/logout)
-watch(
-  [() => route.path, () => navItems.value.length],
-  ([newPath]) => {
-    const index = navItems.value.findIndex((item) => item.path === newPath)
-    activeIndex.value = index !== -1 ? index : -1
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+  components: {
+    AuthModal,
   },
-  { immediate: true },
-)
 
-const getDimensions = (index, asActive = false) => {
-  const el = itemRefs.value[index]
-  if (!el) return { left: 0, width: 0 }
-  const w = el.offsetWidth
-  return asActive
-    ? { left: el.offsetLeft + w * 0.3, width: w * 0.4 }
-    : { left: el.offsetLeft, width: w }
-}
-
-const onItemEnter = async (i) => {
-  if (isMobileOrTablet()) return
-  clearTimeout(leaveTimeout)
-
-  const prev = lastHoveredIndex.value
-  const isNeighbor = prev !== -1 && Math.abs(i - prev) === 1
-  const isCurrentActive = i === activeIndex.value
-
-  if (isNeighbor) {
-    if (sliderOpacity.value === 0) {
-      const prevIsActive = prev === activeIndex.value
-      const dim = getDimensions(prev, prevIsActive)
-      sliderTransition.value = 'none'
-      sliderLeft.value = dim.left
-      sliderWidth.value = dim.width
-      sliderOpacity.value = 1
-      await nextTick()
-      if (itemRefs.value[i]) void itemRefs.value[i].offsetWidth
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      isMenuOpen: false,
+      isAuthModalOpen: false,
+      // Explanation: Static navigation items now defined in data for Item 4 requirements.
+      navItems: [
+        { label: 'Home', path: '/' },
+        { label: 'News', path: '/news' },
+        { label: 'About', path: '/about' },
+      ],
+      activeIndex: 0,
+      itemRefs: [],
+      lastHoveredIndex: -1,
+      leaveTimeout: null,
+      sliderLeft: 0,
+      sliderWidth: 0,
+      sliderOpacity: 0,
+      sliderTransition: '',
+      SLIDER_TIMING: 300,
     }
+  },
 
-    sliderTransition.value =
-      'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    const targetDim = getDimensions(i, isCurrentActive)
-    sliderLeft.value = targetDim.left
-    sliderWidth.value = targetDim.width
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapGetters('auth', ['isLoggedIn', 'favoritesCount']),
 
-    if (isCurrentActive) {
-      setTimeout(() => {
-        if (lastHoveredIndex.value === i) sliderOpacity.value = 0
-      }, SLIDER_TIMING)
-    }
-  } else {
-    if (!isCurrentActive) {
-      const dim = getDimensions(i)
-      sliderTransition.value = 'none'
-      sliderLeft.value = dim.left + dim.width / 2
-      sliderWidth.value = 0
-      sliderOpacity.value = 1
+    /**
+     * Calculates the dynamic CSS styles for the navigation hover slider.
+     * @returns {Object} Inline style object
+     */
+    sliderStyle: function () {
+      return {
+        left: this.sliderLeft + 'px',
+        width: this.sliderWidth + 'px',
+        opacity: this.sliderOpacity,
+        transition: this.sliderTransition,
+      }
+    },
+  },
 
-      await nextTick()
-      if (itemRefs.value[i]) void itemRefs.value[i].offsetWidth
+  // ==========================================
+  // WATCH
+  // ==========================================
+  watch: {
+    /**
+     * Reacts to route changes to update the active navigation item index.
+     * Explanation: Ensures the correct nav link is highlighted when navigating.
+     * @param {string} newPath - The updated URL path
+     */
+    '$route.path': function (newPath) {
+      var index = this.navItems.findIndex(function (item) {
+        return item.path === newPath
+      })
+      this.activeIndex = index !== -1 ? index : -1
+    },
+  },
 
-      sliderTransition.value =
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('auth', ['logout']),
+
+    /**
+     * Opens the login modal and closes the mobile menu if it was open.
+     */
+    toggleLoginModal: function () {
+      this.isMenuOpen = false
+      this.isAuthModalOpen = true
+    },
+
+    /**
+     * Dispatches the logout action to clear the user session.
+     */
+    handleLogout: function () {
+      // Explanation: Calls the Vuex auth module's logout action.
+      this.logout()
+    },
+
+    /**
+     * Helper to determine if the current viewport is mobile/tablet size.
+     * @returns {boolean}
+     */
+    isMobileOrTablet: function () {
+      return window.innerWidth <= 991
+    },
+
+    /**
+     * Calculates the dimensions and position of a specific nav item for the slider.
+     * @param {number} index - Index of the nav item
+     * @param {boolean} asActive - Whether to calculate for the "active" underline state
+     */
+    getDimensions: function (index, asActive) {
+      var el = this.itemRefs[index]
+      if (!el) return { left: 0, width: 0 }
+      var w = el.offsetWidth
+      return asActive
+        ? { left: el.offsetLeft + w * 0.3, width: w * 0.4 }
+        : { left: el.offsetLeft, width: w }
+    },
+
+    /**
+     * Handles the mouse entering a navigation item to trigger the slider animation.
+     * @param {number} i - Index of the hovered item
+     */
+    onItemEnter: function (i) {
+      if (this.isMobileOrTablet()) return
+      clearTimeout(this.leaveTimeout)
+
+      var prev = this.lastHoveredIndex
+      var isNeighbor = prev !== -1 && Math.abs(i - prev) === 1
+      var isCurrentActive = i === this.activeIndex
+      var self = this
+
+      if (isNeighbor) {
+        if (this.sliderOpacity === 0) {
+          var prevIsActive = prev === this.activeIndex
+          var dim = this.getDimensions(prev, prevIsActive)
+          this.sliderTransition = 'none'
+          this.sliderLeft = dim.left
+          this.sliderWidth = dim.width
+          this.sliderOpacity = 1
+          this.$nextTick(function () {
+            if (self.itemRefs[i]) void self.itemRefs[i].offsetWidth
+          })
+        }
+
+        this.sliderTransition =
+          'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        var targetDim = this.getDimensions(i, isCurrentActive)
+        this.sliderLeft = targetDim.left
+        this.sliderWidth = targetDim.width
+
+        if (isCurrentActive) {
+          setTimeout(function () {
+            if (self.lastHoveredIndex === i) self.sliderOpacity = 0
+          }, this.SLIDER_TIMING)
+        }
+      } else {
+        if (!isCurrentActive) {
+          var dimAlt = this.getDimensions(i, false)
+          this.sliderTransition = 'none'
+          this.sliderLeft = dimAlt.left + dimAlt.width / 2
+          this.sliderWidth = 0
+          this.sliderOpacity = 1
+
+          this.$nextTick(function () {
+            if (self.itemRefs[i]) void self.itemRefs[i].offsetWidth
+            self.sliderTransition =
+              'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            self.sliderLeft = dimAlt.left
+            self.sliderWidth = dimAlt.width
+          })
+        } else {
+          this.sliderOpacity = 0
+        }
+      }
+      this.lastHoveredIndex = i
+    },
+
+    /**
+     * Handles the mouse leaving a navigation item.
+     * @param {number} i - Index of the item being left
+     */
+    onItemLeave: function (i) {
+      if (this.isMobileOrTablet()) return
+      var self = this
+
+      this.leaveTimeout = setTimeout(function () {
+        if (self.sliderOpacity === 1) {
+          var isCurrentActive = i === self.activeIndex
+          var dim = self.getDimensions(i, isCurrentActive)
+
+          self.sliderTransition =
+            'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          self.sliderLeft = dim.left + dim.width / 2
+          self.sliderWidth = 0
+
+          setTimeout(function () {
+            if (self.lastHoveredIndex === -1) self.sliderOpacity = 0
+          }, self.SLIDER_TIMING)
+        }
+        self.lastHoveredIndex = -1
+      }, 20)
+    },
+
+    /**
+     * Handles clicking a navigation link.
+     * @param {number} i - Index of click
+     */
+    handleNavClick: function (i) {
+      this.activeIndex = i
+      if (this.isMobileOrTablet()) {
+        this.isMenuOpen = false
+        return
+      }
+
+      var dim = this.getDimensions(i, true)
+      this.sliderTransition =
         'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      sliderLeft.value = dim.left
-      sliderWidth.value = dim.width
-    } else {
-      sliderOpacity.value = 0
-    }
-  }
-  lastHoveredIndex.value = i
+      this.sliderLeft = dim.left
+      this.sliderWidth = dim.width
+
+      var self = this
+      setTimeout(function () {
+        if (self.activeIndex === i && self.lastHoveredIndex === i) {
+          self.sliderOpacity = 0
+        }
+      }, this.SLIDER_TIMING)
+    },
+  },
+
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
+  created: function () {
+    // Explanation: Sets the initial active nav index based on the initial route.
+    var self = this
+    var index = this.navItems.findIndex(function (item) {
+      return item.path === self.$route.path
+    })
+    this.activeIndex = index !== -1 ? index : -1
+  },
+
+  beforeUpdate: function () {
+    // Explanation: Resets the itemRefs array before each update cycle to ensure correct mapping.
+    this.itemRefs = []
+  },
 }
-
-const onItemLeave = (i) => {
-  if (isMobileOrTablet()) return
-
-  leaveTimeout = setTimeout(() => {
-    if (sliderOpacity.value === 1) {
-      const isCurrentActive = i === activeIndex.value
-      const dim = getDimensions(i, isCurrentActive)
-
-      sliderTransition.value =
-        'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      sliderLeft.value = dim.left + dim.width / 2
-      sliderWidth.value = 0
-
-      setTimeout(() => {
-        if (lastHoveredIndex.value === -1) sliderOpacity.value = 0
-      }, SLIDER_TIMING)
-    }
-    lastHoveredIndex.value = -1
-  }, 20)
-}
-
-const handleNavClick = (i) => {
-  activeIndex.value = i
-  if (isMobileOrTablet()) {
-    isMenuOpen.value = false
-    return
-  }
-
-  const dim = getDimensions(i, true)
-  sliderTransition.value =
-    'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-  sliderLeft.value = dim.left
-  sliderWidth.value = dim.width
-
-  setTimeout(() => {
-    if (activeIndex.value === i && lastHoveredIndex.value === i) {
-      sliderOpacity.value = 0
-    }
-  }, SLIDER_TIMING)
-}
-
-// ==========================================
-// 4. COMPUTED STYLES
-// ==========================================
-const sliderStyle = computed(() => ({
-  left: `${sliderLeft.value}px`,
-  width: `${sliderWidth.value}px`,
-  opacity: sliderOpacity.value,
-  transition: sliderTransition.value,
-}))
 </script>
 
 <template>
   <nav class="navbar navbar-expand-lg bg-white sticky-top py-2 border-bottom shadow-sm">
     <div class="container">
-      <RouterLink class="navbar-brand d-flex align-items-center gap-2 z-3" to="/">
+      <!-- Logo and Brand -->
+      <router-link class="navbar-brand d-flex align-items-center gap-2 z-3" to="/">
         <div
           class="logo-box bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center"
         >
@@ -197,8 +269,9 @@ const sliderStyle = computed(() => ({
         <div class="d-flex flex-column lh-1">
           <span class="fw-bold text-dark fs-5 brand-text">The Rose Blog</span>
         </div>
-      </RouterLink>
+      </router-link>
 
+      <!-- Mobile Hamburger Toggler -->
       <button
         class="navbar-toggler border-0 shadow-none hamburger-animated"
         type="button"
@@ -211,10 +284,12 @@ const sliderStyle = computed(() => ({
         <span class="hamburger-line"></span>
       </button>
 
+      <!-- Nav Links Container -->
       <div class="collapse navbar-collapse bg-white" :class="{ show: isMenuOpen }" id="mainNav">
         <ul
           class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center"
         >
+          <!-- Explanation: Iterates through nav items to build the menu -->
           <li
             class="nav-item m-0 p-lg-0 py-2"
             v-for="(item, index) in navItems"
@@ -227,25 +302,25 @@ const sliderStyle = computed(() => ({
             @mouseenter="onItemEnter(index)"
             @mouseleave="onItemLeave(index)"
           >
-            <RouterLink
+            <router-link
               class="nav-link nav-link-animated px-3 px-lg-4 d-flex align-items-center justify-content-center gap-1"
               :class="{ 'is-active': activeIndex === index }"
               :to="item.path"
               @click="handleNavClick(index)"
             >
-              <span v-if="item.icon" class="material-symbols-outlined icon-sm">{{
-                item.icon
-              }}</span>
               {{ item.label }}
-            </RouterLink>
+            </router-link>
           </li>
 
+          <!-- Animated Hover Slider (Desktop only) -->
           <li class="nav-slider-primary d-none d-lg-block" :style="sliderStyle"></li>
         </ul>
 
+        <!-- Right Side: Favorites and Auth -->
         <div class="d-flex flex-column flex-lg-row align-items-center gap-4 pb-4 pb-lg-0">
-          <RouterLink
-            v-if="authStore.isLoggedIn"
+          <!-- Favorites / Collection Link (Auth only) -->
+          <router-link
+            v-if="isLoggedIn"
             to="/collection"
             class="position-relative text-decoration-none text-dark d-flex align-items-center gap-3"
           >
@@ -260,10 +335,11 @@ const sliderStyle = computed(() => ({
               </span>
             </div>
             <span class="d-lg-none text-muted text-lg fw-medium">My Collection</span>
-          </RouterLink>
+          </router-link>
 
+          <!-- Authentication Button -->
           <button
-            v-if="!authStore.isLoggedIn"
+            v-if="!isLoggedIn"
             @click="toggleLoginModal"
             class="btn btn-primary btn-sm rounded-pill px-5 px-lg-4 py-2 fw-bolder shadow-sm"
           >
@@ -281,6 +357,7 @@ const sliderStyle = computed(() => ({
       </div>
     </div>
 
+    <!-- Auth Modal - Handles Login/Register -->
     <AuthModal :is-open="isAuthModalOpen" @close="isAuthModalOpen = false" />
   </nav>
 </template>

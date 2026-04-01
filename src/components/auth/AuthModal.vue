@@ -1,96 +1,138 @@
-<script setup>
+<script>
 /**
- * A highly cohesive authentication modal handling both Login
- * and Sign Up flows. It communicates directly with the AuthStore
- * and manages its own internal form state.
- *
- * Props:
- * - isOpen (Boolean): Controls the visibility of the modal.
- *
- * Emits:
- * - close: Fired when the user clicks the close button, overlay,
- * or successfully authenticates.
+ * ==========================================
+ * COMPONENT: AuthModal.vue
+ * ==========================================
+ * Description:
+ * A highly cohesive authentication modal handling both Login and Sign Up flows.
+ * Communicates directly with the Vuex auth store and manages internal form state.
  */
+import { mapActions } from 'vuex'
 
-import { ref, watch } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
+export default {
+  name: 'AuthModal',
 
-// ==========================================
-// 1. PROPS & EMITS
-// ==========================================
-const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
+  // ==========================================
+  // PROPS
+  // ==========================================
+  props: {
+    isOpen: {
+      type: Boolean,
+      default: false,
+    },
   },
-})
 
-const emit = defineEmits(['close'])
+  // ==========================================
+  // EMITS
+  // ==========================================
+  emits: ['close'],
 
-// ==========================================
-// 2. STATE & STORE
-// ==========================================
-const authStore = useAuthStore()
-
-const isSignUpMode = ref(false)
-const showPassword = ref(false)
-const authError = ref('')
-
-const loginForm = ref({ username: 'rosegarden', password: 'rose123' })
-const signupForm = ref({ username: '', password: '', displayName: '' })
-
-// Reset errors and password visibility when the modal opens/closes
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (!newVal) {
-      authError.value = ''
-      showPassword.value = false
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      isSignUpMode: false,
+      showPassword: false,
+      authError: '',
+      loginForm: {
+        username: 'rosegarden',
+        password: 'rose123',
+      },
+      signupForm: {
+        username: '',
+        password: '',
+        displayName: '',
+      },
     }
   },
-)
 
-// ==========================================
-// 3. METHODS
-// ==========================================
-const closeModal = () => {
-  emit('close')
-}
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('auth', ['login', 'register']),
 
-const toggleMode = () => {
-  isSignUpMode.value = !isSignUpMode.value
-  authError.value = ''
-  showPassword.value = false
-}
+    /**
+     * Emits the close event to the parent.
+     */
+    closeModal: function () {
+      this.$emit('close')
+    },
 
-const handleAuth = () => {
-  if (isSignUpMode.value) {
-    const res = authStore.register(
-      signupForm.value.username,
-      signupForm.value.password,
-      signupForm.value.displayName,
-    )
-    if (res.success) {
-      isSignUpMode.value = false
-      signupForm.value = { username: '', password: '', displayName: '' }
-      closeModal()
-    } else {
-      authError.value = res.error
-    }
-  } else {
-    const res = authStore.login(loginForm.value.username, loginForm.value.password)
-    if (res.success) {
-      closeModal()
-    } else {
-      authError.value = res.error
-    }
-  }
+    /**
+     * Toggles between Login and Sign Up modes.
+     */
+    toggleMode: function () {
+      this.isSignUpMode = !this.isSignUpMode
+      this.authError = ''
+      this.showPassword = false
+    },
+
+    /**
+     * Validates and processes the authentication request.
+     * Explanation: Following the week-6 taught pattern of explicit preventDefault.
+     * @param {Event} event - Native DOM submit event
+     */
+    checkForm: function (event) {
+      event.preventDefault()
+      // Explanation: No complex validation here yet, just direct handleAuth call.
+      this.handleAuth()
+    },
+
+    /**
+     * Orchestrates the actual login/register logic via Vuex.
+     */
+    handleAuth: function () {
+      var self = this
+      if (this.isSignUpMode) {
+        // Registration Flow
+        this.register(this.signupForm).then(function (res) {
+          // Explanation: Handle registration response
+          if (res.success) {
+            self.isSignUpMode = false
+            self.signupForm = { username: '', password: '', displayName: '' }
+            self.closeModal()
+          } else {
+            self.authError = res.error
+          }
+        })
+      } else {
+        // Login Flow
+        this.login(this.loginForm).then(function (res) {
+          // Explanation: Handle login response
+          if (res.success) {
+            self.closeModal()
+          } else {
+            self.authError = res.error
+          }
+        })
+      }
+    },
+  },
+
+  // ==========================================
+  // WATCH
+  // ==========================================
+  watch: {
+    /**
+     * Resets internal modal state when it opens or closes.
+     */
+    isOpen: function (newVal) {
+      if (!newVal) {
+        this.authError = ''
+        this.showPassword = false
+      }
+    },
+  },
 }
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="modal-fade">
+  <!-- Teleport: Renders the modal at the root level of the document body -->
+  <teleport to="body">
+    <transition name="modal-fade">
+      <!-- Explanation: Only renders when isOpen prop is true -->
       <div
         v-if="isOpen"
         class="modal d-block bg-dark bg-opacity-50 z-index-modal"
@@ -102,6 +144,7 @@ const handleAuth = () => {
       >
         <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content border-0 shadow-lg rounded-4 p-4 frosted-glass w-100">
+            <!-- Modal Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
               <h4 id="auth-modal-title" class="mb-0 fw-bold font-heading fst-italic text-dark">
                 {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
@@ -109,7 +152,10 @@ const handleAuth = () => {
               <button @click="closeModal" class="btn-close" aria-label="Close"></button>
             </div>
 
-            <form @submit.prevent="handleAuth">
+            <!-- Auth Form -->
+            <!-- Explanation: Using explicit checkForm pattern with novalidate -->
+            <form @submit="checkForm" novalidate>
+              <!-- Login Mode Inputs -->
               <template v-if="!isSignUpMode">
                 <div class="mb-3">
                   <label for="auth-username" class="form-label text-sm fw-bold">Username</label>
@@ -146,6 +192,7 @@ const handleAuth = () => {
                 </div>
               </template>
 
+              <!-- Sign Up Mode Inputs -->
               <template v-else>
                 <div class="mb-3">
                   <label for="signup-display" class="form-label text-sm fw-bold"
@@ -195,6 +242,7 @@ const handleAuth = () => {
                 </div>
               </template>
 
+              <!-- Error Alert -->
               <div
                 v-if="authError"
                 class="alert alert-danger py-2 text-sm"
@@ -204,10 +252,12 @@ const handleAuth = () => {
                 {{ authError }}
               </div>
 
+              <!-- Submit Button -->
               <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
                 {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
               </button>
 
+              <!-- Switch Mode Link -->
               <div class="text-center mt-3 text-sm">
                 <button
                   type="button"
@@ -225,8 +275,8 @@ const handleAuth = () => {
           </div>
         </div>
       </div>
-    </Transition>
-  </Teleport>
+    </transition>
+  </teleport>
 </template>
 
 <style scoped>

@@ -1,58 +1,110 @@
-<script setup>
-import { ref } from 'vue'
-import { useNewsStore } from '@/stores/newsStore'
-import { useAuthStore } from '@/stores/authStore'
+<script>
+/**
+ * ==========================================
+ * COMPONENT: NewsView.vue
+ * ==========================================
+ * Description:
+ * The main news feed page. Features a masonry-style grid of news articles
+ * with support for searching, filtering, and pagination. Users can also
+ * create new posts if they are authenticated.
+ */
+import { mapState, mapGetters, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
 import NewsCreateBar from '@/components/news/NewsCreateBar.vue'
 import NewsSearchBar from '@/components/news/NewsSearchBar.vue'
 
-const newsStore = useNewsStore()
-const authStore = useAuthStore()
+export default {
+  name: 'NewsView',
 
-const showFilterModal = ref(false)
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+  components: {
+    NewsCard,
+    NewsCreateBar,
+    NewsSearchBar,
+  },
 
-// METHODS
-/**
- * Checks if the current user owns the news item.
- * @param {Object} item - The news item object
- * @returns {boolean} True if the user has owner privileges
- */
-const isOwner = (item) => {
-  if (!authStore.currentUser) return false
-  return authStore.currentUser.displayName === item.authorName
-}
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      showFilterModal: false,
+    }
+  },
 
-/**
- * Handles page navigation and scrolls to top smoothly.
- * @param {number} page - The target page number
- */
-const handlePageChange = (page) => {
-  if (page >= 1 && page <= newsStore.totalPages) {
-    newsStore.setPage(page)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapState('auth', ['currentUser']),
+    ...mapState('news', ['currentPage']),
+    ...mapGetters('auth', ['isLoggedIn']),
+    ...mapGetters('news', ['paginatedArticles', 'totalPages']),
+  },
 
-/**
- * Dynamically assigns layout A, B, or C based on the loop index.
- * @param {number} index - The current index in the v-for loop
- * @returns {string} Layout identifier ('A', 'B', or 'C')
- */
-const getDynamicLayout = (index) => {
-  if (index % 5 === 0) return 'C'
-  if (index % 4 === 0) return 'B'
-  return 'A'
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('news', [
+      'setPage',
+      'reactToArticle',
+      'addComment',
+      'incrementShare',
+      'updateArticle',
+      'deleteArticle',
+      'clearFilters',
+    ]),
+
+    /**
+     * Checks if the current user owns a specific news item.
+     * Explanation: Display-name based match with no admin override.
+     * @param {Object} item - The blog post/news item object
+     * @returns {boolean}
+     */
+    isOwner: function (item) {
+      if (!this.isLoggedIn) return false
+      return this.currentUser.displayName === item.authorName
+    },
+
+    /**
+     * Handles pagination clicks with smooth scrolling to top.
+     * @param {number} page - The target page number
+     */
+    handlePageChange: function (page) {
+      if (page >= 1 && page <= this.totalPages) {
+        // Explanation: Update the Vuex store's page state.
+        this.setPage(page)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+
+    /**
+     * Determines a masonry layout type (A, B, or C) based on current index.
+     * @param {number} index - Index in the v-for loop
+     * @returns {string}
+     */
+    getDynamicLayout: function (index) {
+      if (index % 5 === 0) return 'C'
+      if (index % 4 === 0) return 'B'
+      return 'A'
+    },
+  },
 }
 </script>
 
 <template>
   <div class="news-view position-relative min-vh-100 py-5">
+    <!-- Background Decor Layer -->
     <div
       class="news-view__bg-layer position-fixed top-0 start-0 w-100 h-100"
       aria-hidden="true"
     ></div>
 
     <div class="container position-relative z-1 pt-4">
+      <!-- Page Header -->
       <div class="d-flex justify-content-between align-items-start mb-5 animate-fade-up">
         <div>
           <h1 class="news-view__title display-4 fw-bold fst-italic mb-1 text-dark">News</h1>
@@ -61,8 +113,9 @@ const getDynamicLayout = (index) => {
           </p>
         </div>
 
+        <!-- Filter Bubble Entry -->
         <div class="d-flex flex-column align-items-center gap-1 position-relative">
-          <p class="news-view__search-hint text-muted text-xs fst-italic mb-1">
+          <p class="news-view__search-hint text-muted text-xs fst-italic mb-1 text-center">
             Click to<br />Search & Filter
           </p>
           <button
@@ -76,28 +129,31 @@ const getDynamicLayout = (index) => {
         </div>
       </div>
 
-      <NewsCreateBar v-if="authStore.isLoggedIn" class="mb-4" />
+      <!-- Creation Bar (Auth users only) -->
+      <NewsCreateBar v-if="isLoggedIn" class="mb-4" />
 
-      <div class="news-view__columns" v-if="newsStore.paginatedArticles.length > 0">
+      <!-- Masonry Grid of Articles -->
+      <div class="news-view__columns" v-if="paginatedArticles.length > 0">
         <div
           class="news-view__card-wrapper"
-          v-for="(item, index) in newsStore.paginatedArticles"
+          v-for="(item, index) in paginatedArticles"
           :key="item.id"
         >
           <NewsCard
             :item="item"
             :layout="getDynamicLayout(index)"
-            :is-authed="authStore.isLoggedIn"
+            :is-authed="isLoggedIn"
             :is-owner="isOwner(item)"
-            @react="newsStore.reactToArticle"
-            @comment="newsStore.addComment"
-            @share="newsStore.incrementShare"
-            @edit="newsStore.updateArticle"
-            @delete="newsStore.deleteArticle"
+            @react="reactToArticle"
+            @comment="addComment"
+            @share="incrementShare"
+            @edit="updateArticle"
+            @delete="deleteArticle"
           />
         </div>
       </div>
 
+      <!-- Empty State -->
       <div v-else class="text-center py-5 animate-fade-up">
         <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">search_off</span>
         <p class="news-view__empty-text text-muted fst-italic text-lg">
@@ -105,14 +161,15 @@ const getDynamicLayout = (index) => {
         </p>
         <button
           class="btn btn-sm btn-outline-primary rounded-pill mt-2 fw-medium"
-          @click="newsStore.clearFilters()"
+          @click="clearFilters"
         >
           Clear Filters
         </button>
       </div>
 
+      <!-- Pagination Navigation -->
       <nav
-        v-if="newsStore.totalPages > 1"
+        v-if="totalPages > 1"
         class="d-flex justify-content-center mt-5 mb-5 align-items-center"
         aria-label="News pagination"
       >
@@ -121,25 +178,25 @@ const getDynamicLayout = (index) => {
         >
           <button
             class="news-view__page-btn btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm transition-base"
-            :disabled="newsStore.currentPage === 1"
+            :disabled="currentPage === 1"
             aria-label="Previous page"
-            @click="handlePageChange(newsStore.currentPage - 1)"
+            @click="handlePageChange(currentPage - 1)"
           >
             <span class="material-symbols-outlined fs-5">chevron_left</span>
           </button>
 
           <div class="d-flex gap-1 px-2">
             <button
-              v-for="page in newsStore.totalPages"
+              v-for="page in totalPages"
               :key="page"
               class="news-view__page-btn btn btn-sm rounded-circle fw-bold transition-base d-flex align-items-center justify-content-center border-0"
               :class="
-                newsStore.currentPage === page
+                currentPage === page
                   ? 'btn-primary shadow-sm text-white'
                   : 'text-dark hover-bg-light'
               "
               @click="handlePageChange(page)"
-              :aria-current="newsStore.currentPage === page ? 'page' : null"
+              :aria-current="currentPage === page ? 'page' : null"
             >
               {{ page }}
             </button>
@@ -147,9 +204,9 @@ const getDynamicLayout = (index) => {
 
           <button
             class="news-view__page-btn btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm transition-base"
-            :disabled="newsStore.currentPage === newsStore.totalPages"
+            :disabled="currentPage === totalPages"
             aria-label="Next page"
-            @click="handlePageChange(newsStore.currentPage + 1)"
+            @click="handlePageChange(currentPage + 1)"
           >
             <span class="material-symbols-outlined fs-5">chevron_right</span>
           </button>
@@ -157,6 +214,7 @@ const getDynamicLayout = (index) => {
       </nav>
     </div>
 
+    <!-- Slide-down Search/Filter Modal -->
     <NewsSearchBar v-model="showFilterModal" />
   </div>
 </template>
@@ -224,7 +282,7 @@ const getDynamicLayout = (index) => {
     width: 100%;
     margin-bottom: 1.25rem;
 
-    /* Safari fix */
+    /* Safari fix for column-break */
     -webkit-column-break-inside: avoid;
     page-break-inside: avoid;
   }
@@ -239,7 +297,6 @@ const getDynamicLayout = (index) => {
   }
 }
 
-/* Base Transition Utilities used across the component */
 .transition-base {
   transition: all 0.2s ease-in-out;
 }

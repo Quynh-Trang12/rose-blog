@@ -1,65 +1,125 @@
-<script setup>
-import { ref, computed } from 'vue'
-import { useAuthStore } from '@/stores/authStore'
-import { useNewsStore } from '@/stores/newsStore'
+<script>
+/**
+ * ==========================================
+ * COMPONENT: NewsCreateBar.vue
+ * ==========================================
+ * Description:
+ * A sticky interface for creating new blog posts. Provides an entry point
+ * to a modal form where users can input titles, write rich-text content,
+ * select categories, and attach image URLs.
+ */
+import { mapState, mapActions } from 'vuex'
 import RichTextEditor from './RichTextEditor.vue'
 
-const authStore = useAuthStore()
-const newsStore = useNewsStore()
+export default {
+  name: 'NewsCreateBar',
 
-const showModal = ref(false)
-const form = ref({
-  title: '',
-  content: '',
-  category: 'Life & Reflections',
-  imageUrl: '',
-  isPublic: true,
-})
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+  components: {
+    RichTextEditor,
+  },
 
-const currentUser = computed(() => authStore.currentUser)
-const isValid = computed(() => {
-  const textContent = form.value.content.replace(/<[^>]*>/g, '').trim()
-  return form.value.title.trim() !== '' && textContent !== ''
-})
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      showModal: false,
+      form: {
+        title: '',
+        content: '',
+        category: 'Life & Reflections',
+        imageUrl: '',
+        isPublic: true,
+      },
+    }
+  },
 
-const openModal = () => {
-  showModal.value = true
-}
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapState('auth', ['currentUser']),
 
-const closeModal = () => {
-  showModal.value = false
-  form.value = {
-    title: '',
-    content: '',
-    category: 'Life & Reflections',
-    imageUrl: '',
-    isPublic: true,
-  }
-}
+    /**
+     * Basic validation to ensure the post has a title and non-empty content.
+     * @returns {boolean}
+     */
+    isValid: function () {
+      var textContent = (this.form.content || '').replace(/<[^>]*>/g, '').trim()
+      return this.form.title.trim() !== '' && textContent !== ''
+    },
+  },
 
-const submitPost = () => {
-  if (!isValid.value) return
-  newsStore.addArticle({
-    authorName: currentUser.value.displayName,
-    authorAvatar: currentUser.value.avatar,
-    date: new Date().toISOString(),
-    title: form.value.title.trim(),
-    content: form.value.content.trim(),
-    category: form.value.category,
-    imageUrl: form.value.imageUrl.trim() || null,
-    isPublic: form.value.isPublic,
-  })
-  closeModal()
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('news', ['addArticle']),
+
+    /**
+     * Opens the creation modal.
+     */
+    openModal: function () {
+      this.showModal = true
+    },
+
+    /**
+     * Closes the creation modal and resets the form state.
+     */
+    closeModal: function () {
+      this.showModal = false
+      this.form = {
+        title: '',
+        content: '',
+        category: 'Life & Reflections',
+        imageUrl: '',
+        isPublic: true,
+      }
+    },
+
+    /**
+     * Validates the creation form before proceeding to submit.
+     * @param {Event} event - Native DOM submit event
+     */
+    checkForm: function (event) {
+      event.preventDefault()
+      // Explanation: Only proceed to submit if basic validation conditions are met.
+      if (this.isValid) {
+        this.submitPost()
+      }
+    },
+
+    /**
+     * Dispatches the new article to the news store and closes the modal.
+     */
+    submitPost: function () {
+      // Explanation: Prepare the payload for the Vuex addArticle action.
+      this.addArticle({
+        authorName: this.currentUser.displayName,
+        authorAvatar: this.currentUser.avatar || 'https://i.pravatar.cc/150?u=' + this.currentUser.username,
+        date: new Date().toISOString(),
+        title: this.form.title.trim(),
+        content: this.form.content.trim(),
+        category: this.form.category,
+        imageUrl: this.form.imageUrl.trim() || null,
+        isPublic: this.form.isPublic,
+      })
+      this.closeModal()
+    },
+  },
 }
 </script>
 
 <template>
   <div>
-    <!-- The Create Post Bar -->
+    <!-- The Create Post entry bar -->
     <div class="news-create-bar frosted-glass rounded-4 shadow-sm p-3 mb-4 d-flex flex-column gap-3">
       <div class="d-flex align-items-center gap-3">
         <img
-          :src="currentUser?.avatar"
+          :src="currentUser?.avatar || 'https://i.pravatar.cc/150?u=' + currentUser?.username"
           alt="Your avatar"
           class="rounded-circle"
           width="40"
@@ -91,7 +151,7 @@ const submitPost = () => {
     </div>
 
     <!-- Create Post Modal via Teleport -->
-    <Teleport to="body">
+    <teleport to="body">
       <div
         v-if="showModal"
         class="create-post-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
@@ -101,14 +161,27 @@ const submitPost = () => {
         aria-labelledby="create-modal-title"
         @click.self="closeModal"
       >
-        <div class="card frosted-glass border-0 shadow-lg rounded-4 w-100 animate-fade-up" style="max-width: 500px">
-          <div class="card-header border-0 bg-transparent px-4 pt-4 pb-0 d-flex justify-content-between align-items-center">
-            <h5 id="create-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab'; font-style: italic;">Create Post</h5>
+        <div
+          class="card frosted-glass border-0 shadow-lg rounded-4 w-100 animate-fade-up"
+          style="max-width: 500px"
+        >
+          <!-- Modal Header -->
+          <div
+            class="card-header border-0 bg-transparent px-4 pt-4 pb-0 d-flex justify-content-between align-items-center"
+          >
+            <h5
+              id="create-modal-title"
+              class="mb-0 fw-bold"
+              style="font-family: 'Zilla Slab'; font-style: italic"
+            >
+              Create Post
+            </h5>
             <button @click="closeModal" class="btn-close" aria-label="Close modal"></button>
           </div>
-          
+
           <div class="card-body px-4 pb-4">
-            <form @submit.prevent="submitPost" class="d-flex flex-column gap-3">
+            <!-- Explanation: Using explicit checkForm pattern for Item 9 requirements -->
+            <form @submit="checkForm" novalidate class="d-flex flex-column gap-3">
               <div>
                 <label for="post-title" class="form-label text-sm fw-bold">Title</label>
                 <input
@@ -156,7 +229,9 @@ const submitPost = () => {
               </div>
 
               <div>
-                <label for="post-image" class="form-label text-sm fw-bold">Image URL (Optional)</label>
+                <label for="post-image" class="form-label text-sm fw-bold"
+                  >Image URL (Optional)</label
+                >
                 <input
                   id="post-image"
                   type="url"
@@ -166,6 +241,7 @@ const submitPost = () => {
                 />
               </div>
 
+              <!-- Submit button only enabled if title and content are present -->
               <button
                 type="submit"
                 class="btn btn-primary rounded-pill w-100 fw-bold mt-2"
@@ -177,7 +253,7 @@ const submitPost = () => {
           </div>
         </div>
       </div>
-    </Teleport>
+    </teleport>
   </div>
 </template>
 

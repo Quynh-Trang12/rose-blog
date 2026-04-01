@@ -1,10 +1,8 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import store from './store/index.js'
 
 import App from './App.vue'
 import router from './router'
-
-// REMOVED: import 'bootstrap' (No conflicting vanilla JS)
 
 // Styling: Base Colors
 import './assets/base.scss'
@@ -35,7 +33,8 @@ app.directive('click-outside', {
 // v-lazy-load (new)
 app.directive('lazy-load', lazyLoad)
 
-app.use(createPinia())
+// Register the root Vuex store
+app.use(store)
 app.use(router)
 
 app.mount('#app')

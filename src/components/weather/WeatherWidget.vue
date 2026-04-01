@@ -1,150 +1,185 @@
-<script setup>
-import { ref, onMounted } from 'vue'
-
-// --- Reactive State ---
-const temperature = ref(null)
-const advisoryQuote = ref('Checking live conditions...')
-const weatherIcon = ref('cloud')
-const iconGradient = ref('grad-white')
-const isLoading = ref(true)
-const locationDisplay = ref('Detecting location...')
-const isLocationBlocked = ref(false) // Tracks if location was denied/failed
-
+<script>
 /**
- * DETERMINES ICON AND ADVICE BASED ON WEATHER CODE AND TEMPERATURE
+ * ==========================================
+ * COMPONENT: WeatherWidget.vue
+ * ==========================================
+ * Description:
+ * A live gardening weather assistant. It geolocates the user (with fallback),
+ * fetches real-time weather data via a dedicated API service, and provides
+ * tailored gardening advice based on the current conditions.
  */
-const updateUIFeedback = (code, temp) => {
-  if (code >= 61 && code <= 67) {
-    weatherIcon.value = 'rainy'
-    iconGradient.value = 'grad-gray'
-    advisoryQuote.value = 'Flood Alert: Monitor rose pots for waterlogging.'
-  } else if (temp >= 30) {
-    weatherIcon.value = 'wb_sunny'
-    iconGradient.value = 'grad-orange'
-    advisoryQuote.value = 'Heat Warning: Deep hydration required at the base.'
-  } else if (temp <= 2) {
-    weatherIcon.value = 'snowflake'
-    iconGradient.value = 'grad-ice'
-    advisoryQuote.value = 'Deep Freeze: Ensure rose roots are well protected.'
-  } else if (code <= 3 && temp >= 15 && temp <= 24) {
-    weatherIcon.value = 'wb_sunny'
-    iconGradient.value = 'grad-yellow'
-    advisoryQuote.value = 'Perfect Day for Planting: Ideal for establishing new roses.'
-  } else if (code <= 3 && temp >= 8 && temp <= 14) {
-    weatherIcon.value = 'partly_cloudy_day'
-    iconGradient.value = 'grad-yellow'
-    advisoryQuote.value = 'Pruning Window: Help roses conserve energy for spring.'
-  } else {
-    weatherIcon.value = 'cloud'
-    iconGradient.value = 'grad-white'
-    advisoryQuote.value = 'Fair Conditions: Proceed with standard garden maintenance.'
-  }
-}
+import { fetchCurrentWeather, fetchCityName } from '@/api/weatherApi.js'
 
-/**
- * WEATHER FETCH WITH CACHING & GEOLOCATION LOGIC
- */
-const fetchWeather = async () => {
-  // Use v3 cache to reset previous states
-  const CACHE_KEY = 'weather_cache_v3'
-  const cachedData = localStorage.getItem(CACHE_KEY)
+export default {
+  name: 'WeatherWidget',
 
-  if (cachedData) {
-    const { data, timestamp } = JSON.parse(cachedData)
-    if (Date.now() - timestamp < 30 * 60 * 1000) {
-      temperature.value = data.temp
-      locationDisplay.value = data.city
-      isLocationBlocked.value = data.isBlocked // Load blocked state from cache
-      updateUIFeedback(data.code, data.temp)
-      isLoading.value = false
-      return
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      temperature: null,
+      advisoryQuote: 'Checking live conditions...',
+      weatherIcon: 'cloud',
+      iconGradient: 'grad-white',
+      isLoading: true,
+      locationDisplay: 'Detecting location...',
+      // Explanation: Tracks if geolocation was denied by the user or failed.
+      isLocationBlocked: false,
     }
-  }
+  },
 
-  let lat = -37.814
-  let lon = 144.9633
-  locationDisplay.value = 'Find Current Location...'
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    /**
+     * Determines which icon and gardening advice to show based on weather data.
+     * @param {number} code - WMO Weather interpretation code
+     * @param {number} temp - Temperature in Celsius
+     */
+    updateUIFeedback: function (code, temp) {
+      if (code >= 61 && code <= 67) {
+        this.weatherIcon = 'rainy'
+        this.iconGradient = 'grad-gray'
+        this.advisoryQuote = 'Flood Alert: Monitor rose pots for waterlogging.'
+      } else if (temp >= 30) {
+        this.weatherIcon = 'wb_sunny'
+        this.iconGradient = 'grad-orange'
+        this.advisoryQuote = 'Heat Warning: Deep hydration required at the base.'
+      } else if (temp <= 2) {
+        this.weatherIcon = 'snowflake'
+        this.iconGradient = 'grad-ice'
+        this.advisoryQuote = 'Deep Freeze: Ensure rose roots are well protected.'
+      } else if (code <= 3 && temp >= 15 && temp <= 24) {
+        this.weatherIcon = 'wb_sunny'
+        this.iconGradient = 'grad-yellow'
+        this.advisoryQuote = 'Perfect Day for Planting: Ideal for establishing new roses.'
+      } else if (code <= 3 && temp >= 8 && temp <= 14) {
+        this.weatherIcon = 'partly_cloudy_day'
+        this.iconGradient = 'grad-yellow'
+        this.advisoryQuote = 'Pruning Window: Help roses conserve energy for spring.'
+      } else {
+        this.weatherIcon = 'cloud'
+        this.iconGradient = 'grad-white'
+        this.advisoryQuote = 'Fair Conditions: Proceed with standard garden maintenance.'
+      }
+    },
 
-  try {
-    if ('geolocation' in navigator) {
-      await new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          console.warn('Geolocation took too long.')
-          isLocationBlocked.value = true // Trigger blocked state on timeout
+    /**
+     * Orchestrates the weather fetching process including geolocation and caching.
+     * Explanation: Uses the weatherApi service for network calls.
+     */
+    fetchWeather: function () {
+      var self = this
+      var CACHE_KEY = 'weather_cache_v4' // Incremented version for refactor
+      var cachedData = localStorage.getItem(CACHE_KEY)
+
+      // 1. Check for valid cache (less than 30 minutes old)
+      if (cachedData) {
+        var parsed = JSON.parse(cachedData)
+        if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+          this.temperature = parsed.data.temp
+          this.locationDisplay = parsed.data.city
+          this.isLocationBlocked = parsed.data.isBlocked
+          this.updateUIFeedback(parsed.data.code, parsed.data.temp)
+          this.isLoading = false
+          return
+        }
+      }
+
+      // Default coordinates (Melbourne, AU)
+      var lat = -37.814
+      var lon = 144.9633
+      this.locationDisplay = 'Find Current Location...'
+
+      // 2. Geolocation logic
+      var getGeoLocation = new Promise(function (resolve) {
+        if (!('geolocation' in navigator)) {
+          self.isLocationBlocked = true
+          return resolve()
+        }
+
+        var timeout = setTimeout(function () {
+          self.isLocationBlocked = true
           resolve()
-        }, 10000)
+        }, 8000)
 
         navigator.geolocation.getCurrentPosition(
-          async (pos) => {
+          function (pos) {
             clearTimeout(timeout)
             lat = pos.coords.latitude
             lon = pos.coords.longitude
-            isLocationBlocked.value = false // Ensure it's false on success
-
-            try {
-              const geoRes = await fetch(
-                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
-              )
-              const geoData = await geoRes.json()
-              const city = geoData.city || geoData.locality || geoData.principalSubdivision
-              locationDisplay.value = `${city}, ${geoData.countryCode}`
-            } catch (err) {
-              console.error('Geocoding failed:', err)
-              locationDisplay.value = 'Current Location'
-            }
-            resolve()
+            self.isLocationBlocked = false
+            // Fetch city name from service
+            fetchCityName(lat, lon)
+              .then(function (city) {
+                self.locationDisplay = city
+                resolve()
+              })
+              .catch(function () {
+                self.locationDisplay = 'Current Location'
+                resolve()
+              })
           },
-          (err) => {
+          function () {
             clearTimeout(timeout)
-            console.warn('Geolocation Error:', err.message)
-            isLocationBlocked.value = true // Trigger blocked state on error/denial
+            self.isLocationBlocked = true
             resolve()
           },
-          { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 },
+          { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 },
         )
       })
-    } else {
-      isLocationBlocked.value = true // Trigger if browser doesn't support geolocation
-    }
 
-    const response = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`,
-    )
-    if (!response.ok) throw new Error('API Error')
+      // 3. Chain weather fetch after geolocation attempt
+      getGeoLocation
+        .then(function () {
+          return fetchCurrentWeather(lat, lon)
+        })
+        .then(function (weather) {
+          // Explanation: Update component state with API results
+          var currentTemp = Math.round(weather.temperature)
+          var currentCode = weather.weathercode
+          self.temperature = currentTemp
+          self.updateUIFeedback(currentCode, currentTemp)
 
-    const data = await response.json()
-    const currentTemp = Math.round(data.current_weather.temperature)
-    const currentCode = data.current_weather.weathercode
+          // 4. Update cache
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              timestamp: Date.now(),
+              data: {
+                temp: currentTemp,
+                code: currentCode,
+                city: self.locationDisplay,
+                isBlocked: self.isLocationBlocked,
+              },
+            }),
+          )
+        })
+        .catch(function (err) {
+          console.error('Weather Fetch Error:', err)
+          self.advisoryQuote = 'Gardening advisory unavailable.'
+          self.weatherIcon = 'cloud_off'
+        })
+        .finally(function () {
+          self.isLoading = false
+        })
+    },
+  },
 
-    temperature.value = currentTemp
-    updateUIFeedback(currentCode, currentTemp)
-
-    // Save to cache including the blocked state
-    localStorage.setItem(
-      CACHE_KEY,
-      JSON.stringify({
-        timestamp: Date.now(),
-        data: {
-          temp: currentTemp,
-          code: currentCode,
-          city: locationDisplay.value,
-          isBlocked: isLocationBlocked.value, // Save state to cache
-        },
-      }),
-    )
-  } catch (error) {
-    console.error('Weather Fetch Error:', error)
-    advisoryQuote.value = 'Gardening advisory unavailable.'
-    weatherIcon.value = 'cloud_off'
-  } finally {
-    isLoading.value = false
-  }
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
+  mounted: function () {
+    // Explanation: Trigger weather lookup immediately on component mount.
+    this.fetchWeather()
+  },
 }
-
-onMounted(fetchWeather)
 </script>
 
 <template>
+  <!-- Main Weather Card -->
   <div
     class="card border-1 shadow-lg rounded-4 w-100 frosted-glass animate-fade-up"
     style="padding: 1.6rem"
@@ -153,6 +188,7 @@ onMounted(fetchWeather)
   >
     <div class="container-fluid m-0 p-0">
       <div class="d-flex flex-nowrap align-items-center justify-content-between gap-2 gap-lg-4">
+        <!-- Text Content Area -->
         <div
           class="text-start flex-grow-1 flex-wrap flex-column align-items-end justify-content-around"
         >
@@ -166,6 +202,8 @@ onMounted(fetchWeather)
           >
             {{ locationDisplay }}
           </div>
+
+          <!-- Location Access Warning (Conditional) -->
           <p
             v-if="isLocationBlocked"
             class="text-md fw-normal text-secondary m-0 p-0"
@@ -173,17 +211,22 @@ onMounted(fetchWeather)
           >
             Location Access Blocked
           </p>
+
           <div class="text-gray-300 w-100 text-sm fw-semibold lh-lg m-0 p-0">
             {{ isLoading ? 'Analyzing data...' : advisoryQuote }}
           </div>
         </div>
 
+        <!-- Visual Feedback Area (Icon & Temp) -->
         <div
           class="text-end flex-shrink-0 flex-wrap flex-column align-items-start justify-content-between"
         >
+          <!-- Loading Spinner -->
           <div v-if="isLoading" class="spinner-border text-muted" role="status">
             <span class="visually-hidden">Loading weather...</span>
           </div>
+
+          <!-- Weather Visuals -->
           <template v-else>
             <div
               class="material-symbols-outlined icon-solid top-0"
@@ -194,10 +237,7 @@ onMounted(fetchWeather)
               {{ weatherIcon }}
             </div>
             <div class="fw-bolder text-secondary fs-2 lh-md" aria-label="temperature">
-              {{ temperature }}
-            </div>
-            <div class="fw-bolder text-secondary fs-2 lh-md" aria-label="degrees Celsius">
-              &deg;C
+              {{ temperature }}&deg;C
             </div>
           </template>
         </div>
@@ -207,13 +247,7 @@ onMounted(fetchWeather)
 </template>
 
 <style scoped>
-/* Styling for the fallback location tag */
-/* .blocked-badge {
-  display: block;
-  text-shadow: none;
-} */
-
-/* AAA-Compliant Gradients applied strictly to the Material Icon text */
+/* AAA-Compliant Gradients applied strictly to the Material Icon text for maximum contrast */
 .icon-solid {
   font-variation-settings:
     'FILL' 1,

@@ -1,90 +1,126 @@
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { RouterLink } from 'vue-router'
+<script>
+/**
+ * ==========================================
+ * COMPONENT: HomeView.vue
+ * ==========================================
+ * Description:
+ * The landing page of the application. Highlighting featured roses,
+ * latest news snippets, and integrating the live weather widget.
+ * Features a full-height hero section with dynamic navbar offset.
+ */
 import WeatherWidget from '@/components/weather/WeatherWidget.vue'
-
-// --- RESTORED: Dynamic Navbar Height Measurement ---
-// This guarantees the sections fit the screen flawlessly on all devices.
-const homeRef = ref(null)
-let resizeObserver = null
-
-const updateNavbarHeight = () => {
-  const navbar = document.querySelector('.navbar.sticky-top')
-  if (navbar && homeRef.value) {
-    const h = navbar.getBoundingClientRect().height
-    homeRef.value.style.setProperty('--nav-h', `${h}px`)
-  }
-}
-
-onMounted(() => {
-  const navbar = document.querySelector('.navbar.sticky-top')
-  if (navbar) {
-    resizeObserver = new ResizeObserver(updateNavbarHeight)
-    resizeObserver.observe(navbar)
-  }
-  updateNavbarHeight()
-})
-
-onUnmounted(() => {
-  if (resizeObserver) resizeObserver.disconnect()
-})
-
 import heroImage22 from '@/assets/images/image22.jpg'
 
-// --- Modular Data Layer ---
-const heroData = {
-  badge: 'EST. 2026',
-  titleNormal: 'Sanctuary for the',
-  titleHighlight: 'Botanical Mind',
-  description:
-    'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
-  image: heroImage22,
-}
+export default {
+  name: 'HomeView',
 
-const featuredProfile = {
-  title: 'The Pink Paradise',
-  description:
-    'A compact bush rose known for exceptional disease resistance and continuous blooming cycle from early spring to late fall.',
-  image:
-    'https://images.unsplash.com/photo-1697557167328-eafb1f94a731?ixlib=rb-4.1.0&auto=format&fit=crop&w=1080&q=80',
-  link: '/collection',
-}
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+  components: {
+    WeatherWidget,
+  },
 
-const publications = [
-  {
-    id: 1,
-    category: 'PLANTING GUIDE',
-    title: 'How to Prune the White Elegance',
-    description: 'Learn the best techniques for encouraging new growth...',
-    image:
-      'https://images.unsplash.com/photo-1623945392355-12af183b7acd?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
-    link: '/news',
+  // ==========================================
+  // DATA
+  // ==========================================
+  data: function () {
+    return {
+      resizeObserver: null,
+      // Explanation: Static data for the hero section
+      heroData: {
+        badge: 'EST. 2026',
+        titleNormal: 'Sanctuary for the',
+        titleHighlight: 'Botanical Mind',
+        description:
+          'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
+        image: heroImage22,
+      },
+      // Explanation: Data for the featured rose article
+      featuredProfile: {
+        title: 'The Pink Paradise',
+        description:
+          'A compact bush rose known for exceptional disease resistance and continuous blooming cycle from early spring to late fall.',
+        image:
+          'https://images.unsplash.com/photo-1697557167328-eafb1f94a731?ixlib=rb-4.1.0&auto=format&fit=crop&w=1080&q=80',
+        link: '/collection',
+      },
+      // Explanation: Mock publications list
+      publications: [
+        {
+          id: 1,
+          category: 'PLANTING GUIDE',
+          title: 'How to Prune the White Elegance',
+          description: 'Learn the best techniques for encouraging new growth...',
+          image:
+            'https://images.unsplash.com/photo-1623945392355-12af183b7acd?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
+          link: '/news',
+        },
+        {
+          id: 2,
+          category: 'SHOP UPDATE',
+          title: 'Ruby Romance is Back in Stock!',
+          description: 'Our most requested deep red climbing rose is available...',
+          image:
+            'https://images.unsplash.com/photo-1662110497736-06601647fe27?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
+          link: '/news',
+        },
+      ],
+    }
   },
-  {
-    id: 2,
-    category: 'SHOP UPDATE',
-    title: 'Ruby Romance is Back in Stock!',
-    description: 'Our most requested deep red climbing rose is available...',
-    image:
-      'https://images.unsplash.com/photo-1662110497736-06601647fe27?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
-    link: '/news',
+
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    /**
+     * Calculates the sticky navbar height and sets a CSS variable.
+     * Explanation: Ensures the sections fit the screen flawlessly on all devices.
+     */
+    updateNavbarHeight: function () {
+      var navbar = document.querySelector('.navbar.sticky-top')
+      if (navbar && this.$refs.homeRef) {
+        var h = navbar.getBoundingClientRect().height
+        this.$refs.homeRef.style.setProperty('--nav-h', h + 'px')
+      }
+    },
   },
-]
+
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
+  mounted: function () {
+    // Explanation: Initialize ResizeObserver to react to navbar resizing.
+    var navbar = document.querySelector('.navbar.sticky-top')
+    if (navbar) {
+      this.resizeObserver = new ResizeObserver(this.updateNavbarHeight)
+      this.resizeObserver.observe(navbar)
+    }
+    this.updateNavbarHeight()
+  },
+
+  unmounted: function () {
+    // Explanation: Cleanup observer to prevent memory leaks.
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+    }
+  },
+}
 </script>
 
 <template>
   <div ref="homeRef">
+    <!-- HERO SECTION -->
     <section
       class="full-height-section position-relative overflow-hidden bg-dark d-flex flex-column justify-content-center"
-      :style="`background: linear-gradient(to bottom left, rgba(0,0,0,0.1), rgba(0,0,0,0.6)), url(${heroData.image}) center/cover no-repeat;`"
+      :style="{
+        background:
+          'linear-gradient(to bottom left, rgba(0,0,0,0.1), rgba(0,0,0,0.6)), url(' +
+          heroData.image +
+          ') center/cover no-repeat',
+      }"
       aria-label="Welcome to The Rose Blog"
     >
-      <!-- <div
-        class="position-absolute top-0 start-0 w-100 h-100 z-0"
-        :style="`background: linear-gradient(to top right, rgba(0,0,0,0.2), rgba(0,0,0,0.9)), url(${heroData.image}) center/cover no-repeat;`"
-        aria-hidden="true"
-      ></div> -->
-
       <div class="container position-relative z-1 d-flex flex-column flex-grow-1 py-0 px-5 px-lg-3">
         <div class="row d-flex flex-column flex-lg-row flex-grow-1">
           <div
@@ -103,16 +139,17 @@ const publications = [
               <p class="fs-6 fs-lg-5 text-gray-300 fw-medium w-100" style="max-width: 660px">
                 {{ heroData.description }}
               </p>
-              <RouterLink
+              <router-link
                 to="/collection"
                 class="btn rounded-pill btn-primary px-4 py-2 m-0 text-md fw-bold text-white text-uppercase shadow-sm ls-1"
                 aria-label="Explore our rose collection"
               >
                 Explore Collection
-              </RouterLink>
+              </router-link>
             </div>
           </div>
 
+          <!-- SIDEBAR with Weather -->
           <div
             class="col-12 col-lg-4 d-flex flex-column flex-grow-1 justify-content-start justify-content-lg-center"
           >
@@ -122,12 +159,14 @@ const publications = [
       </div>
     </section>
 
+    <!-- CONTENT SECTION (Rose of the Month & Latest Posts) -->
     <section
       class="bg-white full-height-section d-flex flex-column justify-content-center py-5 py-xl-0"
       aria-label="Editorial Content"
     >
       <div class="container">
         <div class="row align-items-stretch mx-2 mx-lg-0 gx-lg-5 gy-5 gy-lg-0">
+          <!-- Featured Rose Card -->
           <article class="col-12 col-lg-6 col-xl-5 d-flex flex-column px-4">
             <div class="d-flex align-items-center gap-3 mb-4">
               <h2 class="fs-4 fw-bolder mb-0 text-dark">Rose of the Month</h2>
@@ -152,17 +191,18 @@ const publications = [
                 <p class="text-white text-md opacity-75 mb-3 fw-medium">
                   {{ featuredProfile.description }}
                 </p>
-                <RouterLink
+                <router-link
                   :to="featuredProfile.link"
                   class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold"
-                  :aria-label="`Read full guide on ${featuredProfile.title}`"
+                  :aria-label="'Read full guide on ' + featuredProfile.title"
                 >
                   Read Full Guide
-                </RouterLink>
+                </router-link>
               </div>
             </div>
           </article>
 
+          <!-- Latest Posts Sidebar -->
           <div class="col-12 col-lg-6 col-xl-7 d-flex flex-column px-4">
             <div class="d-flex align-items-center gap-3 mb-3">
               <h2 class="fs-4 fw-bolder mb-0 text-dark">Latest Posts</h2>
@@ -170,21 +210,22 @@ const publications = [
             </div>
 
             <div class="d-flex flex-column justify-content-between flex-grow-1 gap-3">
+              <!-- Post Loop -->
               <article
                 v-for="item in publications"
                 :key="item.id"
                 class="card card-hover border-0 bg-transparent h-100 p-1 rounded-4"
               >
-                <RouterLink
+                <router-link
                   :to="item.link"
                   class="text-decoration-none d-block h-100"
-                  :aria-label="`Read article: ${item.title}`"
+                  :aria-label="'Read article: ' + item.title"
                 >
                   <div class="row g-0 align-items-center h-100">
                     <div class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm">
                       <img
                         v-lazy-load="item.image"
-                        :alt="`Thumbnail for ${item.title}`"
+                        :alt="'Thumbnail for ' + item.title"
                         class="w-100 h-100 object-fit-cover"
                       />
                     </div>
@@ -199,7 +240,7 @@ const publications = [
                       <p class="small mb-0 fw-medium text-muted">{{ item.description }}</p>
                     </div>
                   </div>
-                </RouterLink>
+                </router-link>
               </article>
             </div>
           </div>
@@ -210,9 +251,7 @@ const publications = [
 </template>
 
 <style scoped>
-/* RESTORED: Your dynamic height logic utilizing the JavaScript ResizeObserver.
-  This calculates the true visible screen height, completely preventing double scrollbars.
-*/
+/* Explanation: Responsive height logic ensuring consistent fullscreen sections. */
 .full-height-section {
   min-height: calc(100vh - var(--nav-h, 0px));
   min-height: calc(100dvh - var(--nav-h, 0px));
