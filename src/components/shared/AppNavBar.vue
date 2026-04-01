@@ -20,19 +20,12 @@ const isMenuOpen = ref(false)
 const isAuthModalOpen = ref(false)
 const favoritesCount = computed(() => authStore.favoritesCount)
 
-// Dynamic Navigation Links: Admin dynamically injected as a first-class link
 const navItems = computed(() => {
-  const baseItems = [
+  return [
     { label: 'Home', path: '/' },
     { label: 'News', path: '/news' },
     { label: 'About', path: '/about' },
   ]
-
-  if (authStore.isAdmin && authStore.isLoggedIn) {
-    baseItems.push({ label: 'Admin', path: '/admin', icon: 'shield' })
-  }
-
-  return baseItems
 })
 
 // ==========================================

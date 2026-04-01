@@ -4,7 +4,6 @@ import HomeView from '../views/HomeView.vue'
 import CollectionView from '../views/CollectionView.vue'
 import NewsView from '../views/NewsView.vue'
 import AboutView from '../views/AboutView.vue'
-import AdminView from '../views/AdminView.vue'
 import UnauthorizedView from '../views/UnauthorizedView.vue'
 
 const routes = [
@@ -28,12 +27,6 @@ const routes = [
     path: '/about',
     name: 'about',
     component: AboutView,
-  },
-  {
-    path: '/admin',
-    name: 'admin',
-    component: AdminView,
-    meta: { requiresAuth: true, requiresAdmin: true }, // admin only
   },
   {
     path: '/unauthorized',
@@ -62,11 +55,6 @@ router.beforeEach(async (to, _from) => {
 
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
     // Not logged in → redirect to unauthorized page
-    return { name: 'unauthorized' }
-  }
-
-  if (to.meta.requiresAdmin && !auth.isAdmin) {
-    // Logged in but not admin → redirect to unauthorized page
     return { name: 'unauthorized' }
   }
 

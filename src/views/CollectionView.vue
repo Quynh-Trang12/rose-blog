@@ -15,7 +15,6 @@ const savedArticles = computed(() => {
 
 const isOwner = (item) => {
   if (!authStore.isLoggedIn) return false
-  if (authStore.isAdmin) return true
   return authStore.currentUser.displayName === item.authorName
 }
 </script>

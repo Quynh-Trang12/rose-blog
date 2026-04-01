@@ -13,13 +13,12 @@ const showFilterModal = ref(false)
 
 // METHODS
 /**
- * Checks if the current user owns the news item or is an admin.
+ * Checks if the current user owns the news item.
  * @param {Object} item - The news item object
  * @returns {boolean} True if the user has owner privileges
  */
 const isOwner = (item) => {
   if (!authStore.currentUser) return false
-  if (authStore.isAdmin) return true // Admins own everything
   return authStore.currentUser.displayName === item.authorName
 }
 
