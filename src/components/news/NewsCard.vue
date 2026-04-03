@@ -9,9 +9,17 @@
  * edit/delete functionality if the current user is the author.
  */
 import { mapGetters, mapActions } from 'vuex'
+import VueEasyLightbox from 'vue-easy-lightbox'
 
 export default {
   name: 'NewsCard',
+
+  // ==========================================
+  // COMPONENTS
+  // ==========================================
+  components: {
+    VueEasyLightbox,
+  },
 
   // ==========================================
   // PROPS
@@ -50,6 +58,9 @@ export default {
       isEditing: false,
       editTitle: '',
       editContent: '',
+      // Lightbox State
+      lightboxVisible: false,
+      lightboxIndex: 0,
     }
   },
 
@@ -74,18 +85,11 @@ export default {
     },
 
     /**
-     * Flag for content that exceeds standard teaser length.
+     * Flag for content that exceeds standard teaser height.
+     * Adjusted to 400 chars to better match the 140px fixed height truncation.
      */
     isLongContent: function () {
-      return this.contentText.length > 150
-    },
-
-    /**
-     * Truncated version of the content for teaser views.
-     */
-    truncatedContent: function () {
-      var stripped = this.contentText.replace(/<[^>]*>/g, '')
-      return stripped.length > 150 ? stripped.substring(0, 120) : stripped
+      return this.contentText.length > 400
     },
 
     /**
@@ -207,8 +211,24 @@ export default {
      * @param {string} reaction - Type of reaction (favorite, thumb_up, etc.)
      */
     handleReact: function (reaction) {
+      if (!this.isAuthed) {
+        alert('Please log in to react to news items.')
+        this.showReactionPicker = false
+        return
+      }
       this.$emit('react', { id: this.item.id, reaction: reaction })
       this.showReactionPicker = false
+    },
+
+    /**
+     * Lightbox Controls
+     */
+    showLightbox: function (index) {
+      this.lightboxIndex = index || 0
+      this.lightboxVisible = true
+    },
+    hideLightbox: function () {
+      this.lightboxVisible = false
     },
 
     /**
@@ -234,16 +254,50 @@ export default {
      * Handles sharing to various platforms.
      * @param {string} platform - The target platform key
      */
+    /**
+     * Constructs the shareable URL for the current post.
+     * @returns {string} Full URL with anchor hash
+     */
+    getShareUrl: function () {
+      return window.location.origin + window.location.pathname + '#post-' + this.item.id
+    },
+
     handleShare: function (platform) {
-      // var self = this
-      if (platform === 'link') {
+      var shareUrl = this.getShareUrl()
+      var shareTitle = encodeURIComponent(this.item.title || 'Check out this rose!')
+
+      if (platform === 'facebook') {
+        // Explanation: Opens Facebook sharer in a centered popup window matching FB's dialog size
+        var fbWidth = 626
+        var fbHeight = 436
+        var fbLeft = Math.round((screen.width / 2) - (fbWidth / 2))
+        var fbTop = Math.round((screen.height / 2) - (fbHeight / 2))
+        window.open(
+          'https://www.facebook.com/sharer/sharer.php?u=' +
+            encodeURIComponent(shareUrl) +
+            '&quote=' +
+            shareTitle,
+          'facebook-share-dialog',
+          'width=' + fbWidth + ',height=' + fbHeight + ',top=' + fbTop + ',left=' + fbLeft,
+        )
+      } else if (platform === 'twitter') {
+        // Explanation: Opens Twitter/X intent in a centered popup
+        var twWidth = 550
+        var twHeight = 420
+        var twLeft = Math.round((screen.width / 2) - (twWidth / 2))
+        var twTop = Math.round((screen.height / 2) - (twHeight / 2))
+        window.open(
+          'https://twitter.com/intent/tweet?url=' + encodeURIComponent(shareUrl) + '&text=' + shareTitle,
+          'twitter-share-dialog',
+          'width=' + twWidth + ',height=' + twHeight + ',top=' + twTop + ',left=' + twLeft + ',toolbar=0,status=0,menubar=0'
+        )
+      } else if (platform === 'link') {
+        // Explanation: Copies the shareable link to the user's clipboard
         try {
-          navigator.clipboard.writeText(
-            window.location.href.split('#')[0] + '#post-' + this.item.id,
-          )
-          alert('Link copied to clipboard')
+          navigator.clipboard.writeText(shareUrl)
+          alert('Link copied to clipboard!')
         } catch (err) {
-          console.error('Failed to copy', err)
+          console.error('Failed to copy link', err)
         }
       }
       this.$emit('share', { id: this.item.id, platform: platform })
@@ -388,12 +442,24 @@ export default {
       <div
         v-if="item.layoutType === 'B' && hasImage"
         class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm z-0"
+        @click="showLightbox(0)"
+        style="cursor: zoom-in"
       >
         <img
           v-lazy-load="item.images && item.images.length > 0 ? item.images[0] : item.image"
           :alt="'Cover image for ' + item.title"
           class="type-b-img w-100 h-100 object-fit-cover"
         />
+
+        <!-- Glassy Stack Badge -->
+        <div
+          v-if="item.images && item.images.length > 1"
+          class="glassy-badge position-absolute bottom-0 end-0 m-3 px-2 py-1 rounded-3 d-flex align-items-center gap-1"
+        >
+          <span class="material-symbols-outlined fs-6">filter_none</span>
+          <span class="text-xs fw-bold">+{{ item.images.length - 1 }}</span>
+        </div>
+
         <div class="position-absolute bottom-0 start-0 w-100 p-4 pt-5 overlay-gradient text-white">
           <h2
             class="fs-4 mb-2 fw-bold text-shadow"
@@ -416,33 +482,35 @@ export default {
           {{ item.title }}
         </h2>
 
-        <!-- Short Content View -->
-        <p
-          v-if="!isLongContent"
-          class="mb-0 text-muted lh-base rte-rendered"
-          style="font-family: 'Roboto Condensed'"
-          v-html="contentText"
-        ></p>
-
-        <!-- Long Content View with Read More toggle -->
-        <div v-else>
-          <p
-            v-if="!isExpanded"
-            class="mb-0 text-muted lh-base rte-rendered"
-            style="font-family: 'Roboto Condensed'"
-            v-html="truncatedContent + '...'"
-          ></p>
+        <!-- Content View (Fade-Out Effect) -->
+        <div
+          class="content-wrapper position-relative overflow-hidden transition-all duration-500"
+          :style="{ maxHeight: isExpanded ? '2000px' : '140px' }"
+        >
           <div
-            v-else
             class="mb-0 text-muted lh-base rte-rendered"
             style="font-family: 'Roboto Condensed'"
             v-html="contentText"
           ></div>
+
+          <!-- Gradient Mask (Visual Dissolve) -->
+          <div v-if="!isExpanded && isLongContent" class="content-fade-mask"></div>
+        </div>
+
+        <!-- Centered Read More Button -->
+        <div v-if="isLongContent" class="d-flex justify-content-center mt-3 mb-1">
           <button
-            class="btn btn-link p-0 m-0 align-baseline text-primary fw-semibold text-decoration-none"
+            class="btn-read-more d-flex align-items-center gap-2"
             @click="isExpanded = !isExpanded"
+            :aria-expanded="isExpanded"
           >
-            {{ isExpanded ? 'Read less' : 'Read more' }}
+            <span class="btn-text">{{ isExpanded ? 'Read Less' : 'Read More' }}</span>
+            <span
+              class="material-symbols-outlined transition-base"
+              :class="{ 'rotate-180': isExpanded }"
+            >
+              keyboard_arrow_down
+            </span>
           </button>
         </div>
       </div>
@@ -528,7 +596,7 @@ export default {
         <span class="fw-semibold text-sm">{{ (item.comments || []).length }}</span>
       </button>
 
-      <!-- Share Menu -->
+      <!-- Share Menu (Teleported for centering) -->
       <div class="position-relative ms-auto">
         <button
           class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn"
@@ -540,32 +608,84 @@ export default {
           <span class="fw-semibold text-sm">{{ item.shares || 0 }}</span>
         </button>
 
-        <div
-          v-if="showShareMenu"
-          v-click-outside="closeShare"
-          class="position-absolute bottom-100 end-0 mb-2 z-3 frosted-glass rounded-4 shadow-lg p-3 d-flex flex-column gap-2"
-          style="min-width: 180px"
-        >
-          <button
-            class="btn btn-sm btn-outline-primary rounded-pill w-100 text-start d-flex align-items-center gap-2 border-0 glassmorphism-pink"
-            @click="handleShare('facebook')"
+        <teleport to="body">
+          <div
+            v-if="showShareMenu"
+            class="share-modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-index-modal"
+            @click.self="closeShare"
           >
-            <i class="bi bi-facebook lh-1 fs-6"></i> Share Facebook
-          </button>
-          <button
-            class="btn btn-sm btn-outline-primary rounded-pill w-100 text-start d-flex align-items-center gap-2 border-0 glassmorphism-pink"
-            @click="handleShare('twitter')"
-          >
-            <i class="bi bi-twitter-x lh-1 fs-6"></i> Share on X
-          </button>
-          <button
-            class="btn btn-sm btn-outline-primary rounded-pill w-100 text-start d-flex align-items-center gap-2 border-0 glassmorphism-pink"
-            @click="handleShare('link')"
-          >
-            <span class="material-symbols-outlined fs-6 lh-1">link</span> Copy Link
-          </button>
-        </div>
+            <div
+              v-click-outside="closeShare"
+              class="share-popup frosted-glass rounded-4 shadow-lg animate-fade-up"
+            >
+              <!-- Popup Header -->
+              <div
+                class="share-popup__header d-flex justify-content-between align-items-center px-3 py-3 border-bottom border-light"
+              >
+                <span class="fw-bold text-dark" style="font-family: 'Roboto Condensed'"
+                  >Share this post</span
+                >
+                <button
+                  class="btn btn-sm p-0 border-0 text-muted"
+                  @click="closeShare"
+                  aria-label="Close share menu"
+                >
+                  <span class="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <!-- Share Options -->
+              <div class="d-flex flex-column gap-2 p-3">
+                <button
+                  class="share-popup__item btn btn-sm w-100 text-start d-flex align-items-center gap-3 px-3 py-3 rounded-3 border-0"
+                  @click="handleShare('facebook')"
+                >
+                  <div
+                    class="share-popup__icon-circle d-flex align-items-center justify-content-center rounded-circle"
+                    style="background: #1877f2"
+                  >
+                    <i class="bi bi-facebook lh-1 text-white" style="font-size: 1.1rem"></i>
+                  </div>
+                  <span class="fw-medium text-dark text-md">Share on Facebook</span>
+                </button>
+                <button
+                  class="share-popup__item btn btn-sm w-100 text-start d-flex align-items-center gap-3 px-3 py-3 rounded-3 border-0"
+                  @click="handleShare('twitter')"
+                >
+                  <div
+                    class="share-popup__icon-circle d-flex align-items-center justify-content-center rounded-circle"
+                    style="background: #000000"
+                  >
+                    <i class="bi bi-twitter-x lh-1 text-white" style="font-size: 1rem"></i>
+                  </div>
+                  <span class="fw-medium text-dark text-md">Share on X</span>
+                </button>
+                <button
+                  class="share-popup__item btn btn-sm w-100 text-start d-flex align-items-center gap-3 px-3 py-3 rounded-3 border-0"
+                  @click="handleShare('link')"
+                >
+                  <div
+                    class="share-popup__icon-circle d-flex align-items-center justify-content-center rounded-circle"
+                    style="background: #65676b"
+                  >
+                    <span class="material-symbols-outlined text-white" style="font-size: 1.1rem"
+                      >link</span
+                    >
+                  </div>
+                  <span class="fw-medium text-dark text-md">Copy Link</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </teleport>
       </div>
+
+      <!-- Lightbox Component -->
+      <vue-easy-lightbox
+        :visible="lightboxVisible"
+        :imgs="item.images || [item.image]"
+        :index="lightboxIndex"
+        @hide="hideLightbox"
+      />
     </div>
 
     <!-- 4. Comments Section (Collapsible) -->
@@ -625,6 +745,10 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
+
+// Project-specific tokens (aligned with base.scss)
+$red: #e2065f;
+$custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 
 :deep(.rte-rendered) {
   /* Prevent large injected elements from breaking the layout */
@@ -697,6 +821,62 @@ export default {
   transform: scale(1.15);
 }
 
+.content-wrapper {
+  transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.content-fade-mask {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  // Dissolves into a white gradient fade as requested
+  background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.8) 50%, #ffffff 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btn-read-more {
+  background: rgba($red, 0.05);
+  color: $red;
+  border: 1px solid rgba($red, 0.15);
+  padding: 0.5rem 1.75rem;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  transition: all 0.3s $custom-timing-function;
+  cursor: pointer;
+
+  .btn-text {
+    position: relative;
+    top: 1px;
+  }
+
+  .material-symbols-outlined {
+    font-size: 1.2rem;
+    transition: transform 0.4s ease;
+  }
+
+  &:hover {
+    background: $red;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba($red, 0.25);
+    border-color: $red;
+  }
+
+  &:active {
+    transform: translateY(-1px);
+  }
+
+  .rotate-180 {
+    transform: rotate(180deg);
+  }
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition:
@@ -709,5 +889,78 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+// ==========================================
+// SHARE POPUP (Facebook-style dialog)
+// ==========================================
+.share-modal-overlay {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.share-popup {
+  width: 90%;
+  max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: sharePopupIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &__header {
+    font-family: 'Roboto Condensed', sans-serif;
+  }
+
+  &__icon-circle {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    transition: transform 0.15s ease;
+  }
+
+  &__item {
+    transition: background-color 0.15s ease;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+
+      .share-popup__icon-circle {
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+.glassy-badge {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.3s ease-out;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sharePopupIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 </style>

@@ -17,7 +17,6 @@ $secondary: $pink;
 // ==========================================
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/variables-dark';
-
 // Merge into theme-colors BEFORE loading maps
 $theme-colors: map-merge($theme-colors, ());
 
@@ -97,6 +96,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   --color-primary: #{$red};
   --color-secondary: #{$pink};
   --color-accent: #e90052;
+  --custom-timing: #{$custom-timing-function};
 
   // Define the height of your sticky navbar so sections don't hide behind it
   --navbar-height: 76px;

@@ -7,8 +7,8 @@
  * into a single store instance that is registered with the Vue application.
  */
 import { createStore } from 'vuex'
-import authModule from '../stores/authStore.js'
-import newsModule from '../stores/newsStore.js'
+import authModule from './modules/authStore.js'
+import newsModule from './modules/newsStore.js'
 
 const store = createStore({
   modules: {

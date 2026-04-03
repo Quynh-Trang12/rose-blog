@@ -5,6 +5,8 @@
  * Description:
  * Vuex module handling the collection of news articles, including
  * filtering, searching, pagination, and social interactions.
+ * Supports advanced filtering by type, color, fragrance,
+ * bloomingSeason, strength, thornLevel, and idealFor.
  */
 
 import newsData from '@/data/news.json'
@@ -22,7 +24,13 @@ export default {
       searchQuery: '',
       filters: {
         date: 'all',
-        category: 'all',
+        type: 'all',
+        color: 'all',
+        fragrance: 'all',
+        bloomingSeason: 'all',
+        strength: 'all',
+        thornLevel: 'all',
+        idealFor: 'all',
         keyword: '',
       },
       currentPage: 1,
@@ -102,7 +110,13 @@ export default {
       state.searchQuery = ''
       state.filters = {
         date: 'all',
-        category: 'all',
+        type: 'all',
+        color: 'all',
+        fragrance: 'all',
+        bloomingSeason: 'all',
+        strength: 'all',
+        thornLevel: 'all',
+        idealFor: 'all',
         keyword: '',
       }
       state.currentPage = 1
@@ -233,7 +247,7 @@ export default {
     /**
      * Changes the current page in the news list.
      */
-    setPage: function ({ state, getters, commit }, page) {
+    setPage: function ({ state: _state, getters, commit }, page) {
       // Explanation: Only allows changing to a page that exists.
       if (page >= 1 && page <= getters.totalPages) {
         commit('SET_PAGE', page)
@@ -268,7 +282,8 @@ export default {
   // ==========================================
   getters: {
     /**
-     * Calculates the list of articles filtered by keyword, category, and date.
+     * Calculates the list of articles filtered by keyword, type, color,
+     * fragrance, bloomingSeason, strength, thornLevel, idealFor, and date.
      * Derives this data from the base articles array and current filter state.
      */
     filteredArticles: function (state) {
@@ -286,14 +301,62 @@ export default {
         })
       }
 
-      // 2. Category filter
-      if (state.filters.category && state.filters.category !== 'all') {
+      // 2. Type filter (e.g. "Bush Rose", "Climbing Rose")
+      if (state.filters.type && state.filters.type !== 'all') {
         result = result.filter(function (a) {
-          return (a.category || a.type) === state.filters.category
+          return (a.type || '').toLowerCase().indexOf(state.filters.type.toLowerCase()) !== -1
         })
       }
 
-      // 3. Date filter (Simplified implementation for mock)
+      // 3. Color filter
+      if (state.filters.color && state.filters.color !== 'all') {
+        result = result.filter(function (a) {
+          return (a.color || '').toLowerCase().indexOf(state.filters.color.toLowerCase()) !== -1
+        })
+      }
+
+      // 4. Fragrance filter
+      if (state.filters.fragrance && state.filters.fragrance !== 'all') {
+        result = result.filter(function (a) {
+          return (
+            (a.fragrance || '').toLowerCase().indexOf(state.filters.fragrance.toLowerCase()) !== -1
+          )
+        })
+      }
+
+      // 5. Blooming Season filter
+      if (state.filters.bloomingSeason && state.filters.bloomingSeason !== 'all') {
+        result = result.filter(function (a) {
+          return (
+            (a.bloomingSeason || '').toLowerCase().indexOf(
+              state.filters.bloomingSeason.toLowerCase(),
+            ) !== -1
+          )
+        })
+      }
+
+      // 6. Strength filter
+      if (state.filters.strength && state.filters.strength !== 'all') {
+        result = result.filter(function (a) {
+          return a.strength === Number(state.filters.strength)
+        })
+      }
+
+      // 7. Thorn Level filter
+      if (state.filters.thornLevel && state.filters.thornLevel !== 'all') {
+        result = result.filter(function (a) {
+          return a.thornLevel === state.filters.thornLevel
+        })
+      }
+
+      // 8. IdealFor filter
+      if (state.filters.idealFor && state.filters.idealFor !== 'all') {
+        result = result.filter(function (a) {
+          return a.idealFor === state.filters.idealFor
+        })
+      }
+
+      // 9. Date filter (Simplified implementation for mock)
       if (state.filters.date && state.filters.date !== 'all') {
         var now = new Date()
         result = result.filter(function (a) {
@@ -317,7 +380,7 @@ export default {
     /**
      * Returns the total count of filtered articles.
      */
-    totalArticles: function (state, getters) {
+    totalArticles: function (_state, getters) {
       return getters.filteredArticles.length
     },
 

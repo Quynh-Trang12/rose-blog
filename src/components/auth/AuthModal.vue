@@ -76,38 +76,35 @@ export default {
      */
     checkForm: function (event) {
       event.preventDefault()
-      // Explanation: No complex validation here yet, just direct handleAuth call.
-      this.handleAuth()
-    },
-
-    /**
-     * Orchestrates the actual login/register logic via Vuex.
-     */
-    handleAuth: function () {
       var self = this
-      if (this.isSignUpMode) {
-        // Registration Flow
-        this.register(this.signupForm).then(function (res) {
-          // Explanation: Handle registration response
+      var action = this.isSignUpMode ? 'auth/register' : 'auth/login'
+      var payload = this.isSignUpMode
+        ? {
+            username: this.signupForm.username,
+            password: this.signupForm.password,
+            displayName: this.signupForm.displayName,
+          }
+        : { username: this.loginForm.username, password: this.loginForm.password }
+
+      // Explanation: dispatch() returns a Promise because both login and register
+      // hash the password asynchronously via the Web Crypto API before committing.
+      this.$store
+        .dispatch(action, payload)
+        .then(function (res) {
           if (res.success) {
-            self.isSignUpMode = false
-            self.signupForm = { username: '', password: '', displayName: '' }
+            if (self.isSignUpMode) {
+              self.isSignUpMode = false
+              self.signupForm = { username: '', password: '', displayName: '' }
+            }
             self.closeModal()
           } else {
             self.authError = res.error
           }
         })
-      } else {
-        // Login Flow
-        this.login(this.loginForm).then(function (res) {
-          // Explanation: Handle login response
-          if (res.success) {
-            self.closeModal()
-          } else {
-            self.authError = res.error
-          }
+        .catch(function (err) {
+          self.authError = 'Something went wrong. Please try again.'
+          console.error('Auth error:', err)
         })
-      }
     },
   },
 

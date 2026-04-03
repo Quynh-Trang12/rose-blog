@@ -5,8 +5,9 @@
  * ==========================================
  * Description:
  * A slide-down modal component that provides advanced filtering options
- * for the news article list, including date ranges, categories,
- * and keyword-based search.
+ * for the news article list. Supports filtering by date, type, color,
+ * fragrance, blooming season, strength, thorn level, ideal planting
+ * location, and keyword-based search.
  */
 import { mapState, mapActions } from 'vuex'
 
@@ -36,9 +37,51 @@ export default {
       // Explanation: Local filter state synced from the store when the modal opens.
       localFilters: {
         date: 'all',
-        category: 'all',
+        type: 'all',
+        color: 'all',
+        fragrance: 'all',
+        bloomingSeason: 'all',
+        strength: 'all',
+        thornLevel: 'all',
+        idealFor: 'all',
         keyword: '',
       },
+
+      // Explanation: Available options for each filter category.
+      typeOptions: ['all', 'Bush Rose', 'Climbing Rose', 'Planting Guide', 'Botanical Tips'],
+      colorOptions: [
+        'all',
+        'Soft Pink',
+        'Coral',
+        'Orange',
+        'Pure White',
+        'Deep Crimson',
+        'Pink and Red mix',
+        'Orange to Yellow',
+      ],
+      fragranceOptions: [
+        'all',
+        'Sweet',
+        'Citrus',
+        'Fruity',
+        'Light',
+        'Strong',
+        'Rich and intense',
+        'Herbal',
+      ],
+      bloomingSeasonOptions: [
+        'all',
+        'Spring to Fall',
+        'Summer',
+        'Late Spring to Early Fall',
+        'Late Spring to Mid Fall',
+        'All Season',
+        'Spring to Summer',
+        'Summer to Fall',
+      ],
+      strengthOptions: ['all', '3', '4', '5'],
+      thornLevelOptions: ['all', 'none', 'few', 'many'],
+      idealForOptions: ['all', 'pot', 'fence', 'hedges'],
     }
   },
 
@@ -47,6 +90,24 @@ export default {
   // ==========================================
   computed: {
     ...mapState('news', ['filters']),
+
+    /**
+     * Returns a count of active (non-default) filters to show a badge.
+     */
+    activeFilterCount: function () {
+      var count = 0
+      var self = this
+      var keys = ['date', 'type', 'color', 'fragrance', 'bloomingSeason', 'strength', 'thornLevel', 'idealFor']
+      keys.forEach(function (key) {
+        if (self.localFilters[key] !== 'all') {
+          count++
+        }
+      })
+      if (self.localFilters.keyword) {
+        count++
+      }
+      return count
+    },
   },
 
   // ==========================================
@@ -67,7 +128,7 @@ export default {
   // METHODS
   // ==========================================
   methods: {
-    ...mapActions('news', ['applyFilters']),
+    ...mapActions('news', ['applyFilters', 'clearFilters']),
 
     /**
      * Closes the filter modal by emitting a false value for v-model.
@@ -86,20 +147,40 @@ export default {
     },
 
     /**
-     * Helper to check if a category is currently selected in the local filter state.
-     * @param {string} category - Category name to check
-     * @returns {boolean}
+     * Resets all local filters to defaults and dispatches the clear action.
      */
-    isCategoryActive: function (category) {
-      return this.localFilters.category === category
+    handleReset: function () {
+      // Explanation: Reset local state to all defaults
+      this.localFilters = {
+        date: 'all',
+        type: 'all',
+        color: 'all',
+        fragrance: 'all',
+        bloomingSeason: 'all',
+        strength: 'all',
+        thornLevel: 'all',
+        idealFor: 'all',
+        keyword: '',
+      }
+      // Explanation: Dispatch clearFilters to the Vuex store as well
+      this.clearFilters()
+      this.close()
     },
 
     /**
-     * Updates the local category selection.
-     * @param {string} category - Category name
+     * Helper to format display labels for filter pills.
+     * @param {string} value - The raw filter value
+     * @returns {string} The formatted display label
      */
-    setCategory: function (category) {
-      this.localFilters.category = category
+    formatLabel: function (value) {
+      if (value === 'all') return 'All'
+      if (value === 'pot') return 'In Pot'
+      if (value === 'fence') return 'Fence'
+      if (value === 'hedges') return 'Hedges'
+      if (value === 'none') return 'None'
+      if (value === 'few') return 'Few'
+      if (value === 'many') return 'Many'
+      return value
     },
   },
 }
@@ -117,16 +198,47 @@ export default {
       <div class="news-filter-modal frosted-glass rounded-4 shadow-lg p-4" v-click-outside="close">
         <!-- Modal Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h4 id="filter-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab'">
-            Filter & Search
-          </h4>
+          <div class="d-flex align-items-center gap-2">
+            <h4 id="filter-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab'">
+              Search & Filter
+            </h4>
+            <!-- Active Filter Count Badge -->
+            <span
+              v-if="activeFilterCount > 0"
+              class="badge rounded-pill bg-primary text-white text-xs px-2 py-1"
+            >
+              {{ activeFilterCount }}
+            </span>
+          </div>
           <button @click="close" class="btn-close" aria-label="Close filters"></button>
         </div>
 
-        <div class="d-flex flex-column gap-4">
+        <div class="news-filter-scroll d-flex flex-column gap-4">
+          <!-- KEYWORD SEARCH SECTION -->
+          <div>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Keywords
+            </label>
+            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
+              <span class="input-group-text bg-white border-0 pe-1">
+                <span class="material-symbols-outlined text-muted">search</span>
+              </span>
+              <input
+                type="text"
+                class="form-control border-0 ps-1"
+                placeholder="Search roses..."
+                v-model="localFilters.keyword"
+                @keyup.enter="handleApplyFilters"
+                aria-label="Search keywords"
+              />
+            </div>
+          </div>
+
           <!-- DATE FILTER SECTION -->
           <div>
-            <label class="text-xs fw-bold text-uppercase ls-1 text-muted mb-2">Date</label>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Date
+            </label>
             <select
               class="form-select rounded-3 bg-dark text-white border-0 py-2 shadow-sm"
               v-model="localFilters.date"
@@ -140,60 +252,145 @@ export default {
             </select>
           </div>
 
-          <!-- CATEGORY FILTER SECTION -->
+          <!-- TYPE FILTER SECTION -->
           <div>
-            <label class="text-xs fw-bold text-uppercase ls-1 text-muted mb-2">Category</label>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Type
+            </label>
             <div class="d-flex flex-wrap gap-2">
-              <!-- Explanation: Category badge buttons that toggle local selection -->
               <button
+                v-for="opt in typeOptions"
+                :key="'type-' + opt"
                 class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="isCategoryActive('all') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="setCategory('all')"
+                :class="localFilters.type === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="localFilters.type = opt"
               >
-                All
-              </button>
-              <button
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="isCategoryActive('Health & Remedies') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="setCategory('Health & Remedies')"
-              >
-                Health & Remedies
-              </button>
-              <button
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="isCategoryActive('Garden Stories') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="setCategory('Garden Stories')"
-              >
-                Garden Stories
-              </button>
-              <button
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="isCategoryActive('Life & Reflections') ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="setCategory('Life & Reflections')"
-              >
-                Life & Reflections
+                {{ formatLabel(opt) }}
               </button>
             </div>
           </div>
 
-          <!-- KEYWORD SEARCH SECTION -->
+          <!-- COLOR FILTER SECTION -->
           <div>
-            <label class="text-xs fw-bold text-uppercase ls-1 text-muted mb-2">Keywords</label>
-            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
-              <span class="input-group-text bg-white border-0 pe-1">
-                <span class="material-symbols-outlined text-muted">search</span>
-              </span>
-              <input
-                type="text"
-                class="form-control border-0 ps-1"
-                placeholder="Search articles..."
-                v-model="localFilters.keyword"
-                @keyup.enter="handleApplyFilters"
-                aria-label="Search keywords"
-              />
-              <button class="btn btn-primary fw-bold px-4" @click="handleApplyFilters">SEARCH</button>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Color
+            </label>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                v-for="opt in colorOptions"
+                :key="'color-' + opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
+                :class="localFilters.color === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="localFilters.color = opt"
+              >
+                {{ formatLabel(opt) }}
+              </button>
             </div>
           </div>
+
+          <!-- FRAGRANCE FILTER SECTION -->
+          <div>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Fragrance
+            </label>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                v-for="opt in fragranceOptions"
+                :key="'frag-' + opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
+                :class="localFilters.fragrance === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="localFilters.fragrance = opt"
+              >
+                {{ formatLabel(opt) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- BLOOMING SEASON FILTER SECTION -->
+          <div>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Blooming Season
+            </label>
+            <select
+              class="form-select rounded-3 bg-dark text-white border-0 py-2 shadow-sm"
+              v-model="localFilters.bloomingSeason"
+              aria-label="Filter by blooming season"
+            >
+              <option v-for="opt in bloomingSeasonOptions" :key="'bloom-' + opt" :value="opt">
+                {{ formatLabel(opt) }}
+              </option>
+            </select>
+          </div>
+
+          <!-- STRENGTH FILTER SECTION -->
+          <div>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Strength
+            </label>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                v-for="opt in strengthOptions"
+                :key="'str-' + opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
+                :class="localFilters.strength === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="localFilters.strength = opt"
+              >
+                {{ opt === 'all' ? 'All' : '⭐'.repeat(Number(opt)) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- THORN LEVEL FILTER SECTION -->
+          <div>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Thorn Level
+            </label>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                v-for="opt in thornLevelOptions"
+                :key="'thorn-' + opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
+                :class="localFilters.thornLevel === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="localFilters.thornLevel = opt"
+              >
+                {{ formatLabel(opt) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- IDEAL FOR FILTER SECTION -->
+          <div>
+            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
+              Ideal For
+            </label>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                v-for="opt in idealForOptions"
+                :key="'ideal-' + opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
+                :class="localFilters.idealFor === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="localFilters.idealFor = opt"
+              >
+                {{ formatLabel(opt) }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 mt-4 pt-3 border-top border-light">
+          <button
+            class="btn btn-outline-secondary rounded-pill flex-fill fw-medium"
+            @click="handleReset"
+          >
+            Reset All
+          </button>
+          <button
+            class="btn btn-primary rounded-pill flex-fill fw-bold"
+            @click="handleApplyFilters"
+          >
+            Apply Filters
+          </button>
         </div>
       </div>
     </div>
@@ -221,7 +418,31 @@ export default {
 
 .news-filter-modal {
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.news-filter-scroll {
+  overflow-y: auto;
+  flex: 1;
+  // Explanation: Custom scrollbar styling for a polished look
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+  }
+}
+
+.news-filter-label {
+  font-family: 'Roboto Condensed', sans-serif;
+  display: block;
 }
 
 @include media-breakpoint-down(md) {

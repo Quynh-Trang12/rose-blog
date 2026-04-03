@@ -30,8 +30,8 @@ export default {
       form: {
         title: '',
         content: '',
-        category: 'Life & Reflections',
-        imageUrl: '',
+        type: 'Bush Rose',
+        images: [],
         isPublic: true,
       },
     }
@@ -74,8 +74,8 @@ export default {
       this.form = {
         title: '',
         content: '',
-        category: 'Life & Reflections',
-        imageUrl: '',
+        type: 'Bush Rose',
+        images: [],
         isPublic: true,
       }
     },
@@ -99,15 +99,54 @@ export default {
       // Explanation: Prepare the payload for the Vuex addArticle action.
       this.addArticle({
         authorName: this.currentUser.displayName,
-        authorAvatar: this.currentUser.avatar || 'https://i.pravatar.cc/150?u=' + this.currentUser.username,
+        authorAvatar:
+          this.currentUser.avatar || 'https://i.pravatar.cc/150?u=' + this.currentUser.username,
         date: new Date().toISOString(),
         title: this.form.title.trim(),
         content: this.form.content.trim(),
-        category: this.form.category,
-        imageUrl: this.form.imageUrl.trim() || null,
+        type: this.form.type,
+        images: this.form.images,
         isPublic: this.form.isPublic,
+        layoutType: this.form.images.length > 0 ? 'B' : 'A',
       })
       this.closeModal()
+    },
+
+    /**
+     * Triggers the hidden file input for photo selection.
+     */
+    triggerFileUpload: function (event) {
+      if (event) event.preventDefault()
+      this.openModal()
+      this.$nextTick(function () {
+        var input = document.getElementById('post-image-upload')
+        if (input) input.click()
+      })
+    },
+
+    /**
+     * Handles file selection and creates object URLs for preview.
+     */
+    handleFileUpload: function (event) {
+      var files = event.target.files
+      if (!files) return
+      var self = this
+      Array.from(files).forEach(function (file) {
+        var url = URL.createObjectURL(file)
+        self.form.images.push(url)
+      })
+    },
+
+    /**
+     * Focuses the category selector in the modal.
+     */
+    focusCategory: function (event) {
+      if (event) event.preventDefault()
+      this.openModal()
+      this.$nextTick(function () {
+        var select = document.getElementById('post-category')
+        if (select) select.focus()
+      })
     },
   },
 }
@@ -135,14 +174,14 @@ export default {
       <div class="d-flex gap-2">
         <button
           class="btn btn-sm btn-light rounded-pill d-flex align-items-center gap-2 fw-medium border shadow-sm px-3"
-          @click="openModal"
+          @click="triggerFileUpload"
         >
           <span class="material-symbols-outlined text-muted fs-5">photo_camera</span>
           Add Photo
         </button>
         <button
           class="btn btn-sm btn-light rounded-pill d-flex align-items-center gap-2 fw-medium border shadow-sm px-3"
-          @click="openModal"
+          @click="focusCategory"
         >
           <span class="material-symbols-outlined text-muted fs-5">label</span>
           Add Category
@@ -206,10 +245,11 @@ export default {
               <div class="row g-3">
                 <div class="col-sm-6">
                   <label for="post-category" class="form-label text-sm fw-bold">Category</label>
-                  <select id="post-category" class="form-select rounded-3" v-model="form.category">
-                    <option value="Health & Remedies">Health & Remedies</option>
-                    <option value="Garden Stories">Garden Stories</option>
-                    <option value="Life & Reflections">Life & Reflections</option>
+                  <select id="post-category" class="form-select rounded-3" v-model="form.type">
+                    <option value="Bush Rose">Bush Rose</option>
+                    <option value="Climbing Rose">Climbing Rose</option>
+                    <option value="Planting Guide">Planting Guide</option>
+                    <option value="Botanical Tips">Botanical Tips</option>
                   </select>
                 </div>
                 <div class="col-sm-6 d-flex align-items-end mb-1">
@@ -229,15 +269,39 @@ export default {
               </div>
 
               <div>
-                <label for="post-image" class="form-label text-sm fw-bold"
-                  >Image URL (Optional)</label
-                >
+                <label class="form-label text-sm fw-bold">Photos</label>
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                  <div
+                    v-for="(img, idx) in form.images"
+                    :key="idx"
+                    class="position-relative border rounded-3 overflow-hidden"
+                    style="width: 80px; height: 80px"
+                  >
+                    <img v-lazy-load="img" class="w-100 h-100 object-fit-cover" />
+                    <button
+                      type="button"
+                      class="btn-close btn-close-white position-absolute top-0 end-0 p-1 bg-dark bg-opacity-50"
+                      style="font-size: 0.5rem"
+                      @click="form.images.splice(idx, 1)"
+                    ></button>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-outline-dashed rounded-3 d-flex flex-column align-items-center justify-content-center gap-1 text-muted"
+                    style="width: 80px; height: 80px; border: 2px dashed #ddd"
+                    @click="triggerFileUpload"
+                  >
+                    <span class="material-symbols-outlined">add_a_photo</span>
+                    <span style="font-size: 0.6rem">Add More</span>
+                  </button>
+                </div>
                 <input
-                  id="post-image"
-                  type="url"
-                  class="form-control rounded-3"
-                  placeholder="https://images.unsplash.com/..."
-                  v-model="form.imageUrl"
+                  id="post-image-upload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  class="d-none"
+                  @change="handleFileUpload"
                 />
               </div>
 

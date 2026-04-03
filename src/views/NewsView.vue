@@ -119,12 +119,16 @@ export default {
             Click to<br />Search & Filter
           </p>
           <button
-            class="news-view__search-bubble frosted-glass border-0 shadow-lg d-flex align-items-center justify-content-center"
+            class="news-view__search-bubble border-0 bg-transparent p-0 d-flex align-items-center justify-content-center"
             @click.stop="showFilterModal = true"
             aria-label="Open search and filter panel"
             :aria-expanded="showFilterModal"
           >
-            <span class="material-symbols-outlined fs-3 text-dark">search</span>
+            <img
+              src="@/assets/images/search-icon.png"
+              alt="Search and filter"
+              class="news-view__search-icon"
+            />
           </button>
         </div>
       </div>
@@ -255,15 +259,28 @@ export default {
   }
 
   &__search-bubble {
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: transform 0.2s ease-in-out;
 
     &:hover {
       transform: scale(1.08);
-      box-shadow: 0 8px 32px rgba($pink, 0.25) !important;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__search-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    filter: drop-shadow(0 4px 16px rgba($pink, 0.3));
+    transition: filter 0.2s ease-in-out;
+
+    &:hover {
+      filter: drop-shadow(0 8px 32px rgba($pink, 0.45));
     }
   }
 

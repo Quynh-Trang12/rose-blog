@@ -99,7 +99,7 @@ export default {
 
     <div class="container position-relative z-1 pt-4">
       <!-- Page Header -->
-      <div class="mb-5">
+      <!-- <div class="mb-5">
         <h1
           class="display-4 fw-bold fst-italic mb-1 animate-fade-up"
           style="font-family: 'Zilla Slab'; color: #333"
@@ -109,15 +109,15 @@ export default {
         <p class="text-muted fw-normal mb-0" style="font-family: 'Roboto Condensed'">
           A curated gallery of exceptional roses. Members-only access.
         </p>
-      </div>
+      </div> -->
 
       <!-- Stats Summary -->
-      <div class="mb-4">
+      <!-- <div class="mb-4">
         <p class="text-muted text-sm" style="font-family: 'Roboto Condensed'">
           Showing saved articles: <strong>{{ savedArticles.length }}</strong> of
           <strong>{{ articles.length }}</strong>
         </p>
-      </div>
+      </div> -->
 
       <!-- Unauthorized State -->
       <div v-if="!isLoggedIn" class="text-center py-5 animate-fade-up">
