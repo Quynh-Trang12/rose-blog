@@ -8,6 +8,12 @@
  * for the news article list. Supports filtering by date, type, color,
  * fragrance, blooming season, strength, thorn level, ideal planting
  * location, and keyword-based search.
+ *
+ * Enhancements: Escape key closes the filter panel. Active filter count
+ * badge. Debounced keyword input via a 300ms watcher (Requirement 1.1).
+ *
+ * Props: modelValue (Boolean).
+ * Emits: update:modelValue.
  */
 import { mapState, mapActions } from 'vuex'
 
@@ -32,25 +38,27 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
       // Explanation: Local filter state synced from the store when the modal opens.
       localFilters: {
         date: 'all',
-        type: 'all',
-        color: 'all',
-        fragrance: 'all',
-        bloomingSeason: 'all',
-        strength: 'all',
-        thornLevel: 'all',
-        idealFor: 'all',
+        type: [],
+        color: [],
+        fragrance: [],
+        bloomingSeason: [],
+        strength: [],
+        thornLevel: [],
+        idealFor: [],
         keyword: '',
       },
 
+      // Explanation: Timer reference for the 300ms keyword debounce (Req 1.1).
+      debounceTimer: null,
+
       // Explanation: Available options for each filter category.
-      typeOptions: ['all', 'Bush Rose', 'Climbing Rose', 'Planting Guide', 'Botanical Tips'],
+      typeOptions: ['Bush Rose', 'Climbing Rose', 'Planting Guide', 'Botanical Tips'],
       colorOptions: [
-        'all',
         'Soft Pink',
         'Coral',
         'Orange',
@@ -60,7 +68,6 @@ export default {
         'Orange to Yellow',
       ],
       fragranceOptions: [
-        'all',
         'Sweet',
         'Citrus',
         'Fruity',
@@ -70,7 +77,6 @@ export default {
         'Herbal',
       ],
       bloomingSeasonOptions: [
-        'all',
         'Spring to Fall',
         'Summer',
         'Late Spring to Early Fall',
@@ -79,9 +85,9 @@ export default {
         'Spring to Summer',
         'Summer to Fall',
       ],
-      strengthOptions: ['all', '3', '4', '5'],
-      thornLevelOptions: ['all', 'none', 'few', 'many'],
-      idealForOptions: ['all', 'pot', 'fence', 'hedges'],
+      strengthOptions: ['3', '4', '5'],
+      thornLevelOptions: ['none', 'few', 'many'],
+      idealForOptions: ['pot', 'fence', 'hedges'],
     }
   },
 
@@ -93,19 +99,13 @@ export default {
 
     /**
      * Returns a count of active (non-default) filters to show a badge.
+     * @returns {number}
      */
-    activeFilterCount: function () {
-      var count = 0
-      var self = this
-      var keys = ['date', 'type', 'color', 'fragrance', 'bloomingSeason', 'strength', 'thornLevel', 'idealFor']
-      keys.forEach(function (key) {
-        if (self.localFilters[key] !== 'all') {
-          count++
-        }
-      })
-      if (self.localFilters.keyword) {
-        count++
-      }
+    activeFilterCount() {
+      const keys = ['type', 'color', 'fragrance', 'bloomingSeason', 'strength', 'thornLevel', 'idealFor']
+      let count = keys.reduce((acc, key) => acc + (this.localFilters[key].length || 0), 0)
+      if (this.localFilters.date !== 'all') count++
+      if (this.localFilters.keyword) count++
       return count
     },
   },
@@ -115,12 +115,31 @@ export default {
   // ==========================================
   watch: {
     /**
-     * When the modal opens, synchronize the local filter state with the global store.
+     * When the modal opens, synchronises local filter state with the global store
+     * and attaches the Escape key listener. When it closes, removes the listener.
+     * @param {boolean} val - The new modelValue
      */
-    modelValue: function (val) {
+    modelValue(val) {
       if (val) {
         this.localFilters = { ...this.filters }
+        window.addEventListener('keydown', this.handleEscapeKey)
+      } else {
+        window.removeEventListener('keydown', this.handleEscapeKey)
       }
+    },
+
+    /**
+     * Debounces the keyword input by 300ms before applying filters (Req 1.1).
+     * Explanation: Whenever the keyword changes, we clear the previous timer
+     * and set a new one. This ensures we only trigger the store update after
+     * the user has stopped typing for 300 milliseconds.
+     */
+    'localFilters.keyword'(newVal) {
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = setTimeout(() => {
+        // Trigger applyFilters only if the search input is the trigger
+        this.applyFilters({ ...this.localFilters, keyword: newVal })
+      }, 300)
     },
   },
 
@@ -133,14 +152,14 @@ export default {
     /**
      * Closes the filter modal by emitting a false value for v-model.
      */
-    close: function () {
+    close() {
       this.$emit('update:modelValue', false)
     },
 
     /**
      * Submits the locally modified filters to the Vuex news store.
      */
-    handleApplyFilters: function () {
+    handleApplyFilters() {
       // Explanation: Dispatches the local filter state to the news module action.
       this.applyFilters(this.localFilters)
       this.close()
@@ -149,20 +168,20 @@ export default {
     /**
      * Resets all local filters to defaults and dispatches the clear action.
      */
-    handleReset: function () {
-      // Explanation: Reset local state to all defaults
+    handleReset() {
+      // Explanation: Reset local state to all defaults.
       this.localFilters = {
         date: 'all',
-        type: 'all',
-        color: 'all',
-        fragrance: 'all',
-        bloomingSeason: 'all',
-        strength: 'all',
-        thornLevel: 'all',
-        idealFor: 'all',
+        type: [],
+        color: [],
+        fragrance: [],
+        bloomingSeason: [],
+        strength: [],
+        thornLevel: [],
+        idealFor: [],
         keyword: '',
       }
-      // Explanation: Dispatch clearFilters to the Vuex store as well
+      // Explanation: Dispatch clearFilters to the Vuex store as well.
       this.clearFilters()
       this.close()
     },
@@ -172,7 +191,7 @@ export default {
      * @param {string} value - The raw filter value
      * @returns {string} The formatted display label
      */
-    formatLabel: function (value) {
+    formatLabel(value) {
       if (value === 'all') return 'All'
       if (value === 'pot') return 'In Pot'
       if (value === 'fence') return 'Fence'
@@ -182,6 +201,41 @@ export default {
       if (value === 'many') return 'Many'
       return value
     },
+
+    /**
+     * Toggles a value within a multi-select filter array.
+     * @param {string} key - The filter category key
+     * @param {string} value - The value to add or remove
+     */
+    toggleFilter(key, value) {
+      const arr = [...this.localFilters[key]]
+      const index = arr.indexOf(value)
+      if (index > -1) {
+        arr.splice(index, 1)
+      } else {
+        arr.push(value)
+      }
+      this.localFilters[key] = arr
+    },
+
+    /**
+     * Handles the Escape key to close the filter panel (Req 12).
+     * @param {KeyboardEvent} event - The keyboard event
+     */
+    handleEscapeKey(event) {
+      if (event.key === 'Escape') {
+        this.close()
+      }
+    },
+  },
+
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
+  unmounted() {
+    // Explanation: Safety cleanup to prevent memory leaks and timers.
+    window.removeEventListener('keydown', this.handleEscapeKey)
+    clearTimeout(this.debounceTimer)
   },
 }
 </script>
@@ -190,7 +244,7 @@ export default {
   <transition name="drop-down">
     <div
       v-if="modelValue"
-      class="news-filter-overlay"
+      class="news-filter-overlay position-fixed inset-0 z-index-filter"
       role="dialog"
       aria-modal="true"
       aria-labelledby="filter-modal-title"
@@ -199,7 +253,7 @@ export default {
         <!-- Modal Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <div class="d-flex align-items-center gap-2">
-            <h4 id="filter-modal-title" class="mb-0 fw-bold" style="font-family: 'Zilla Slab'">
+            <h4 id="filter-modal-title" class="mb-0 fw-bold font-zilla">
               Search & Filter
             </h4>
             <!-- Active Filter Count Badge -->
@@ -261,9 +315,9 @@ export default {
               <button
                 v-for="opt in typeOptions"
                 :key="'type-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="localFilters.type === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="localFilters.type = opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.type.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('type', opt)"
               >
                 {{ formatLabel(opt) }}
               </button>
@@ -279,9 +333,9 @@ export default {
               <button
                 v-for="opt in colorOptions"
                 :key="'color-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="localFilters.color === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="localFilters.color = opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.color.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('color', opt)"
               >
                 {{ formatLabel(opt) }}
               </button>
@@ -297,9 +351,9 @@ export default {
               <button
                 v-for="opt in fragranceOptions"
                 :key="'frag-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="localFilters.fragrance === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="localFilters.fragrance = opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.fragrance.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('fragrance', opt)"
               >
                 {{ formatLabel(opt) }}
               </button>
@@ -311,15 +365,17 @@ export default {
             <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
               Blooming Season
             </label>
-            <select
-              class="form-select rounded-3 bg-dark text-white border-0 py-2 shadow-sm"
-              v-model="localFilters.bloomingSeason"
-              aria-label="Filter by blooming season"
-            >
-              <option v-for="opt in bloomingSeasonOptions" :key="'bloom-' + opt" :value="opt">
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                v-for="opt in bloomingSeasonOptions"
+                :key="'bloom-' + opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.bloomingSeason.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('bloomingSeason', opt)"
+              >
                 {{ formatLabel(opt) }}
-              </option>
-            </select>
+              </button>
+            </div>
           </div>
 
           <!-- STRENGTH FILTER SECTION -->
@@ -331,9 +387,9 @@ export default {
               <button
                 v-for="opt in strengthOptions"
                 :key="'str-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="localFilters.strength === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="localFilters.strength = opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.strength.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('strength', opt)"
               >
                 {{ opt === 'all' ? 'All' : '⭐'.repeat(Number(opt)) }}
               </button>
@@ -349,9 +405,9 @@ export default {
               <button
                 v-for="opt in thornLevelOptions"
                 :key="'thorn-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="localFilters.thornLevel === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="localFilters.thornLevel = opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.thornLevel.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('thornLevel', opt)"
               >
                 {{ formatLabel(opt) }}
               </button>
@@ -367,9 +423,9 @@ export default {
               <button
                 v-for="opt in idealForOptions"
                 :key="'ideal-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium"
-                :class="localFilters.idealFor === opt ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="localFilters.idealFor = opt"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
+                :class="localFilters.idealFor.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
+                @click="toggleFilter('idealFor', opt)"
               >
                 {{ formatLabel(opt) }}
               </button>
@@ -400,15 +456,10 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/variables-dark';
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
-@import 'bootstrap/scss/utilities';
 
 .news-filter-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1055;
   background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: flex-start;
@@ -427,7 +478,7 @@ export default {
 .news-filter-scroll {
   overflow-y: auto;
   flex: 1;
-  // Explanation: Custom scrollbar styling for a polished look
+  // Explanation: Custom scrollbar styling for a polished look.
   &::-webkit-scrollbar {
     width: 4px;
   }

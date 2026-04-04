@@ -4,8 +4,10 @@
  * COMPONENT: AppFooter.vue
  * ==========================================
  * Description:
- * The application footer containing brand information, navigation links,
- * and a newsletter subscription form.
+ * The application footer containing brand information, quick navigation
+ * links, social action buttons, and a newsletter subscription form.
+ * Social icons use semantic <button> elements instead of empty <a> links
+ * (Requirement 9).
  */
 
 export default {
@@ -14,7 +16,7 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
       // Explanation: Dynamically calculate the current year for the copyright notice.
       currentYear: new Date().getFullYear(),
@@ -27,23 +29,60 @@ export default {
   methods: {
     /**
      * Validates the newsletter form before submission.
-     * Explanation: Following the week-6 taught pattern of explicit preventDefault.
+     * Explanation: Follows the taught pattern of explicit preventDefault
+     * on form submission. Logs a mock submission to the console.
      * @param {Event} event - The native DOM form submit event
      */
-    checkForm: function (event) {
+    checkForm(event) {
       event.preventDefault()
-      // Explanation: Logs a mock submission to the console.
+      alert('Thank you for subscribing to The Rose Blog Newsletter!')
       console.log('Newsletter subscription submitted (mock)')
+    },
+
+    /**
+     * Triggers the Web Share API or falls back to copying the link.
+     * Explanation: Allows users to share the blog URL to other apps.
+     */
+    async handleShare() {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'The Rose Blog',
+            text: 'Discover the world of roses with expert guides and inspirations.',
+            url: window.location.origin,
+          })
+        } catch (err) {
+          console.error('Share failed', err)
+        }
+      } else {
+        navigator.clipboard.writeText(window.location.origin)
+        alert('Blog link copied to clipboard!')
+      }
+    },
+
+    /**
+     * Opens the official Instagram page in a new tab.
+     */
+    openInstagram() {
+      window.open('https://www.instagram.com/theroseblog', '_blank')
+    },
+
+    /**
+     * Opens the default mail client with a pre-filled subject.
+     */
+    contactEmail() {
+      window.location.href = 'mailto:hello@theroseblog.com?subject=Inquiry from Rose Blog'
     },
   },
 }
 </script>
 
 <template>
+  <!-- Explanation: Footer with gradient background and relative positioning for decorative elements -->
   <footer class="bg-grad-tright mt-auto py-5 position-relative overflow-hidden">
     <div class="container position-relative z-1">
       <div class="row g-5">
-        <!-- Brand Info -->
+        <!-- Explanation: Brand information column with logo and description -->
         <div class="col-12 col-lg-4 pe-lg-5">
           <div class="d-flex align-items-center gap-2 mb-3">
             <span class="material-symbols-outlined text-primary fs-3">local_florist</span>
@@ -54,21 +93,39 @@ export default {
             planting guides, seasonal care tips, and a beautifully curated showcase of exquisite
             rose varieties.
           </p>
-          <!-- Social Icons (Mock Links) -->
+
+          <!-- Explanation: Social action buttons — converted from <a href="#"> to <button>
+               elements for semantic correctness (Requirement 9). The d-flex.gap-3 layout
+               is preserved exactly as specified. -->
           <div class="d-flex gap-3 text-gray-600">
-            <a href="#" class="text-gray-600 text-decoration-none hover-slide-primary">
+            <button
+              type="button"
+              class="btn btn-link text-gray-600 text-decoration-none hover-slide-primary p-0 border-0"
+              aria-label="Share this blog"
+              @click="handleShare"
+            >
               <span class="material-symbols-outlined fs-4">share</span>
-            </a>
-            <a href="#" class="text-gray-600 text-decoration-none hover-slide-primary">
+            </button>
+            <button
+              type="button"
+              class="btn btn-link text-gray-600 text-decoration-none hover-slide-primary p-0 border-0"
+              aria-label="View our Instagram"
+              @click="openInstagram"
+            >
               <span class="material-symbols-outlined fs-4">photo_camera</span>
-            </a>
-            <a href="#" class="text-gray-600 text-decoration-none hover-slide-primary">
+            </button>
+            <button
+              type="button"
+              class="btn btn-link text-gray-600 text-decoration-none hover-slide-primary p-0 border-0"
+              aria-label="Contact us via email"
+              @click="contactEmail"
+            >
               <span class="material-symbols-outlined fs-4">mail</span>
-            </a>
+            </button>
           </div>
         </div>
 
-        <!-- Quick Links -->
+        <!-- Explanation: Quick links column with navigation shortcuts -->
         <div class="col-12 col-md-6 col-lg-3 offset-lg-1">
           <div class="fs-5 fw-bold text-gray-500 mb-4">Explore</div>
           <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
@@ -103,7 +160,7 @@ export default {
           </ul>
         </div>
 
-        <!-- Newsletter Subscription -->
+        <!-- Explanation: Newsletter subscription column with form and email input -->
         <div class="col-12 col-md-6 col-lg-4">
           <div class="fs-5 fw-bold text-gray-500 mb-3">Rose Care Newsletter</div>
           <p class="text-gray-600 mb-3 text-md">
@@ -127,7 +184,7 @@ export default {
         </div>
       </div>
 
-      <!-- Footer Bottom -->
+      <!-- Explanation: Footer bottom row with copyright and attribution -->
       <div class="row mt-5 pt-4 border-top border-gray-600 border-opacity-25">
         <div
           class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3"
@@ -143,5 +200,6 @@ export default {
 </template>
 
 <style scoped>
-/* No specific styles needed beyond Bootstrap and global SCSS */
+/* Explanation: No component-specific styles needed — all styling comes from
+   Bootstrap utilities and the global base.scss */
 </style>

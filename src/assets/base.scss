@@ -12,12 +12,17 @@ $pink: #ffcff2;
 $primary: $red;
 $secondary: $pink;
 
+// Explanation: A single reusable transition variable used across
+// all hover effects and animations. Replaces every hard-coded
+// "transition: all 0.2s ease-in-out" declaration in the project.
+$transition-fast: all 0.2s ease-in-out;
+
 // ==========================================
 // 3. BOOTSTRAP VARIABLES & MAPS
 // ==========================================
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/variables-dark';
-// Merge into theme-colors BEFORE loading maps
+// Explanation: Merge into theme-colors BEFORE loading maps
 $theme-colors: map-merge($theme-colors, ());
 
 @import 'bootstrap/scss/maps';
@@ -25,7 +30,7 @@ $theme-colors: map-merge($theme-colors, ());
 @import 'bootstrap/scss/utilities';
 
 // ==========================================
-// 4. UTILITY CUSTOMIZATION (GRAYS)
+// 4. UTILITY CUSTOMIZATION (GRAYS, PINKS, YELLOWS)
 // ==========================================
 $gray-utils: ();
 @each $level, $color in $grays {
@@ -81,9 +86,9 @@ $utilities: map-merge(
 // ==========================================
 // 5. LOAD BOOTSTRAP & GENERATE UTILITIES
 // ==========================================
-// Safe to use the full import here — all customizations above use Sass's
-// !default guard, so the re-import of variables/maps/utilities inside
-// bootstrap.scss will NOT overwrite our merged $theme-colors or $utilities.
+// Explanation: The full Bootstrap import is safe here — all customisations
+// above use Sass's !default guard, so the re-import of variables/maps/utilities
+// inside bootstrap.scss does NOT overwrite merged values.
 @import 'bootstrap/scss/bootstrap';
 
 // ==========================================
@@ -98,8 +103,92 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   --color-accent: #e90052;
   --custom-timing: #{$custom-timing-function};
 
-  // Define the height of your sticky navbar so sections don't hide behind it
+  // Explanation: Defines the sticky navbar height so sections can
+  // calculate full-height layouts without hiding behind it.
   --navbar-height: 76px;
+}
+
+// ==========================================
+// GLASSMORPHISM MIXIN (Requirement 3)
+// ==========================================
+// Explanation: A single reusable mixin replacing the duplicated
+// .frosted-glass and .glassmorphism-pink rule sets. Accepts any
+// base color, blur radius, and opacity as parameters.
+
+/// @param {Color} $color - The base colour for the glass effect
+/// @param {Length} $blur [28px] - The backdrop blur radius
+/// @param {Number} $opacity [0.3] - The alpha value for the background
+@mixin glassmorphism($color, $blur: 28px, $opacity: 0.3) {
+  // Explanation: Solid colour fallback for browsers that do not support
+  // backdrop-filter, ensuring readable text contrast.
+  background-color: $color;
+
+  @supports (backdrop-filter: blur($blur)) or (-webkit-backdrop-filter: blur($blur)) {
+    background: rgba($color, $opacity);
+    -webkit-backdrop-filter: blur($blur);
+    backdrop-filter: blur($blur);
+  }
+
+  // Explanation: Accessibility — removes transparency for users who
+  // have requested reduced transparency in their OS settings.
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: $color;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  border: 1px solid rgba($color, 0.3);
+}
+
+.frosted-glass {
+  @include glassmorphism($gray-300);
+}
+
+.glassmorphism-pink {
+  @include glassmorphism($pink, 28px, 0.38);
+}
+
+// ==========================================
+// HOVER BASE PLACEHOLDER (Requirement 3)
+// ==========================================
+// Explanation: Shared base styles for hover-interactive inline elements.
+// Both .hover-slide-primary and .hover-scale extend this placeholder
+// to avoid repeating `transition` and `display: inline-block`.
+%hover-base {
+  transition: $transition-fast;
+  display: inline-block;
+}
+
+// ==========================================
+// BUTTON RESET PLACEHOLDER
+// ==========================================
+// Explanation: Strips all native button styling for custom text-link buttons.
+%btn-reset {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+// ==========================================
+// NAV UNDERLINE MIXIN (Requirement 3)
+// ==========================================
+// Explanation: Extracts the repeated CSS pseudo-element underline pattern
+// used in desktop and mobile nav link animations.
+
+/// @param {Percentage} $width - Width of the underline relative to the element
+/// @param {Length} $height - Height (thickness) of the underline
+@mixin nav-underline($width, $height) {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  height: $height;
+  border-radius: $border-radius-sm;
+  background-color: $primary;
+  width: $width;
+  transition: transform 0.3s $custom-timing-function;
+  pointer-events: none;
 }
 
 // ==========================================
@@ -107,7 +196,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 // ==========================================
 
 // --- Typography ---
-// To have a precise font-size when Bootstrap only has .fs-1 to .fs-6
+// Explanation: Precise font-size classes where Bootstrap only provides .fs-1 to .fs-6.
 .text-lg {
   font-size: 1.12rem;
 }
@@ -121,8 +210,45 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.69rem;
 }
 
+// Explanation: Letter-spacing utility class for headings and badges.
 .ls-1 {
   letter-spacing: 1.2px;
+}
+
+// Explanation: Wide letter spacing variant.
+.ls-wide {
+  letter-spacing: 1.5px;
+}
+
+// --- Font Family Utilities (Requirement 4) ---
+// Explanation: Replaces inline style="font-family: 'Zilla Slab'" with a class.
+.font-zilla {
+  font-family: 'Zilla Slab', serif;
+}
+
+// Explanation: Replaces inline style="font-family: 'Roboto Condensed'" with a class.
+.font-roboto {
+  font-family: 'Roboto Condensed', sans-serif;
+}
+
+// --- Min Height Utility (Requirement 4) ---
+// Explanation: Replaces inline style="min-height: 50vh" with a utility class.
+.min-vh-50 {
+  min-height: 50vh;
+}
+
+// --- Z-Index Utilities (Requirement 4) ---
+// Explanation: Named z-index classes for consistent layering.
+.z-index-modal {
+  z-index: 1055;
+}
+
+.z-index-filter {
+  z-index: 1060;
+}
+
+.z-index-lightbox {
+  z-index: 1070;
 }
 
 // --- Decorative Backgrounds ---
@@ -130,7 +256,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(to top right, $blue-900, rgba($blue-900, 0.75));
 }
 
-// Blurred effect for glassmorphism
+// Explanation: Blurred backdrop effect for custom glassmorphism contexts.
 .backdrop-blur {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -139,7 +265,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 // --- Form Components ---
 .input-group-focus {
   border-color: transparent !important;
-  transition: $transition-base;
+  transition: $transition-fast;
   overflow: hidden;
 
   &:focus-within {
@@ -165,19 +291,14 @@ input.bg-opacity-10:active {
   background-color: rgba($white, 0.1) !important;
 }
 
-// FIX BROWSER AUTOFILL STYLING
-// Targets WebKit (Chrome, Safari, Edge) autofill states
+// Explanation: FIX BROWSER AUTOFILL STYLING
+// Targets WebKit (Chrome, Safari, Edge) autofill states.
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  // Uses a massive inner shadow to cover the browser's default color with a custom color
   -webkit-box-shadow: 0 0 0px 1000px $white inset !important;
-
-  // Force the autofilled text to be black
   -webkit-text-fill-color: $black !important;
-
-  // Maintain the styling of the text cursor
   caret-color: $black !important;
 }
 
@@ -186,21 +307,20 @@ input:-webkit-autofill:active {
 // ==========================================
 
 // --- Slide Right + Turn $primary on Hover Effect ---
-// A slide right effect and turn links and icons to $red on :hover
+// Explanation: Slides the element 4px right and changes colour to $primary on hover.
 .hover-slide-primary {
-  transition: $transition-base; // Uses Bootstrap's native transition speed for UI consistency
-  display: inline-block; // Required for 'transform' to work on inline elements like <a> or <span>
+  @extend %hover-base;
 
   &:hover {
-    color: $primary !important; // Uses the defined $primary = $red variable
+    color: $primary !important;
     transform: translateX(4px);
   }
 }
 
-// --- Generic Hover Effects ---
+// --- Generic Hover Scale Effect ---
+// Explanation: Scales the element up on hover for interactive feedback.
 .hover-scale {
-  transition: $transition-base;
-  display: inline-block;
+  @extend %hover-base;
 
   &:hover {
     transform: scale($hover-scale-amount);
@@ -215,10 +335,10 @@ input:-webkit-autofill:active {
 // --- Animated Navigation Links ---
 .nav-link-animated {
   color: $gray-600;
-  transition: $transition-base;
+  transition: $transition-fast;
   position: relative;
   display: inline-block;
-  font-weight: $font-weight-medium; // Bootstrap's native utility
+  font-weight: $font-weight-medium;
 
   &:hover,
   &.is-active {
@@ -232,17 +352,8 @@ input:-webkit-autofill:active {
     padding-bottom: 0.38rem;
 
     &::after {
-      content: '';
-      position: absolute;
-      bottom: 2px;
-      left: 50%;
-      height: 2.3px;
-      border-radius: $border-radius-sm; // Bootstrap's native utility
-      background-color: $primary;
-      width: 40%;
+      @include nav-underline(40%, 2.3px);
       transform: translateX(-50%) scaleX(0);
-      transition: transform 0.3s $custom-timing-function;
-      pointer-events: none;
     }
 
     &.is-active::after {
@@ -254,14 +365,7 @@ input:-webkit-autofill:active {
   @include media-breakpoint-down(lg) {
     &::before,
     &::after {
-      content: '';
-      position: absolute;
-      bottom: 2px;
-      left: 50%;
-      height: 3px;
-      border-radius: $border-radius-sm;
-      background-color: $primary;
-      transition: transform 0.3s $custom-timing-function;
+      @include nav-underline(100%, 3px);
     }
 
     &::before {
@@ -311,7 +415,7 @@ input:-webkit-autofill:active {
     border-radius: $border-radius-sm;
     opacity: 1;
     left: 0;
-    transition: $transition-base;
+    transition: $transition-fast;
 
     &:nth-child(1) {
       top: 0px;
@@ -324,7 +428,7 @@ input:-webkit-autofill:active {
     }
   }
 
-  // When the menu is open, animate the lines into an "X"
+  // Explanation: When the menu is open, animate the hamburger lines into an "X" shape.
   &.open {
     .hamburger-line {
       background: $gray-600;
@@ -366,7 +470,7 @@ input:-webkit-autofill:active {
 // --- Interactive Hover States ---
 .card-hover {
   transition:
-    $transition-base,
+    $transition-fast,
     transform 0.3s $custom-timing-function;
   &:hover {
     background-color: rgba($gray-200, 0.3) !important;
@@ -383,6 +487,7 @@ input:-webkit-autofill:active {
   }
 }
 
+// --- Fade Up Animation ---
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -397,65 +502,22 @@ input:-webkit-autofill:active {
   animation: fadeUp 0.6s $custom-timing-function forwards;
 }
 
-// ==================================
-// GLASSMORPHISM STYLING
-// ==================================
-
-/* Base fallback for older browsers that don't support backdrop-filter */
-.frosted-glass {
-  /* A solid fallback color in case the blur fails, ensuring text contrast */
-  background-color: $gray-300;
-  border: 1px solid rgba($gray-300, 0.3); /* Optional: adds a nice glass edge */
+// --- Transition Base Utility ---
+// Explanation: A class version of $transition-fast for template use.
+.transition-base {
+  transition: $transition-fast;
 }
 
-/* Progressive Enhancement: Only apply the glass effect IF the browser supports it */
-@supports (backdrop-filter: blur(28px)) or (-webkit-backdrop-filter: blur(28px)) {
-  .frosted-glass {
-    /* The 22% transparent white tint */
-    background: rgba($gray-300, 0.3);
-
-    /* Safari support */
-    -webkit-backdrop-filter: blur(28px);
-
-    /* Standard syntax */
-    backdrop-filter: blur(28px);
-  }
-}
-
-/* Accessibility: Remove transparency if the user has requested reduced motion/transparency in their OS settings */
-@media (prefers-reduced-transparency: reduce) {
-  .frosted-glass {
-    background-color: $gray-300; /* Solid light gray */
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-}
-
-/* Base fallback for older browsers that don't support backdrop-filter */
-.glassmorphism-pink {
-  /* A solid fallback color in case the blur fails, ensuring text contrast */
-  background-color: $pink;
-  border: 1px solid rgba($pink, 0.3); /* Optional: adds a nice glass edge */
-}
-
-/* Progressive Enhancement: Only apply the glass effect IF the browser supports it */
-@supports (backdrop-filter: blur(28px)) or (-webkit-backdrop-filter: blur(28px)) {
-  .glassmorphism-pink {
-    /* The 22% transparent white tint */
-    background: rgba($pink, 0.38);
-
-    /* Safari support */
-    -webkit-backdrop-filter: blur(28px);
-
-    /* Standard syntax */
-    backdrop-filter: blur(28px);
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .glassmorphism-pink {
-    background-color: $pink; /* Solid light gray */
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+// ==========================================
+// ACCESSIBILITY: REDUCED MOTION (Requirement 12)
+// ==========================================
+// Explanation: Disables all animations and transitions for users who
+// have enabled "Reduce motion" in their OS accessibility settings.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

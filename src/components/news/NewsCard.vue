@@ -5,11 +5,14 @@
  * ==========================================
  * Description:
  * A versatile news display card that supports multiple layout styles (A, B, C).
- * Handles social interactions (likes, comments, shares) and provides
- * edit/delete functionality if the current user is the author.
+ * Handles social interactions (likes, comments, shares), inline editing/deletion
+ * for post owners, and image lightbox via the ImageLightbox shared component.
+ *
+ * Props: item (Object), isAuthed (Boolean), isOwner (Boolean).
+ * Emits: react, comment, share, edit, delete.
  */
 import { mapGetters, mapActions } from 'vuex'
-import VueEasyLightbox from 'vue-easy-lightbox'
+import ImageLightbox from '@/components/shared/ImageLightbox.vue'
 
 export default {
   name: 'NewsCard',
@@ -18,7 +21,7 @@ export default {
   // COMPONENTS
   // ==========================================
   components: {
-    VueEasyLightbox,
+    ImageLightbox,
   },
 
   // ==========================================
@@ -47,20 +50,30 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
+      // Explanation: Controls the expanded/collapsed state of long content.
       isExpanded: false,
+      // Explanation: Toggles the post options (ellipsis) dropdown menu.
       showEllipsisMenu: false,
-      showReactionPicker: false,
+      // Explanation: Toggles the comments section visibility.
       showComments: false,
+      // Explanation: Toggles the share popup modal visibility.
       showShareMenu: false,
+      // Explanation: Two-way bound text for the new comment input.
       commentText: '',
+      // Explanation: Whether the card is in inline-edit mode.
       isEditing: false,
+      // Explanation: Edit form title field bound to v-model.
       editTitle: '',
+      // Explanation: Edit form content field bound to v-model.
       editContent: '',
-      // Lightbox State
+      // Explanation: Controls the custom ImageLightbox visibility.
       lightboxVisible: false,
+      // Explanation: Index of the initially displayed lightbox image.
       lightboxIndex: 0,
+      // Explanation: Tracks elipsis button positioning for teleported menu.
+      ellipsisMenuPos: { top: 0, left: 0 },
     }
   },
 
@@ -72,31 +85,35 @@ export default {
 
     /**
      * Determines if the current post has associated imagery.
+     * @returns {boolean}
      */
-    hasImage: function () {
+    hasImage() {
       return (this.item.images && this.item.images.length > 0) || !!this.item.image
     },
 
     /**
      * Normalizes the content source (handling legacy content vs description fields).
+     * @returns {string}
      */
-    contentText: function () {
+    contentText() {
       return this.item.content || this.item.description || ''
     },
 
     /**
-     * Flag for content that exceeds standard teaser height.
-     * Adjusted to 400 chars to better match the 140px fixed height truncation.
+     * Flag for content that exceeds the standard teaser height (around 3 lines).
+     * @returns {boolean}
      */
-    isLongContent: function () {
-      return this.contentText.length > 400
+    isLongContent() {
+      // Using 250 as a rough estimate for 3 lines of text
+      return this.contentText.length > 250
     },
 
     /**
      * Formats the ISO date string into a user-friendly local date.
+     * @returns {string}
      */
-    formattedDate: function () {
-      var d = new Date(this.item.date)
+    formattedDate() {
+      const d = new Date(this.item.date)
       return d.toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
@@ -106,12 +123,24 @@ export default {
 
     /**
      * Checks if this post ID is in the current user's saved list via Vuex.
+     * @returns {boolean}
      */
-    isSaved: function () {
-      var self = this
-      return this.mySavedPostIds.some(function (id) {
-        return String(id) === String(self.item.id)
-      })
+    isSaved() {
+      return this.mySavedPostIds.some((id) => String(id) === String(this.item.id))
+    },
+
+    /**
+     * Returns the array of image URLs for the lightbox component.
+     * @returns {string[]}
+     */
+    lightboxImages() {
+      if (this.item.images && this.item.images.length > 0) {
+        return this.item.images
+      }
+      if (this.item.image) {
+        return [this.item.image]
+      }
+      return []
     },
   },
 
@@ -124,28 +153,32 @@ export default {
     /**
      * Toggles bookmark state for the current post.
      */
-    toggleSave: function () {
-      if (!this.isAuthed) {
-        alert('Please log in to save news items.')
-        return
-      }
-      // Explanation: Dispatching to Vuex to update persistent saved list.
+    toggleSave() {
+      if (!this.isAuthed) return
       this.toggleSavePost(this.item.id)
       this.showEllipsisMenu = false
     },
 
     /**
-     * Toggles the post options menu (ellipsis).
+     * Toggles the post options menu (ellipsis) and calculates position.
+     * Explanation: Uses getBoundingClientRect to position the teleported menu.
      */
-    toggleEllipsis: function () {
+    toggleEllipsis(event) {
       this.showEllipsisMenu = !this.showEllipsisMenu
+      if (this.showEllipsisMenu) {
+        const rect = event.currentTarget.getBoundingClientRect()
+        this.ellipsisMenuPos = {
+          top: rect.bottom + window.scrollY,
+          left: rect.right + window.scrollX - 150, // 150 is the min-width of the menu
+        }
+      }
       this.showShareMenu = false
     },
 
     /**
      * Toggles the share options menu.
      */
-    toggleShare: function () {
+    toggleShare() {
       this.showShareMenu = !this.showShareMenu
       this.showEllipsisMenu = false
     },
@@ -153,21 +186,21 @@ export default {
     /**
      * Closes the ellipsis menu.
      */
-    closeEllipsis: function () {
+    closeEllipsis() {
       this.showEllipsisMenu = false
     },
 
     /**
      * Closes the share menu.
      */
-    closeShare: function () {
+    closeShare() {
       this.showShareMenu = false
     },
 
     /**
      * Prepares the card for inline editing if ownership is verified.
      */
-    initiateEdit: function () {
+    initiateEdit() {
       this.showEllipsisMenu = false
       if (!this.isOwner) return
       this.isEditing = true
@@ -177,10 +210,12 @@ export default {
 
     /**
      * Emits the updated content to the parent for persistence.
+     * Explanation: Fixed emit format — sends an object payload with { id, title, content }
      */
-    saveEdit: function () {
+    saveEdit() {
       if (this.editTitle.trim() && this.editContent.trim()) {
-        this.$emit('edit', this.item.id, {
+        this.$emit('edit', {
+          id: this.item.id,
           title: this.editTitle.trim(),
           content: this.editContent.trim(),
         })
@@ -191,14 +226,14 @@ export default {
     /**
      * Exits edit mode without saving.
      */
-    cancelEdit: function () {
+    cancelEdit() {
       this.isEditing = false
     },
 
     /**
      * Emits a delete request if confirmed by the user.
      */
-    requestDelete: function () {
+    requestDelete() {
       this.showEllipsisMenu = false
       if (!this.isOwner) return
       if (window.confirm('Are you sure you want to delete this post?')) {
@@ -208,33 +243,33 @@ export default {
 
     /**
      * Emits a reaction event to be handled by the parent.
-     * @param {string} reaction - Type of reaction (favorite, thumb_up, etc.)
+     * @param {string} reaction - Type of reaction
      */
-    handleReact: function (reaction) {
-      if (!this.isAuthed) {
-        alert('Please log in to react to news items.')
-        this.showReactionPicker = false
-        return
-      }
-      this.$emit('react', { id: this.item.id, reaction: reaction })
-      this.showReactionPicker = false
+    handleReact(reaction) {
+      if (!this.isAuthed) return
+      this.$emit('react', { id: this.item.id, reaction })
     },
 
     /**
-     * Lightbox Controls
+     * Opens the lightbox at the specified image index.
+     * @param {number} index - The image index to display
      */
-    showLightbox: function (index) {
+    showLightbox(index) {
       this.lightboxIndex = index || 0
       this.lightboxVisible = true
     },
-    hideLightbox: function () {
+
+    /**
+     * Closes the lightbox.
+     */
+    hideLightbox() {
       this.lightboxVisible = false
     },
 
     /**
      * Validates and emits a new comment.
      */
-    submitComment: function () {
+    submitComment() {
       if (this.commentText.trim() && this.isAuthed) {
         this.$emit('comment', {
           id: this.item.id,
@@ -242,8 +277,7 @@ export default {
             id: Date.now(),
             text: this.commentText.trim(),
             authorName: this.$store.state.auth.currentUser.displayName,
-            authorAvatar:
-              'https://i.pravatar.cc/40?u=' + this.$store.state.auth.currentUser.username,
+            authorAvatar: `https://i.pravatar.cc/40?u=${this.$store.state.auth.currentUser.username}`,
           },
         })
         this.commentText = ''
@@ -251,48 +285,32 @@ export default {
     },
 
     /**
-     * Handles sharing to various platforms.
-     * @param {string} platform - The target platform key
-     */
-    /**
      * Constructs the shareable URL for the current post.
-     * @returns {string} Full URL with anchor hash
      */
-    getShareUrl: function () {
-      return window.location.origin + window.location.pathname + '#post-' + this.item.id
+    getShareUrl() {
+      return `${window.location.origin}${window.location.pathname}#post-${this.item.id}`
     },
 
-    handleShare: function (platform) {
-      var shareUrl = this.getShareUrl()
-      var shareTitle = encodeURIComponent(this.item.title || 'Check out this rose!')
+    /**
+     * Handles sharing to various platforms.
+     */
+    handleShare(platform) {
+      const shareUrl = this.getShareUrl()
+      const shareTitle = encodeURIComponent(this.item.title || 'Check out this rose!')
 
       if (platform === 'facebook') {
-        // Explanation: Opens Facebook sharer in a centered popup window matching FB's dialog size
-        var fbWidth = 626
-        var fbHeight = 436
-        var fbLeft = Math.round((screen.width / 2) - (fbWidth / 2))
-        var fbTop = Math.round((screen.height / 2) - (fbHeight / 2))
         window.open(
-          'https://www.facebook.com/sharer/sharer.php?u=' +
-            encodeURIComponent(shareUrl) +
-            '&quote=' +
-            shareTitle,
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${shareTitle}`,
           'facebook-share-dialog',
-          'width=' + fbWidth + ',height=' + fbHeight + ',top=' + fbTop + ',left=' + fbLeft,
+          `width=626,height=436`,
         )
       } else if (platform === 'twitter') {
-        // Explanation: Opens Twitter/X intent in a centered popup
-        var twWidth = 550
-        var twHeight = 420
-        var twLeft = Math.round((screen.width / 2) - (twWidth / 2))
-        var twTop = Math.round((screen.height / 2) - (twHeight / 2))
         window.open(
-          'https://twitter.com/intent/tweet?url=' + encodeURIComponent(shareUrl) + '&text=' + shareTitle,
+          `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${shareTitle}`,
           'twitter-share-dialog',
-          'width=' + twWidth + ',height=' + twHeight + ',top=' + twTop + ',left=' + twLeft + ',toolbar=0,status=0,menubar=0'
+          `width=550,height=420`,
         )
       } else if (platform === 'link') {
-        // Explanation: Copies the shareable link to the user's clipboard
         try {
           navigator.clipboard.writeText(shareUrl)
           alert('Link copied to clipboard!')
@@ -300,7 +318,7 @@ export default {
           console.error('Failed to copy link', err)
         }
       }
-      this.$emit('share', { id: this.item.id, platform: platform })
+      this.$emit('share', { id: this.item.id, platform })
       this.showShareMenu = false
     },
   },
@@ -309,33 +327,29 @@ export default {
 
 <template>
   <!-- Main Card Container -->
-  <div
+  <article
     class="news-card frosted-glass rounded-4 shadow-sm p-3 position-relative d-flex flex-column gap-3"
     :id="'post-' + item.id"
+    role="article"
+    :aria-labelledby="'post-title-' + item.id"
   >
-    <!-- 1. Card Header: Author info and status -->
+    <!-- Card Header: Author info and status -->
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex align-items-center gap-2 mb-2">
         <img
-          :src="item.authorAvatar || 'https://i.pravatar.cc/150?u=anonymous'"
-          :alt="'Avatar for ' + item.id"
-          class="rounded-circle"
+          v-lazy-load="item.authorAvatar || 'https://i.pravatar.cc/150?u=anonymous'"
+          :alt="'Avatar for ' + item.authorName"
+          class="rounded-circle avatar-sm"
           width="40"
           height="40"
         />
         <div>
-          <p class="fw-semibold text-dark mb-0 text-md" style="font-family: 'Roboto Condensed'">
+          <p class="fw-semibold text-dark mb-0 text-md font-roboto">
             {{ item.authorName || 'Guest Gardener' }}
           </p>
           <div class="d-flex align-items-center gap-1">
-            <span class="text-muted text-xs" style="font-family: 'Roboto Condensed'">{{
-              formattedDate
-            }}</span>
-            <span
-              class="material-symbols-outlined text-muted"
-              style="font-size: 0.85rem"
-              aria-hidden="true"
-            >
+            <span class="text-muted text-xs font-roboto">{{ formattedDate }}</span>
+            <span class="material-symbols-outlined text-muted text-xs" aria-hidden="true">
               {{ item.isPublic !== false ? 'public' : 'lock' }}
             </span>
           </div>
@@ -353,233 +367,247 @@ export default {
         <!-- Post Options Menu (Ellipsis) -->
         <div class="position-relative">
           <button
-            class="btn btn-sm btn-light rounded-circle p-1 d-flex align-items-center justify-content-center"
+            class="btn btn-sm btn-light rounded-circle p-1 d-flex align-items-center justify-content-center ellipsis-btn"
             @click.stop="toggleEllipsis"
             aria-label="Post options"
             :aria-expanded="showEllipsisMenu"
-            style="width: 32px; height: 32px"
           >
             <span class="material-symbols-outlined fs-5">more_horiz</span>
           </button>
 
-          <!-- Dropdown Menu -->
-          <div
-            v-if="showEllipsisMenu"
-            v-click-outside="closeEllipsis"
-            class="frosted-glass rounded-3 shadow-lg position-absolute end-0 top-100 mt-1 py-1 d-flex flex-column z-3"
-            style="min-width: 150px; border: 1px solid rgba(255, 255, 255, 0.2)"
-          >
-            <!-- Save Post -->
-            <button
-              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
-              :disabled="!isAuthed"
-              :class="{ 'text-muted': !isAuthed }"
-              @click="toggleSave"
-              :title="!isAuthed ? 'Log in to save news items' : ''"
+          <!-- Dropdown Menu (Teleported) -->
+          <teleport to="body">
+            <div
+              v-if="showEllipsisMenu"
+              v-click-outside="closeEllipsis"
+              class="frosted-glass rounded-3 shadow-lg position-absolute py-1 d-flex flex-column z-index-modal ellipsis-menu"
+              :style="{ top: ellipsisMenuPos.top + 'px', left: ellipsisMenuPos.left + 'px' }"
+              role="menu"
+              aria-label="Post options"
             >
-              <span class="material-symbols-outlined fs-5">{{
-                isSaved ? 'bookmark_added' : 'bookmark_add'
-              }}</span>
-              {{ isSaved ? 'Unsave' : 'Save' }}
-            </button>
-            <!-- Edit Post (Owner only) -->
-            <button
-              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
-              :disabled="!isAuthed || !isOwner"
-              :class="{ 'text-muted': !isAuthed || !isOwner }"
-              :title="
-                !isAuthed ? 'Log in to manage posts' : !isOwner ? 'Cannot edit others posts' : ''
-              "
-              :aria-disabled="!isAuthed || !isOwner"
-              @click="initiateEdit"
-            >
-              <span class="material-symbols-outlined fs-5">edit</span> Edit
-            </button>
-            <!-- Delete Post (Owner only) -->
-            <button
-              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
-              :disabled="!isAuthed || !isOwner"
-              :class="{ 'text-muted opacity-50': !isAuthed || !isOwner }"
-              :title="
-                !isAuthed ? 'Log in to manage posts' : !isOwner ? 'Cannot delete others posts' : ''
-              "
-              :aria-disabled="!isAuthed || !isOwner"
-              @click="requestDelete"
-            >
-              <span class="material-symbols-outlined fs-5">delete</span> Delete
-            </button>
-          </div>
+              <button
+                role="menuitem"
+                class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+                :disabled="!isAuthed"
+                @click="toggleSave"
+              >
+                <span class="material-symbols-outlined fs-5">
+                  {{ isSaved ? 'bookmark_added' : 'bookmark_add' }}
+                </span>
+                {{ isSaved ? 'Unsave' : 'Save' }}
+              </button>
+              <button
+                role="menuitem"
+                class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+                @click="initiateEdit"
+                :disabled="!isOwner"
+                :title="!isOwner ? 'Only the author can edit this post' : ''"
+              >
+                <span class="material-symbols-outlined fs-5">edit</span> Edit
+              </button>
+              <button
+                role="menuitem"
+                class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
+                @click="requestDelete"
+                :disabled="!isOwner"
+                :title="!isOwner ? 'Only the author can delete this post' : ''"
+              >
+                <span class="material-symbols-outlined fs-5">delete</span> Delete
+              </button>
+            </div>
+          </teleport>
         </div>
       </div>
     </div>
 
     <!-- 2. Card Body: Content area -->
 
-    <!-- Inline Edit Form -->
-    <div v-if="isEditing" class="edit-form p-2 bg-white rounded-3 mb-2 shadow-sm border">
+    <!-- Overlay Edit Form (prevents masonry shift) -->
+    <div
+      v-if="isEditing"
+      class="edit-form-overlay position-absolute top-0 start-0 w-100 h-100 bg-white rounded-4 shadow-lg p-3 z-3 d-flex flex-column gap-2"
+      style="min-height: 200px"
+    >
+      <h5 class="fw-bold font-zilla fst-italic mb-1">Edit Post</h5>
       <input
         type="text"
-        class="form-control mb-2 fw-bold"
-        style="font-family: 'Zilla Slab'"
+        class="form-control form-control-sm fw-bold font-zilla"
         v-model="editTitle"
+        placeholder="Title"
       />
       <textarea
-        class="form-control mb-3"
-        rows="3"
+        class="form-control form-control-sm font-roboto flex-grow-1"
         v-model="editContent"
-        style="font-family: 'Roboto Condensed'"
+        placeholder="Content"
       ></textarea>
-      <div class="d-flex justify-content-end gap-2">
-        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" @click="cancelEdit">
+      <div class="d-flex justify-content-end gap-2 mt-auto">
+        <button class="btn btn-xs btn-link text-muted text-decoration-none" @click="cancelEdit">
           Cancel
         </button>
-        <button class="btn btn-sm btn-primary rounded-pill px-4" @click="saveEdit">Save</button>
+        <button class="btn btn-xs btn-primary rounded-pill px-3 fw-bold" @click="saveEdit">
+          Update Data
+        </button>
       </div>
     </div>
 
     <div v-else>
-      <!-- Layout Type B: Featured Image with Overlay Text -->
+      <!-- Layout Type B: Featured Image with Overlay Text (Req 11) -->
       <div
         v-if="item.layoutType === 'B' && hasImage"
-        class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm z-0"
-        @click="showLightbox(0)"
-        style="cursor: zoom-in"
+        class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm"
       >
-        <img
-          v-lazy-load="item.images && item.images.length > 0 ? item.images[0] : item.image"
-          :alt="'Cover image for ' + item.title"
-          class="type-b-img w-100 h-100 object-fit-cover"
-        />
-
-        <!-- Glassy Stack Badge -->
         <div
-          v-if="item.images && item.images.length > 1"
-          class="glassy-badge position-absolute bottom-0 end-0 m-3 px-2 py-1 rounded-3 d-flex align-items-center gap-1"
+          class="type-b-img-container h-100 w-100"
+          @click="showLightbox(0)"
+          role="button"
+          tabindex="0"
         >
-          <span class="material-symbols-outlined fs-6">filter_none</span>
-          <span class="text-xs fw-bold">+{{ item.images.length - 1 }}</span>
+          <img
+            v-lazy-load="item.images?.[0] || item.image"
+            :alt="'Cover image for ' + item.title"
+            class="type-b-img w-100 h-100 object-fit-cover"
+          />
+          <div
+            v-if="item.images && item.images.length > 1"
+            class="photo-count-badge badge bg-dark bg-opacity-60 text-white rounded-pill text-xs px-2 py-1 position-absolute"
+          >
+            +{{ item.images.length - 1 }} photos
+          </div>
         </div>
 
         <div class="position-absolute bottom-0 start-0 w-100 p-4 pt-5 overlay-gradient text-white">
           <h2
-            class="fs-4 mb-2 fw-bold text-shadow"
-            style="font-family: 'Zilla Slab'; font-style: italic"
+            :id="'post-title-' + item.id"
+            class="fs-4 mb-2 fw-bold text-shadow font-zilla fst-italic"
           >
             {{ item.title }}
           </h2>
-          <p class="mb-0 text-sm opacity-75 text-truncate" style="font-family: 'Roboto Condensed'">
-            {{ contentText }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Layout Type A & C: Standard Text Layout -->
-      <div v-else class="type-text-card pt-2 pb-1 px-1">
-        <h2
-          class="fs-4 mb-2 fw-bold"
-          style="font-family: 'Zilla Slab'; font-style: italic; color: #333"
-        >
-          {{ item.title }}
-        </h2>
-
-        <!-- Content View (Fade-Out Effect) -->
-        <div
-          class="content-wrapper position-relative overflow-hidden transition-all duration-500"
-          :style="{ maxHeight: isExpanded ? '2000px' : '140px' }"
-        >
+          <!-- Content with expansion -->
           <div
-            class="mb-0 text-muted lh-base rte-rendered"
-            style="font-family: 'Roboto Condensed'"
+            class="content-body content-body--on-dark"
+            :class="{ 'is-expanded': isExpanded }"
             v-html="contentText"
           ></div>
-
-          <!-- Gradient Mask (Visual Dissolve) -->
-          <div v-if="!isExpanded && isLongContent" class="content-fade-mask"></div>
-        </div>
-
-        <!-- Centered Read More Button -->
-        <div v-if="isLongContent" class="d-flex justify-content-center mt-3 mb-1">
           <button
-            class="btn-read-more d-flex align-items-center gap-2"
+            v-if="isLongContent"
+            class="read-more-btn read-more-btn--on-dark"
             @click="isExpanded = !isExpanded"
-            :aria-expanded="isExpanded"
           >
-            <span class="btn-text">{{ isExpanded ? 'Read Less' : 'Read More' }}</span>
-            <span
-              class="material-symbols-outlined transition-base"
-              :class="{ 'rotate-180': isExpanded }"
-            >
-              keyboard_arrow_down
-            </span>
+            {{ isExpanded ? 'Show less' : 'Show more' }}
           </button>
         </div>
       </div>
+
+      <!-- Layout Type C: Compact Horizontal (Req 11) -->
+      <div v-else-if="item.layoutType === 'C'" class="type-c-card d-flex flex-column gap-2 p-1">
+        <div class="d-flex flex-row gap-3">
+          <div
+            v-if="hasImage"
+            class="type-c-img-wrapper rounded-3 overflow-hidden flex-shrink-0"
+            @click="showLightbox(0)"
+            role="button"
+          >
+            <img
+              v-lazy-load="item.images?.[0] || item.image"
+              class="w-100 h-100 object-fit-cover"
+              alt="Thumbnail"
+            />
+          </div>
+          <div class="flex-grow-1 overflow-hidden d-flex flex-column justify-content-center">
+            <h2
+              :id="'post-title-' + item.id"
+              class="fs-5 mb-1 fw-bold font-zilla fst-italic text-dark"
+            >
+              {{ item.title }}
+            </h2>
+            <div v-if="!isExpanded" class="text-muted text-xs font-roboto text-truncate">
+              {{ contentText.replace(/<[^>]*>/g, '') }}
+            </div>
+          </div>
+        </div>
+        <!-- Expansion for Type C -->
+        <div
+          v-if="isExpanded"
+          class="content-body"
+          :class="{ 'is-expanded': isExpanded }"
+          v-html="contentText"
+        ></div>
+        <button v-if="isLongContent" class="read-more-btn" @click="isExpanded = !isExpanded">
+          {{ isExpanded ? 'Read less' : 'Read more' }}
+        </button>
+      </div>
+
+      <!-- Layout Type A: Standard Text Layout -->
+      <div v-else class="type-a-card pt-1 pb-1 px-1">
+        <h2 :id="'post-title-' + item.id" class="fs-4 mb-2 fw-bold font-zilla fst-italic text-dark">
+          {{ item.title }}
+        </h2>
+
+        <!-- Content View (Req 8.2: CSS Fade-Out) -->
+        <div class="content-body" :class="{ 'is-expanded': isExpanded }" v-html="contentText"></div>
+
+        <!-- Read more Link (Req 8.2: Simple Link, NOT a button) -->
+        <button
+          v-if="isLongContent"
+          class="read-more-btn"
+          @click="isExpanded = !isExpanded"
+          :aria-expanded="isExpanded"
+        >
+          {{ isExpanded ? 'Read less' : 'Read more' }}
+        </button>
+      </div>
     </div>
 
-    <!-- 3. Social Interaction Row (Reactions, Comments, Share) -->
+    <!-- 3. Social Interaction Row -->
     <div class="d-flex align-items-center gap-3 pt-2 border-top border-light position-relative">
-      <!-- Reaction Picker and Count -->
-      <div
-        class="position-relative"
-        @mouseenter="showReactionPicker = true"
-        @mouseleave="showReactionPicker = false"
-      >
-        <button
-          class="btn btn-sm d-flex align-items-center gap-2 border-0 shadow-none px-2 rounded-pill social-btn"
-          :class="item.userReaction ? 'text-primary bg-primary bg-opacity-10' : 'text-muted'"
-          aria-label="React to post"
-          :aria-pressed="!!item.userReaction"
-        >
-          <span class="material-symbols-outlined fs-5">
-            {{
-              item.userReaction === 'favorite'
-                ? 'favorite'
-                : item.userReaction === 'sentiment_very_satisfied'
-                  ? 'sentiment_very_satisfied'
-                  : item.userReaction === 'sentiment_very_dissatisfied'
-                    ? 'sentiment_very_dissatisfied'
-                    : 'thumb_up'
-            }}
-          </span>
-          <span class="fw-semibold text-sm">{{ (item.likes || 0) + (item.hearts || 0) }}</span>
-        </button>
-
-        <!-- Dynamic Reaction Popover -->
+      <!-- Reaction Picker -->
+      <div class="position-relative reaction-container">
+        <!-- Reaction Tooltip gating (Req 7.2) -->
         <div
-          v-show="showReactionPicker"
-          class="position-absolute start-0 z-3 pb-2"
-          style="bottom: calc(100% - 10px)"
+          class="reaction-trigger-wrapper"
+          :class="{ 'not-authed': !isAuthed }"
+          :title="!isAuthed ? 'Log in to react' : ''"
         >
+          <button
+            class="reaction-btn btn btn-sm d-flex align-items-center gap-2 border-0 shadow-none px-2 rounded-pill social-btn"
+            :class="{ 'text-primary bg-primary bg-opacity-10': item.userReaction }"
+            aria-label="React"
+          >
+            <span class="material-symbols-outlined fs-5">
+              {{ item.userReaction || 'thumb_up' }}
+            </span>
+            <span class="fw-semibold text-sm">{{ (item.likes || 0) + (item.hearts || 0) }}</span>
+          </button>
+
+          <!-- Reaction Menu (Req 12) -->
           <div
-            class="frosted-glass rounded-pill shadow-sm d-flex gap-2 p-2 px-3 border border-white"
+            v-if="isAuthed"
+            class="reaction-picker frosted-glass rounded-pill shadow-sm d-flex gap-2 p-2 px-3 border border-white"
+            role="menu"
           >
             <button
-              class="btn btn-sm p-0 rounded-circle text-primary hover-scale transition-base"
-              @click.stop="handleReact('favorite')"
-              aria-label="Heart reaction"
+              role="menuitem"
+              class="btn btn-sm p-0 rounded-circle text-primary hover-scale"
+              @click="handleReact('favorite')"
+              aria-label="Favorite"
             >
               <span class="material-symbols-outlined fs-4">favorite</span>
             </button>
             <button
-              class="btn btn-sm p-0 rounded-circle text-primary hover-scale transition-base"
-              @click.stop="handleReact('thumb_up')"
-              aria-label="Like reaction"
+              role="menuitem"
+              class="btn btn-sm p-0 rounded-circle text-primary hover-scale"
+              @click="handleReact('thumb_up')"
+              aria-label="Like"
             >
               <span class="material-symbols-outlined fs-4">thumb_up</span>
             </button>
             <button
-              class="btn btn-sm p-0 rounded-circle text-warning hover-scale transition-base"
-              @click.stop="handleReact('sentiment_very_satisfied')"
-              aria-label="Wow reaction"
+              role="menuitem"
+              class="btn btn-sm p-0 rounded-circle text-warning hover-scale"
+              @click="handleReact('sentiment_very_satisfied')"
+              aria-label="Wow"
             >
               <span class="material-symbols-outlined fs-4">sentiment_very_satisfied</span>
-            </button>
-            <button
-              class="btn btn-sm p-0 rounded-circle text-info hover-scale transition-base"
-              @click.stop="handleReact('sentiment_very_dissatisfied')"
-              aria-label="Sad reaction"
-            >
-              <span class="material-symbols-outlined fs-4">sentiment_very_dissatisfied</span>
             </button>
           </div>
         </div>
@@ -590,136 +618,98 @@ export default {
         class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn"
         @click="showComments = !showComments"
         aria-label="Toggle comments"
-        :aria-expanded="showComments"
       >
         <span class="material-symbols-outlined fs-5">chat_bubble_outline</span>
         <span class="fw-semibold text-sm">{{ (item.comments || []).length }}</span>
       </button>
 
-      <!-- Share Menu (Teleported for centering) -->
-      <div class="position-relative ms-auto">
-        <button
-          class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn"
-          @click.stop="toggleShare"
-          aria-label="Share post"
-          :aria-expanded="showShareMenu"
-        >
-          <span class="material-symbols-outlined fs-5">share</span>
-          <span class="fw-semibold text-sm">{{ item.shares || 0 }}</span>
-        </button>
+      <!-- Share Menu (Teleported) -->
+      <button
+        class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn ms-auto"
+        @click.stop="toggleShare"
+        aria-label="Share post"
+      >
+        <span class="material-symbols-outlined fs-5">share</span>
+        <span class="fw-semibold text-sm">{{ item.shares || 0 }}</span>
+      </button>
 
-        <teleport to="body">
+      <teleport to="body">
+        <div
+          v-if="showShareMenu"
+          class="share-modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-index-modal"
+          @click.self="closeShare"
+        >
           <div
-            v-if="showShareMenu"
-            class="share-modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-index-modal"
-            @click.self="closeShare"
+            v-click-outside="closeShare"
+            class="share-popup frosted-glass rounded-4 shadow-lg p-3"
+            role="menu"
           >
-            <div
-              v-click-outside="closeShare"
-              class="share-popup frosted-glass rounded-4 shadow-lg animate-fade-up"
-            >
-              <!-- Popup Header -->
-              <div
-                class="share-popup__header d-flex justify-content-between align-items-center px-3 py-3 border-bottom border-light"
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <span class="fw-bold font-roboto">Share this post</span>
+              <button class="btn-close" @click="closeShare" aria-label="Close"></button>
+            </div>
+            <div class="d-flex flex-column gap-2">
+              <button
+                role="menuitem"
+                class="btn btn-light text-start d-flex align-items-center gap-3 p-3 rounded-3"
+                @click="handleShare('facebook')"
               >
-                <span class="fw-bold text-dark" style="font-family: 'Roboto Condensed'"
-                  >Share this post</span
-                >
-                <button
-                  class="btn btn-sm p-0 border-0 text-muted"
-                  @click="closeShare"
-                  aria-label="Close share menu"
-                >
-                  <span class="material-symbols-outlined">close</span>
-                </button>
-              </div>
-              <!-- Share Options -->
-              <div class="d-flex flex-column gap-2 p-3">
-                <button
-                  class="share-popup__item btn btn-sm w-100 text-start d-flex align-items-center gap-3 px-3 py-3 rounded-3 border-0"
-                  @click="handleShare('facebook')"
-                >
-                  <div
-                    class="share-popup__icon-circle d-flex align-items-center justify-content-center rounded-circle"
-                    style="background: #1877f2"
-                  >
-                    <i class="bi bi-facebook lh-1 text-white" style="font-size: 1.1rem"></i>
-                  </div>
-                  <span class="fw-medium text-dark text-md">Share on Facebook</span>
-                </button>
-                <button
-                  class="share-popup__item btn btn-sm w-100 text-start d-flex align-items-center gap-3 px-3 py-3 rounded-3 border-0"
-                  @click="handleShare('twitter')"
-                >
-                  <div
-                    class="share-popup__icon-circle d-flex align-items-center justify-content-center rounded-circle"
-                    style="background: #000000"
-                  >
-                    <i class="bi bi-twitter-x lh-1 text-white" style="font-size: 1rem"></i>
-                  </div>
-                  <span class="fw-medium text-dark text-md">Share on X</span>
-                </button>
-                <button
-                  class="share-popup__item btn btn-sm w-100 text-start d-flex align-items-center gap-3 px-3 py-3 rounded-3 border-0"
-                  @click="handleShare('link')"
-                >
-                  <div
-                    class="share-popup__icon-circle d-flex align-items-center justify-content-center rounded-circle"
-                    style="background: #65676b"
-                  >
-                    <span class="material-symbols-outlined text-white" style="font-size: 1.1rem"
-                      >link</span
-                    >
-                  </div>
-                  <span class="fw-medium text-dark text-md">Copy Link</span>
-                </button>
-              </div>
+                <i class="bi bi-facebook text-primary fs-5"></i>
+                <span>Facebook</span>
+              </button>
+              <button
+                role="menuitem"
+                class="btn btn-light text-start d-flex align-items-center gap-3 p-3 rounded-3"
+                @click="handleShare('twitter')"
+              >
+                <i class="bi bi-twitter-x text-dark fs-5"></i>
+                <span>X (Twitter)</span>
+              </button>
+              <button
+                role="menuitem"
+                class="btn btn-light text-start d-flex align-items-center gap-3 p-3 rounded-3"
+                @click="handleShare('link')"
+              >
+                <span class="material-symbols-outlined fs-5">link</span>
+                <span>Copy Link</span>
+              </button>
             </div>
           </div>
-        </teleport>
-      </div>
+        </div>
+      </teleport>
 
-      <!-- Lightbox Component -->
-      <vue-easy-lightbox
+      <ImageLightbox
         :visible="lightboxVisible"
-        :imgs="item.images || [item.image]"
-        :index="lightboxIndex"
-        @hide="hideLightbox"
+        :images="lightboxImages"
+        :start-index="lightboxIndex"
+        @close="hideLightbox"
       />
     </div>
 
-    <!-- 4. Comments Section (Collapsible) -->
+    <!-- Comments Section -->
     <transition name="fade">
       <div v-show="showComments" class="pt-3 border-top border-light mt-1 w-100">
         <div class="d-flex flex-column gap-3 mb-3">
-          <!-- Explanation: Iterates through comments stored in the article object -->
           <div v-for="c in item.comments || []" :key="c.id" class="d-flex gap-2">
             <img
-              :src="c.authorAvatar"
-              alt="Commenter Avatar"
+              v-lazy-load="c.authorAvatar"
+              alt="Avatar"
               class="rounded-circle mt-1"
               width="28"
               height="28"
             />
             <div class="bg-light p-2 px-3 rounded-4 w-100">
-              <p class="mb-0 fw-bold text-dark text-sm" style="font-family: 'Roboto Condensed'">
-                {{ c.authorName }}
-              </p>
-              <p class="mb-0 text-muted text-sm lh-sm" style="font-family: 'Roboto Condensed'">
-                {{ c.text }}
-              </p>
+              <p class="mb-0 fw-bold text-dark text-sm font-roboto">{{ c.authorName }}</p>
+              <p class="mb-0 text-muted text-sm lh-sm font-roboto">{{ c.text }}</p>
             </div>
           </div>
         </div>
-
-        <!-- New Comment Input (Visible only if logged in) -->
-        <div v-if="isAuthed" class="d-flex gap-2 align-items-start mt-2">
+        <div v-if="isAuthed" class="d-flex gap-2">
           <textarea
-            class="form-control rounded-3 border bg-light text-sm"
+            class="form-control rounded-3 text-sm"
             rows="2"
             placeholder="Write a comment..."
             v-model="commentText"
-            @keyup.enter.exact="submitComment"
           ></textarea>
           <button
             class="btn btn-primary rounded-pill btn-sm d-flex align-items-center"
@@ -739,228 +729,160 @@ export default {
         </div>
       </div>
     </transition>
-  </div>
+  </article>
 </template>
 
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 
-// Project-specific tokens (aligned with base.scss)
-$red: #e2065f;
-$custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+// Req 8.1: Photo count badge positioning
+.photo-count-badge {
+  bottom: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+}
 
-:deep(.rte-rendered) {
-  /* Prevent large injected elements from breaking the layout */
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+// Req 8.2: CSS Fade-out logic
+.content-body {
+  position: relative;
+  max-height: 4.8rem; // Fixed height for truncation
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  font-family: 'Roboto Condensed', sans-serif;
+  color: $gray-700;
+  line-height: $line-height-base;
+  font-size: 0.9rem;
 
-  img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
+  // Use a modern mask-image approach for seamless UI
+  -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+  mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+
+  &.is-expanded {
+    max-height: 200rem; // Virtually unlimited
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  &--on-dark {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  :deep(p) {
+    margin-bottom: 0.5rem;
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 }
 
-.type-b-img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
+// Req 8.2: Read more sleek link
+.read-more-btn {
+  @extend %btn-reset !optional;
+  color: var(--bs-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+
+  &::after {
+    content: '→';
+    font-size: 0.9rem;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover {
+    color: darken($primary, 15%);
+    border-bottom-color: currentColor;
+    &::after {
+      transform: translateX(3px);
+    }
+  }
+
+  &--on-dark {
+    color: $white;
+    opacity: 0.9;
+    &:hover {
+      color: $white;
+      opacity: 1;
+    }
+  }
 }
 
-:deep(.rte-rendered a) {
-  color: #e2065f;
-  text-decoration: underline;
+// Req 11: Type B Image Card specifically
+.type-b-card {
+  height: auto;
+  .type-b-img {
+    aspect-ratio: 16 / 9; // Req 11 aspect ratio fix
+  }
 }
-:deep(.rte-rendered blockquote) {
-  border-left: 3px solid #e2065f;
-  padding-left: 1rem;
-  color: #6c757d;
-  font-style: italic;
+
+// Req 11: Type C horizontal card
+.type-c-card {
+  height: auto;
+  min-height: 96px;
+  .type-c-img-wrapper {
+    width: 80px;
+    height: 80px;
+  }
 }
-:deep(.rte-rendered ul),
-:deep(.rte-rendered ol) {
-  padding-left: 1.5rem;
-  margin-bottom: 0;
-}
-:deep(.rte-rendered p) {
-  margin-bottom: 0.5rem;
-}
-:deep(.rte-rendered p:last-child) {
-  margin-bottom: 0;
+
+.btn-xs {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
 }
 
 .overlay-gradient {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
 }
 
-.text-shadow {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+.ellipsis-btn {
+  width: 32px;
+  height: 32px;
 }
 
-.menu-item {
-  transition: all 0.2s;
-  border: none;
-}
-.menu-item:not(:disabled):hover {
-  background-color: rgba(0, 0, 0, 0.05);
+.ellipsis-menu {
+  min-width: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.social-btn {
-  transition: all 0.2s;
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+.reaction-container {
+  &:hover .reaction-picker {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
   }
 }
 
-.hover-scale {
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.hover-scale:hover {
-  transform: scale(1.15);
-}
-
-.content-wrapper {
-  transition: max-height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+.reaction-trigger-wrapper.not-authed {
+  opacity: 0.5;
+  cursor: not-allowed;
+  .reaction-btn {
+    pointer-events: none;
+  }
 }
 
-.content-fade-mask {
+.reaction-picker {
   position: absolute;
-  bottom: 0;
+  bottom: 100%;
   left: 0;
-  right: 0;
-  height: 80px;
-  // Dissolves into a white gradient fade as requested
-  background: linear-gradient(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.8) 50%, #ffffff 100%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.btn-read-more {
-  background: rgba($red, 0.05);
-  color: $red;
-  border: 1px solid rgba($red, 0.15);
-  padding: 0.5rem 1.75rem;
-  border-radius: 100px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  transition: all 0.3s $custom-timing-function;
-  cursor: pointer;
-
-  .btn-text {
-    position: relative;
-    top: 1px;
-  }
-
-  .material-symbols-outlined {
-    font-size: 1.2rem;
-    transition: transform 0.4s ease;
-  }
-
-  &:hover {
-    background: $red;
-    color: white;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba($red, 0.25);
-    border-color: $red;
-  }
-
-  &:active {
-    transform: translateY(-1px);
-  }
-
-  .rotate-180 {
-    transform: rotate(180deg);
-  }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition:
-    opacity 0.3s ease,
-    margin 0.3s ease,
-    padding 0.3s ease,
-    max-height 0.3s ease;
-  overflow: hidden;
-}
-.fade-enter-from,
-.fade-leave-to {
+  margin-bottom: 8px;
   opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-// ==========================================
-// SHARE POPUP (Facebook-style dialog)
-// ==========================================
 .share-modal-overlay {
   background: rgba(0, 0, 0, 0.4);
 }
 
 .share-popup {
-  width: 90%;
-  max-width: 400px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  animation: sharePopupIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &__header {
-    font-family: 'Roboto Condensed', sans-serif;
-  }
-
-  &__icon-circle {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    transition: transform 0.15s ease;
-  }
-
-  &__item {
-    transition: background-color 0.15s ease;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.04);
-
-      .share-popup__icon-circle {
-        transform: scale(1.1);
-      }
-    }
-  }
-}
-
-.glassy-badge {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  z-index: 2;
-}
-
-.animate-fade-up {
-  animation: fadeUp 0.3s ease-out;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sharePopupIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  width: 320px;
 }
 </style>

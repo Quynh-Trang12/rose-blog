@@ -4,10 +4,12 @@
  * COMPONENT: HomeView.vue
  * ==========================================
  * Description:
- * The landing page of the application. Highlighting featured roses,
- * latest news snippets, and integrating the live weather widget.
+ * The landing page of the application. Highlights a featured rose (computed
+ * from Vuex state based on ratings), latest news snippets (computed from
+ * Vuex state based on dates), and integrates the live weather widget.
  * Features a full-height hero section with dynamic navbar offset.
  */
+import { mapGetters } from 'vuex'
 import WeatherWidget from '@/components/weather/WeatherWidget.vue'
 import heroImage22 from '@/assets/images/image22.jpg'
 
@@ -24,10 +26,11 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
+      // Explanation: Reference for the ResizeObserver cleanup on unmount.
       resizeObserver: null,
-      // Explanation: Static data for the hero section
+      // Explanation: Static data for the hero section banner content.
       heroData: {
         badge: 'EST. 2026',
         titleNormal: 'Sanctuary for the',
@@ -36,37 +39,84 @@ export default {
           'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
         image: heroImage22,
       },
-      // Explanation: Data for the featured rose article
-      featuredProfile: {
-        title: 'The Pink Paradise',
-        description:
-          'A compact bush rose known for exceptional disease resistance and continuous blooming cycle from early spring to late fall.',
-        image:
-          'https://images.unsplash.com/photo-1697557167328-eafb1f94a731?ixlib=rb-4.1.0&auto=format&fit=crop&w=1080&q=80',
-        link: '/collection',
-      },
-      // Explanation: Mock publications list
-      publications: [
-        {
-          id: 1,
-          category: 'PLANTING GUIDE',
-          title: 'How to Prune the White Elegance',
-          description: 'Learn the best techniques for encouraging new growth...',
-          image:
-            'https://images.unsplash.com/photo-1623945392355-12af183b7acd?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
-          link: '/news',
-        },
-        {
-          id: 2,
-          category: 'SHOP UPDATE',
-          title: 'Ruby Romance is Back in Stock!',
-          description: 'Our most requested deep red climbing rose is available...',
-          image:
-            'https://images.unsplash.com/photo-1662110497736-06601647fe27?ixlib=rb-4.1.0&auto=format&fit=crop&w=300&q=80',
-          link: '/news',
-        },
-      ],
     }
+  },
+
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    ...mapGetters('news', ['allArticles']),
+    ...mapGetters('auth', ['blockedUserIds']),
+
+    /**
+     * Derives the "Rose of the Month" featured profile (Req 2.1).
+     * Explanation: Finds the article with the highest rating (or reactions
+     * if ratings are tied). Strips HTML and limits description to 160 chars.
+     * @returns {Object}
+     */
+    featuredProfile() {
+      const articles = this.allArticles
+      if (articles.length === 0) return null
+
+      // Sort by rating descending, then by reactions descending if tied
+      const sorted = [...articles].sort((a, b) => {
+        const ratingA = a.rating || 0
+        const ratingB = b.rating || 0
+        if (ratingB !== ratingA) return ratingB - ratingA
+
+        const reactA = a.reactions || 0
+        const reactB = b.reactions || 0
+        return reactB - reactA
+      })
+
+      const best = sorted[0]
+      const strippedContent = (best.content || best.description || '').replace(/<[^>]*>/g, '')
+
+      return {
+        id: best.id,
+        title: best.title,
+        description:
+          strippedContent.substring(0, 160) + (strippedContent.length > 160 ? '...' : ''),
+        image: best.images?.[0] || best.image || '',
+        link: `/news#post-${best.id}`,
+      }
+    },
+
+    /**
+     * Derives the "Latest Posts" sidebar content (Req 2.2).
+     * Explanation: Takes the 2 most recently dated articles that are public,
+     * approved, and authored by non-blocked users.
+     * @returns {Array<Object>}
+     */
+    publications() {
+      const articles = this.allArticles
+      const blockedIds = this.blockedUserIds || []
+
+      const validLatest = articles
+        .filter((a) => {
+          return (
+            a.isPublic !== false &&
+            a.moderation?.status !== 'blocked' &&
+            !blockedIds.includes(a.authorID)
+          )
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 2)
+
+      return validLatest.map((a) => {
+        const strippedContent = (a.content || a.description || '').replace(/<[^>]*>/g, '')
+        return {
+          id: a.id,
+          category: (a.type || a.category || 'ROSE NEWS').toUpperCase(),
+          title: a.title,
+          description:
+            strippedContent.substring(0, 80) + (strippedContent.length > 80 ? '...' : ''),
+          image: a.images?.[0] || a.image || '',
+          link: `/news#post-${a.id}`,
+        }
+      })
+    },
   },
 
   // ==========================================
@@ -75,13 +125,14 @@ export default {
   methods: {
     /**
      * Calculates the sticky navbar height and sets a CSS variable.
-     * Explanation: Ensures the sections fit the screen flawlessly on all devices.
+     * Explanation: Ensures the full-height sections fit the screen correctly
+     * by subtracting the navbar height from 100vh.
      */
-    updateNavbarHeight: function () {
-      var navbar = document.querySelector('.navbar.sticky-top')
+    updateNavbarHeight() {
+      const navbar = document.querySelector('.navbar.sticky-top')
       if (navbar && this.$refs.homeRef) {
-        var h = navbar.getBoundingClientRect().height
-        this.$refs.homeRef.style.setProperty('--nav-h', h + 'px')
+        const h = navbar.getBoundingClientRect().height
+        this.$refs.homeRef.style.setProperty('--nav-h', `${h}px`)
       }
     },
   },
@@ -89,9 +140,9 @@ export default {
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
-  mounted: function () {
-    // Explanation: Initialize ResizeObserver to react to navbar resizing.
-    var navbar = document.querySelector('.navbar.sticky-top')
+  mounted() {
+    // Explanation: Initialise ResizeObserver to react to navbar resizing.
+    const navbar = document.querySelector('.navbar.sticky-top')
     if (navbar) {
       this.resizeObserver = new ResizeObserver(this.updateNavbarHeight)
       this.resizeObserver.observe(navbar)
@@ -99,7 +150,7 @@ export default {
     this.updateNavbarHeight()
   },
 
-  unmounted: function () {
+  unmounted() {
     // Explanation: Cleanup observer to prevent memory leaks.
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
@@ -112,13 +163,8 @@ export default {
   <div ref="homeRef">
     <!-- HERO SECTION -->
     <section
-      class="full-height-section position-relative overflow-hidden bg-dark d-flex flex-column justify-content-center"
-      :style="{
-        background:
-          'linear-gradient(to bottom left, rgba(0,0,0,0.1), rgba(0,0,0,0.6)), url(' +
-          heroData.image +
-          ') center/cover no-repeat',
-      }"
+      class="full-height-section position-relative overflow-hidden bg-dark d-flex flex-column justify-content-center hero-banner"
+      :style="{ backgroundImage: 'url(' + heroData.image + ')' }"
       aria-label="Welcome to The Rose Blog"
     >
       <div class="container position-relative z-1 d-flex flex-column flex-grow-1 py-0 px-5 px-lg-3">
@@ -136,7 +182,7 @@ export default {
                 {{ heroData.titleNormal }} <br />
                 <span class="display-3 fw-bold text-secondary">{{ heroData.titleHighlight }}</span>
               </h1>
-              <p class="fs-6 fs-lg-5 text-gray-300 fw-medium w-100" style="max-width: 660px">
+              <p class="fs-6 fs-lg-5 text-gray-300 fw-medium w-100 hero-subtitle">
                 {{ heroData.description }}
               </p>
               <router-link
@@ -153,7 +199,7 @@ export default {
           <div
             class="col-12 col-lg-4 d-flex flex-column flex-grow-1 justify-content-start justify-content-lg-center"
           >
-            <WeatherWidget style="max-width: 335px" />
+            <WeatherWidget class="home-weather-widget" />
           </div>
         </div>
       </div>
@@ -166,29 +212,26 @@ export default {
     >
       <div class="container">
         <div class="row align-items-stretch mx-2 mx-lg-0 gx-lg-5 gy-5 gy-lg-0">
-          <!-- Featured Rose Card -->
-          <article class="col-12 col-lg-6 col-xl-5 d-flex flex-column px-4">
+          <!-- Featured Rose Card (Req 2.1) -->
+          <article v-if="featuredProfile" class="col-12 col-lg-6 col-xl-5 d-flex flex-column px-4">
             <div class="d-flex align-items-center gap-3 mb-4">
               <h2 class="fs-4 fw-bolder mb-0 text-dark">Rose of the Month</h2>
               <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
             </div>
 
             <div
-              class="card img-zoom-hover border-0 rounded-4 overflow-hidden shadow-sm position-relative flex-grow-1 d-flex bg-dark"
-              style="min-height: 50vh"
+              class="card img-zoom-hover border-0 rounded-4 overflow-hidden shadow-sm position-relative flex-grow-1 d-flex bg-dark featured-card-min"
             >
               <img
                 :src="featuredProfile.image"
                 alt="Thumbnail for Rose of the Month"
-                class="position-absolute w-100 h-100 object-fit-cover img-zoom"
-                style="opacity: 0.65"
+                class="position-absolute w-100 h-100 object-fit-cover img-zoom featured-bg-img"
               />
-              <div
-                class="position-relative mt-auto w-100 px-4 py-4 px-md-5 z-1"
-                style="background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent)"
-              >
-                <h3 class="text-white fw-bold display-7 mb-1">{{ featuredProfile.title }}</h3>
-                <p class="text-white text-md opacity-75 mb-3 fw-medium">
+              <div class="position-relative mt-auto w-100 px-4 py-4 px-md-5 z-1 featured-overlay">
+                <h3 class="text-white fw-bold display-7 mb-1 font-zilla fst-italic">
+                  {{ featuredProfile.title }}
+                </h3>
+                <p class="text-white text-md opacity-75 mb-3 fw-medium font-roboto">
                   {{ featuredProfile.description }}
                 </p>
                 <router-link
@@ -202,7 +245,7 @@ export default {
             </div>
           </article>
 
-          <!-- Latest Posts Sidebar -->
+          <!-- Latest Posts Sidebar (Req 2.2) -->
           <div class="col-12 col-lg-6 col-xl-7 d-flex flex-column px-4">
             <div class="d-flex align-items-center gap-3 mb-3">
               <h2 class="fs-4 fw-bolder mb-0 text-dark">Latest Posts</h2>
@@ -222,7 +265,9 @@ export default {
                   :aria-label="'Read article: ' + item.title"
                 >
                   <div class="row g-0 align-items-center h-100">
-                    <div class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm">
+                    <div
+                      class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm latest-img-container"
+                    >
                       <img
                         v-lazy-load="item.image"
                         :alt="'Thumbnail for ' + item.title"
@@ -231,13 +276,17 @@ export default {
                     </div>
                     <div class="col-8 col-md-9 col-lg-8 ps-3 ps-md-4">
                       <p
-                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide text-sm"
+                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide text-sm font-roboto"
                         aria-hidden="true"
                       >
                         {{ item.category }}
                       </p>
-                      <h3 class="h5 fw-bolder text-dark mb-2">{{ item.title }}</h3>
-                      <p class="small mb-0 fw-medium text-muted">{{ item.description }}</p>
+                      <h3 class="h5 fw-bold text-dark mb-2 font-zilla fst-italic">
+                        {{ item.title }}
+                      </h3>
+                      <p class="small mb-0 fw-medium text-muted font-roboto">
+                        {{ item.description }}
+                      </p>
                     </div>
                   </div>
                 </router-link>
@@ -250,10 +299,51 @@ export default {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
 /* Explanation: Responsive height logic ensuring consistent fullscreen sections. */
 .full-height-section {
   min-height: calc(100vh - var(--nav-h, 0px));
   min-height: calc(100dvh - var(--nav-h, 0px));
+}
+
+.hero-banner {
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom left, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.6));
+  }
+}
+
+.hero-subtitle {
+  max-width: 660px;
+}
+
+.home-weather-widget {
+  max-width: 335px;
+}
+
+.featured-card-min {
+  min-height: 50vh;
+}
+
+.featured-bg-img {
+  opacity: 0.65;
+}
+
+.featured-overlay {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+}
+
+.latest-img-container {
+  height: 100px; // Standard height for latest posts list
 }
 </style>

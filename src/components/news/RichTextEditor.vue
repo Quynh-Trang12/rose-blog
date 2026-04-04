@@ -129,12 +129,15 @@ function setLink() {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+
 .rte-wrapper {
-  background: white;
+  background: $white;
 }
 .rte-toolbar {
-  background: #f8f9fa;
+  background: $gray-100;
 }
 /* TipTap editor area */
 :deep(.rte-content) {
@@ -148,27 +151,27 @@ function setLink() {
   padding: 0.75rem 1rem;
   font-family: 'Roboto Condensed', sans-serif;
   font-size: 0.95rem;
-  line-height: 1.6;
-  color: #333;
+  line-height: $line-height-base;
+  color: $gray-900;
 }
 :deep(.rte-content:focus) {
   box-shadow: none !important;
 }
 :deep(.tiptap p.is-editor-empty:first-child::before) {
   content: attr(data-placeholder);
-  color: #adb5bd;
+  color: $gray-500;
   pointer-events: none;
   float: left;
   height: 0;
 }
 :deep(.rte-content a) {
-  color: #e2065f;
+  color: $primary;
   text-decoration: underline;
 }
 :deep(.rte-content blockquote) {
-  border-left: 3px solid #e2065f;
+  border-left: 3px solid $primary;
   padding-left: 1rem;
-  color: #6c757d;
+  color: $gray-600;
   font-style: italic;
 }
 </style>

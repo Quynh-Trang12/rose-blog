@@ -7,6 +7,9 @@
  * A sticky interface for creating new blog posts. Provides an entry point
  * to a modal form where users can input titles, write rich-text content,
  * select categories, and attach image URLs.
+ *
+ * Props: None (relies on Vuex auth state).
+ * Emits: None (dispatches directly to Vuex news store).
  */
 import { mapState, mapActions } from 'vuex'
 import RichTextEditor from './RichTextEditor.vue'
@@ -24,9 +27,11 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
+      // Explanation: Controls the visibility of the creation modal.
       showModal: false,
+      // Explanation: The form state object for new post creation.
       form: {
         title: '',
         content: '',
@@ -44,11 +49,13 @@ export default {
     ...mapState('auth', ['currentUser']),
 
     /**
-     * Basic validation to ensure the post has a title and non-empty content.
+     * Basic validation — title and non-empty content are required.
+     * Explanation: Strips HTML tags from the content before checking for
+     * emptiness because the rich-text editor wraps text in <p> tags.
      * @returns {boolean}
      */
-    isValid: function () {
-      var textContent = (this.form.content || '').replace(/<[^>]*>/g, '').trim()
+    isValid() {
+      const textContent = (this.form.content || '').replace(/<[^>]*>/g, '').trim()
       return this.form.title.trim() !== '' && textContent !== ''
     },
   },
@@ -62,14 +69,14 @@ export default {
     /**
      * Opens the creation modal.
      */
-    openModal: function () {
+    openModal() {
       this.showModal = true
     },
 
     /**
      * Closes the creation modal and resets the form state.
      */
-    closeModal: function () {
+    closeModal() {
       this.showModal = false
       this.form = {
         title: '',
@@ -82,9 +89,10 @@ export default {
 
     /**
      * Validates the creation form before proceeding to submit.
+     * Explanation: Uses the explicit checkForm pattern with event.preventDefault().
      * @param {Event} event - Native DOM submit event
      */
-    checkForm: function (event) {
+    checkForm(event) {
       event.preventDefault()
       // Explanation: Only proceed to submit if basic validation conditions are met.
       if (this.isValid) {
@@ -95,12 +103,12 @@ export default {
     /**
      * Dispatches the new article to the news store and closes the modal.
      */
-    submitPost: function () {
+    submitPost() {
       // Explanation: Prepare the payload for the Vuex addArticle action.
       this.addArticle({
         authorName: this.currentUser.displayName,
         authorAvatar:
-          this.currentUser.avatar || 'https://i.pravatar.cc/150?u=' + this.currentUser.username,
+          this.currentUser.avatar || `https://i.pravatar.cc/150?u=${this.currentUser.username}`,
         date: new Date().toISOString(),
         title: this.form.title.trim(),
         content: this.form.content.trim(),
@@ -114,39 +122,39 @@ export default {
 
     /**
      * Triggers the hidden file input for photo selection.
+     * Explanation: Opens the modal first, then uses $nextTick to ensure
+     * the DOM has updated before programmatically clicking the file input.
+     * @param {Event} event - The triggering click event
      */
-    triggerFileUpload: function (event) {
+    triggerFileUpload(event) {
       if (event) event.preventDefault()
       this.openModal()
-      this.$nextTick(function () {
-        var input = document.getElementById('post-image-upload')
+      this.$nextTick(() => {
+        const input = document.getElementById('post-image-upload')
         if (input) input.click()
       })
     },
 
     /**
      * Handles file selection and creates object URLs for preview.
+     * Explanation: Each file is converted to a blob URL so it can be
+     * displayed as a thumbnail in the photo grid.
+     * @param {Event} event - The native file input change event
      */
-    handleFileUpload: function (event) {
-      var files = event.target.files
+    handleFileUpload(event) {
+      const files = event.target.files
       if (!files) return
-      var self = this
-      Array.from(files).forEach(function (file) {
-        var url = URL.createObjectURL(file)
-        self.form.images.push(url)
+      Array.from(files).forEach((file) => {
+        const url = URL.createObjectURL(file)
+        this.form.images.push(url)
       })
     },
 
     /**
-     * Focuses the category selector in the modal.
+     * Expands the creation form but does not focus anything specific yet.
      */
-    focusCategory: function (event) {
-      if (event) event.preventDefault()
+    openCategory() {
       this.openModal()
-      this.$nextTick(function () {
-        var select = document.getElementById('post-category')
-        if (select) select.focus()
-      })
     },
   },
 }
@@ -173,53 +181,32 @@ export default {
       </div>
       <div class="d-flex gap-2">
         <button
-          class="btn btn-sm btn-light rounded-pill d-flex align-items-center gap-2 fw-medium border shadow-sm px-3"
+          class="btn btn-sm btn-light rounded-pill d-flex align-items-center gap-2 fw-medium border shadow-sm px-3 transition-base hover-bg-light"
           @click="triggerFileUpload"
         >
           <span class="material-symbols-outlined text-muted fs-5">photo_camera</span>
           Add Photo
         </button>
-        <button
-          class="btn btn-sm btn-light rounded-pill d-flex align-items-center gap-2 fw-medium border shadow-sm px-3"
-          @click="focusCategory"
+        <select
+          class="form-select form-select-sm rounded-pill fw-medium border shadow-sm px-3 text-muted"
+          style="width: auto; cursor: pointer"
+          v-model="form.type"
+          @change="openCategory"
         >
-          <span class="material-symbols-outlined text-muted fs-5">label</span>
-          Add Category
-        </button>
+          <option value="Bush Rose">Bush Rose</option>
+          <option value="Climbing Rose">Climbing Rose</option>
+          <option value="Planting Guide">Planting Guide</option>
+          <option value="Botanical Tips">Botanical Tips</option>
+        </select>
       </div>
-    </div>
 
-    <!-- Create Post Modal via Teleport -->
-    <teleport to="body">
-      <div
-        v-if="showModal"
-        class="create-post-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
-        style="z-index: 1055"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-modal-title"
-        @click.self="closeModal"
-      >
-        <div
-          class="card frosted-glass border-0 shadow-lg rounded-4 w-100 animate-fade-up"
-          style="max-width: 500px"
-        >
-          <!-- Modal Header -->
-          <div
-            class="card-header border-0 bg-transparent px-4 pt-4 pb-0 d-flex justify-content-between align-items-center"
-          >
-            <h5
-              id="create-modal-title"
-              class="mb-0 fw-bold"
-              style="font-family: 'Zilla Slab'; font-style: italic"
-            >
-              Create Post
-            </h5>
-            <button @click="closeModal" class="btn-close" aria-label="Close modal"></button>
-          </div>
-
-          <div class="card-body px-4 pb-4">
-            <!-- Explanation: Using explicit checkForm pattern for Item 9 requirements -->
+      <!-- Expandable Inline Form (Replaces Full Screen Modal) -->
+      <div v-if="showModal" class="create-post-form animate-fade-down mt-2 border-top pt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="mb-0 fw-bold font-zilla fst-italic">Compose Post</h5>
+          <button @click="closeModal" class="btn-close btn-sm" aria-label="Cancel compose"></button>
+        </div>
+            <!-- Explanation: Using explicit checkForm pattern for form validation -->
             <form @submit="checkForm" novalidate class="d-flex flex-column gap-3">
               <div>
                 <label for="post-title" class="form-label text-sm fw-bold">Title</label>
@@ -274,25 +261,22 @@ export default {
                   <div
                     v-for="(img, idx) in form.images"
                     :key="idx"
-                    class="position-relative border rounded-3 overflow-hidden"
-                    style="width: 80px; height: 80px"
+                    class="position-relative border rounded-3 overflow-hidden photo-thumb"
                   >
                     <img v-lazy-load="img" class="w-100 h-100 object-fit-cover" />
                     <button
                       type="button"
-                      class="btn-close btn-close-white position-absolute top-0 end-0 p-1 bg-dark bg-opacity-50"
-                      style="font-size: 0.5rem"
+                      class="btn-close btn-close-white position-absolute top-0 end-0 p-1 bg-dark bg-opacity-50 btn-close-sm"
                       @click="form.images.splice(idx, 1)"
                     ></button>
                   </div>
                   <button
                     type="button"
-                    class="btn btn-outline-dashed rounded-3 d-flex flex-column align-items-center justify-content-center gap-1 text-muted"
-                    style="width: 80px; height: 80px; border: 2px dashed #ddd"
+                    class="btn btn-outline-dashed rounded-3 d-flex flex-column align-items-center justify-content-center gap-1 text-muted photo-add-btn"
                     @click="triggerFileUpload"
                   >
                     <span class="material-symbols-outlined">add_a_photo</span>
-                    <span style="font-size: 0.6rem">Add More</span>
+                    <span class="photo-add-label">Add More</span>
                   </button>
                 </div>
                 <input
@@ -305,7 +289,7 @@ export default {
                 />
               </div>
 
-              <!-- Submit button only enabled if title and content are present -->
+              <!-- Explanation: Submit button only enabled if title and content are present -->
               <button
                 type="submit"
                 class="btn btn-primary rounded-pill w-100 fw-bold mt-2"
@@ -314,21 +298,36 @@ export default {
                 Post
               </button>
             </form>
-          </div>
-        </div>
       </div>
-    </teleport>
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.create-post-overlay {
-  background: rgba(0, 0, 0, 0.4);
-}
 .hover-bg-light:hover {
   background-color: var(--bs-gray-200) !important;
 }
-.transition-base {
-  transition: all 0.2s ease-in-out;
+
+/* Explanation: Photo thumbnail grid item dimensions */
+.photo-thumb {
+  width: 80px;
+  height: 80px;
+}
+
+/* Explanation: Photo add button dimensions */
+.photo-add-btn {
+  width: 80px;
+  height: 80px;
+  border: 2px dashed #ddd;
+}
+
+/* Explanation: Small close button sizing */
+.btn-close-sm {
+  font-size: 0.5rem;
+}
+
+/* Explanation: Label sizing for the add more button */
+.photo-add-label {
+  font-size: 0.6rem;
 }
 </style>

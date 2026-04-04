@@ -4,8 +4,9 @@
  * COMPONENT: AboutView.vue
  * ==========================================
  * Description:
- * The static About page for The Rose Blog. Shares the vision,
- * history, and mission of the sanctuary.
+ * The static About page for The Rose Blog. Shares the vision, history,
+ * and mission of the sanctuary. All inline styles have been replaced
+ * with scoped CSS classes and global utility classes.
  */
 
 export default {
@@ -24,43 +25,28 @@ export default {
         <div class="col-12 col-lg-8 animate-fade-up">
           <!-- Page Header -->
           <div class="text-center mb-5">
-            <h1
-              class="display-4 fw-bold fst-italic mb-3"
-              style="font-family: 'Zilla Slab'; color: #333"
-            >
+            <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-dark">
               Our Botanical Story
             </h1>
-            <div
-              class="mx-auto border-bottom border-primary border-4"
-              style="width: 80px"
-            ></div>
+            <div class="mx-auto border-bottom border-primary border-4 about-divider"></div>
           </div>
 
           <!-- Main Content -->
           <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
-            <h2
-              class="fs-3 fw-bold mb-4"
-              style="font-family: 'Zilla Slab'; font-style: italic"
-            >
+            <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">
               More Than Just a Blog
             </h2>
-            <p
-              class="text-muted lh-xl mb-4"
-              style="font-family: 'Roboto Condensed'; font-size: 1.1rem"
-            >
+            <p class="text-muted lh-xl mb-4 font-roboto about-body-text">
               The Rose Blog was founded in 2024 as a digital sanctuary for those who find
-              peace among petals. What started as a simple gardening journal has evolved 
-              into a vibrant community for botanical enthusiasts, professional 
-              horticulturists, and those who simply appreciate the timeless elegance 
+              peace among petals. What started as a simple gardening journal has evolved
+              into a vibrant community for botanical enthusiasts, professional
+              horticulturists, and those who simply appreciate the timeless elegance
               of the world's most beloved flower.
             </p>
-            <p
-              class="text-muted lh-xl mb-4"
-              style="font-family: 'Roboto Condensed'; font-size: 1.1rem"
-            >
+            <p class="text-muted lh-xl mb-4 font-roboto about-body-text">
               Our mission is to democratize rose care knowledge, providing expert-level
-              guidance that is accessible to the hobbyist gardener. From pruning 
-              techniques to organic health remedies, we believe every garden, no 
+              guidance that is accessible to the hobbyist gardener. From pruning
+              techniques to organic health remedies, we believe every garden, no
               matter how small, deserves to bloom with majesty.
             </p>
 
@@ -92,7 +78,7 @@ export default {
 
           <!-- Contact/CTA Section -->
           <div class="text-center">
-            <p class="text-muted mb-4 fst-italic">“A rose by any other name would smell as sweet.”</p>
+            <p class="text-muted mb-4 fst-italic">"A rose by any other name would smell as sweet."</p>
             <router-link to="/news" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
               Explore Our Latest News
             </router-link>
@@ -116,22 +102,13 @@ export default {
   filter: blur(120px);
 }
 
-.lh-xl {
-  line-height: 1.8;
+/* Explanation: Replaces inline style="width: 80px" on the divider */
+.about-divider {
+  width: 80px;
 }
 
-.animate-fade-up {
-  animation: fadeUp 1s ease-out forwards;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Explanation: Replaces inline style="font-size: 1.1rem" on body paragraphs */
+.about-body-text {
+  font-size: 1.1rem;
 }
 </style>

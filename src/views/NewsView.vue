@@ -4,14 +4,16 @@
  * COMPONENT: NewsView.vue
  * ==========================================
  * Description:
- * The main news feed page. Features a masonry-style grid of news articles
- * with support for searching, filtering, and pagination. Users can also
- * create new posts if they are authenticated.
+ * The main news feed page. Features a CSS-columns masonry grid of news
+ * articles with support for advanced searching, filtering, and pagination
+ * via the PaginationBar shared component. Users can create new posts
+ * if they are authenticated.
  */
 import { mapState, mapGetters, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
 import NewsCreateBar from '@/components/news/NewsCreateBar.vue'
 import NewsSearchBar from '@/components/news/NewsSearchBar.vue'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
 
 export default {
   name: 'NewsView',
@@ -23,13 +25,15 @@ export default {
     NewsCard,
     NewsCreateBar,
     NewsSearchBar,
+    PaginationBar,
   },
 
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
+      // Explanation: Controls the visibility of the filter/search modal.
       showFilterModal: false,
     }
   },
@@ -60,36 +64,80 @@ export default {
 
     /**
      * Checks if the current user owns a specific news item.
-     * Explanation: Display-name based match with no admin override.
      * @param {Object} item - The blog post/news item object
      * @returns {boolean}
      */
-    isOwner: function (item) {
+    isOwner(item) {
       if (!this.isLoggedIn) return false
-      return this.currentUser.displayName === item.authorName
+      return this.currentUser?.displayName === item.authorName
     },
 
     /**
-     * Handles pagination clicks with smooth scrolling to top.
+     * Handles pagination page changes with smooth scrolling to top.
      * @param {number} page - The target page number
      */
-    handlePageChange: function (page) {
-      if (page >= 1 && page <= this.totalPages) {
-        // Explanation: Update the Vuex store's page state.
-        this.setPage(page)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      }
+    handlePageChange(page) {
+      this.setPage(page)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     },
 
     /**
-     * Determines a masonry layout type (A, B, or C) based on current index.
-     * @param {number} index - Index in the v-for loop
-     * @returns {string}
+     * Handles edit events from NewsCard.
+     * Explanation: payload is { id, title, content }.
+     * @param {Object} payload - Corrected format from NewsCard emit.
      */
-    getDynamicLayout: function (index) {
-      if (index % 5 === 0) return 'C'
-      if (index % 4 === 0) return 'B'
-      return 'A'
+    handleEdit(payload) {
+      this.updateArticle(payload)
+    },
+
+    /**
+     * Handles share events from NewsCard.
+     * @param {Object} payload - { id, platform }
+     */
+    handleShare(payload) {
+      this.incrementShare(payload.id)
+    },
+
+    /**
+     * Handles react events from NewsCard.
+     * @param {Object} payload - { id, reaction }
+     */
+    handleReact(payload) {
+      this.reactToArticle(payload.id)
+    },
+
+    /**
+     * Scrolls the window to a post specified in the URL hash.
+     * Explanation: Uses setTimeout to ensure the DOM is rendered before scrolling.
+     */
+    scrollToAnchor() {
+      const hash = this.$route.hash
+      if (hash && hash.startsWith('#post-')) {
+        // Retry a few times in case masonry has not fully laid out yet
+        let attempts = 0
+        const interval = setInterval(() => {
+          const el = document.querySelector(hash)
+          if (el) {
+            clearInterval(interval)
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            // Highlight the card for better visual feedback
+            el.classList.add('highlight-flash')
+            setTimeout(() => el.classList.remove('highlight-flash'), 2000)
+          }
+          attempts++
+          if (attempts > 20) clearInterval(interval) // Max 2 seconds
+        }, 100)
+      }
+    },
+  },
+
+  mounted() {
+    this.scrollToAnchor()
+  },
+
+  watch: {
+    '$route.hash'() {
+      this.scrollToAnchor()
     },
   },
 }
@@ -114,13 +162,15 @@ export default {
         </div>
 
         <!-- Filter Bubble Entry -->
-        <div class="d-flex flex-column align-items-center gap-1 position-relative">
-          <p class="news-view__search-hint text-muted text-xs fst-italic mb-1 text-center">
+        <div class="d-flex flex-column align-items-center gap-1 position-relative z-3">
+          <p
+            class="news-view__search-hint text-muted text-xs fst-italic mb-1 text-center font-zilla"
+          >
             Click to<br />Search & Filter
           </p>
           <button
-            class="news-view__search-bubble border-0 bg-transparent p-0 d-flex align-items-center justify-content-center"
-            @click.stop="showFilterModal = true"
+            class="news-view__search-bubble border-0 bg-transparent p-0"
+            @click="showFilterModal = true"
             aria-label="Open search and filter panel"
             :aria-expanded="showFilterModal"
           >
@@ -136,22 +186,17 @@ export default {
       <!-- Creation Bar (Auth users only) -->
       <NewsCreateBar v-if="isLoggedIn" class="mb-4" />
 
-      <!-- Masonry Grid of Articles -->
+      <!-- Masonry Grid of Articles (Req 11) -->
       <div class="news-view__columns" v-if="paginatedArticles.length > 0">
-        <div
-          class="news-view__card-wrapper"
-          v-for="(item, index) in paginatedArticles"
-          :key="item.id"
-        >
+        <div class="news-view__card-wrapper" v-for="item in paginatedArticles" :key="item.id">
           <NewsCard
             :item="item"
-            :layout="getDynamicLayout(index)"
             :is-authed="isLoggedIn"
             :is-owner="isOwner(item)"
-            @react="reactToArticle"
+            @react="handleReact"
             @comment="addComment"
-            @share="incrementShare"
-            @edit="updateArticle"
+            @share="handleShare"
+            @edit="handleEdit"
             @delete="deleteArticle"
           />
         </div>
@@ -171,51 +216,12 @@ export default {
         </button>
       </div>
 
-      <!-- Pagination Navigation -->
-      <nav
-        v-if="totalPages > 1"
-        class="d-flex justify-content-center mt-5 mb-5 align-items-center"
-        aria-label="News pagination"
-      >
-        <div
-          class="d-flex gap-2 align-items-center frosted-glass rounded-pill p-2 shadow-sm border border-light bg-white bg-opacity-50"
-        >
-          <button
-            class="news-view__page-btn btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm transition-base"
-            :disabled="currentPage === 1"
-            aria-label="Previous page"
-            @click="handlePageChange(currentPage - 1)"
-          >
-            <span class="material-symbols-outlined fs-5">chevron_left</span>
-          </button>
-
-          <div class="d-flex gap-1 px-2">
-            <button
-              v-for="page in totalPages"
-              :key="page"
-              class="news-view__page-btn btn btn-sm rounded-circle fw-bold transition-base d-flex align-items-center justify-content-center border-0"
-              :class="
-                currentPage === page
-                  ? 'btn-primary shadow-sm text-white'
-                  : 'text-dark hover-bg-light'
-              "
-              @click="handlePageChange(page)"
-              :aria-current="currentPage === page ? 'page' : null"
-            >
-              {{ page }}
-            </button>
-          </div>
-
-          <button
-            class="news-view__page-btn btn btn-sm btn-light rounded-circle d-flex align-items-center justify-content-center border-0 shadow-sm transition-base"
-            :disabled="currentPage === totalPages"
-            aria-label="Next page"
-            @click="handlePageChange(currentPage + 1)"
-          >
-            <span class="material-symbols-outlined fs-5">chevron_right</span>
-          </button>
-        </div>
-      </nav>
+      <!-- Pagination -->
+      <PaginationBar
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        @page-change="handlePageChange"
+      />
     </div>
 
     <!-- Slide-down Search/Filter Modal -->
@@ -226,10 +232,8 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/variables-dark';
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
-@import 'bootstrap/scss/utilities';
 
 .news-view {
   &__bg-layer {
@@ -242,32 +246,26 @@ export default {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(to top right, rgba($pink-200, 0.6), rgba($yellow-100, 0.8));
+      background: linear-gradient(
+        to top right,
+        rgba(255, 255, 255, 0.6),
+        rgba(255, 255, 255, 0.85)
+      );
     }
   }
 
   &__title {
     font-family: 'Zilla Slab', serif;
   }
-
   &__subtitle {
     font-family: 'Roboto Condensed', sans-serif;
-  }
-
-  &__search-hint {
-    font-family: 'Zilla Slab', serif;
   }
 
   &__search-bubble {
     cursor: pointer;
     transition: transform 0.2s ease-in-out;
-
     &:hover {
       transform: scale(1.08);
-    }
-
-    &:focus {
-      outline: none;
     }
   }
 
@@ -276,14 +274,10 @@ export default {
     height: 62px;
     border-radius: 50%;
     object-fit: cover;
-    filter: drop-shadow(0 4px 16px rgba($pink, 0.3));
-    transition: filter 0.2s ease-in-out;
-
-    &:hover {
-      filter: drop-shadow(0 8px 32px rgba($pink, 0.45));
-    }
+    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.15));
   }
 
+  // Req 11 Fix: Genuine masonry grid layout
   &__columns {
     columns: 2;
     column-gap: 1.25rem;
@@ -295,30 +289,30 @@ export default {
 
   &__card-wrapper {
     break-inside: avoid;
-    display: inline-block;
+    display: block;
     width: 100%;
     margin-bottom: 1.25rem;
-
-    /* Safari fix for column-break */
     -webkit-column-break-inside: avoid;
-    page-break-inside: avoid;
-  }
+    transition: transform 0.3s ease;
 
-  &__page-btn {
-    width: 36px;
-    height: 36px;
-
-    &:hover:not(:disabled) {
-      transform: scale(1.1);
+    &.highlight-flash {
+      animation: highlightFlash 2s ease-out;
     }
   }
 }
 
-.transition-base {
-  transition: all 0.2s ease-in-out;
-}
-
-.hover-bg-light:hover {
-  background-color: var(--bs-gray-200);
+@keyframes highlightFlash {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0);
+  }
+  15% {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px 5px rgba(var(--bs-primary-rgb), 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0);
+  }
 }
 </style>

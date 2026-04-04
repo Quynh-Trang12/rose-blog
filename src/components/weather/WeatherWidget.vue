@@ -4,9 +4,14 @@
  * COMPONENT: WeatherWidget.vue
  * ==========================================
  * Description:
- * A live gardening weather assistant. It geolocates the user (with fallback),
- * fetches real-time weather data via a dedicated API service, and provides
- * tailored gardening advice based on the current conditions.
+ * A live gardening weather assistant. Geolocates the user (with Melbourne
+ * fallback), fetches real-time weather data via a dedicated API service,
+ * and provides tailored gardening advice based on current conditions.
+ *
+ * Fixes (Requirement 10): Introduced a separate locationStatus reactive
+ * string ('loading' | 'blocked' | 'resolved') to replace the flawed
+ * locationDisplay-as-state approach. The template now renders distinct
+ * UI states based on locationStatus rather than string comparison.
  */
 import { fetchCurrentWeather, fetchCityName } from '@/api/weatherApi.js'
 
@@ -16,16 +21,26 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
+      // Explanation: The current temperature in degrees Celsius.
       temperature: null,
+      // Explanation: Context-sensitive gardening advice based on weather conditions.
       advisoryQuote: 'Checking live conditions...',
+      // Explanation: Material Symbols icon name for the current weather condition.
       weatherIcon: 'cloud',
+      // Explanation: CSS class name for the weather icon gradient colour.
       iconGradient: 'grad-white',
-      isLoading: true,
-      locationDisplay: 'Detecting location...',
-      // Explanation: Tracks if geolocation was denied by the user or failed.
-      isLocationBlocked: false,
+      // Explanation: Separate location status tracking — avoids using locationDisplay
+      // as a proxy for component state ('loading' | 'blocked' | 'resolved').
+      locationStatus: 'loading',
+      // Explanation: The human-readable location string (city, country code).
+      // Only used when locationStatus === 'resolved'.
+      locationDisplay: '',
+      // Explanation: Fallback coordinates for Melbourne, Australia.
+      FALLBACK_CITY: 'Melbourne, AU',
+      FALLBACK_LAT: -37.814,
+      FALLBACK_LON: 144.9633,
     }
   },
 
@@ -34,11 +49,13 @@ export default {
   // ==========================================
   methods: {
     /**
-     * Determines which icon and gardening advice to show based on weather data.
+     * Determines which icon and gardening advice to display based on weather data.
+     * Explanation: Uses WMO weather interpretation codes and temperature thresholds
+     * to select appropriate visual feedback and advisory text.
      * @param {number} code - WMO Weather interpretation code
      * @param {number} temp - Temperature in Celsius
      */
-    updateUIFeedback: function (code, temp) {
+    updateUIFeedback(code, temp) {
       if (code >= 61 && code <= 67) {
         this.weatherIcon = 'rainy'
         this.iconGradient = 'grad-gray'
@@ -67,170 +84,176 @@ export default {
     },
 
     /**
-     * Orchestrates the weather fetching process including geolocation and caching.
-     * Explanation: Uses the weatherApi service for network calls.
+     * Orchestrates the full weather fetching process.
+     * Explanation: Checks for cached data first (30-minute TTL), then attempts
+     * geolocation, and finally fetches weather data from the Open-Meteo API.
+     * Uses async/await for cleaner control flow.
      */
-    fetchWeather: function () {
-      var self = this
-      var CACHE_KEY = 'weather_cache_v4' // Incremented version for refactor
-      var cachedData = localStorage.getItem(CACHE_KEY)
+    async fetchWeather() {
+      const CACHE_KEY = 'weather_cache_v5'
+      const cachedData = localStorage.getItem(CACHE_KEY)
 
       // 1. Check for valid cache (less than 30 minutes old)
       if (cachedData) {
-        var parsed = JSON.parse(cachedData)
+        const parsed = JSON.parse(cachedData)
         if (Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+          // Explanation: Restore all component state from the cached data.
           this.temperature = parsed.data.temp
           this.locationDisplay = parsed.data.city
-          this.isLocationBlocked = parsed.data.isBlocked
+          // Explanation: Restore locationStatus from cache to maintain correct UI state.
+          this.locationStatus = parsed.data.status || 'resolved'
           this.updateUIFeedback(parsed.data.code, parsed.data.temp)
-          this.isLoading = false
           return
         }
       }
 
-      // Default coordinates (Melbourne, AU)
-      var lat = -37.814
-      var lon = 144.9633
-      this.locationDisplay = 'Loading Location...'
-
       // 2. Geolocation logic
-      var getGeoLocation = new Promise(function (resolve) {
-        if (!('geolocation' in navigator)) {
-          self.isLocationBlocked = true
-          return resolve()
-        }
+      let lat = this.FALLBACK_LAT
+      let lon = this.FALLBACK_LON
 
-        var timeout = setTimeout(function () {
-          self.isLocationBlocked = true
-          resolve()
-        }, 8000)
+      try {
+        const position = await new Promise((resolve, reject) => {
+          if (!('geolocation' in navigator)) {
+            return reject(new Error('Geolocation not supported'))
+          }
 
-        navigator.geolocation.getCurrentPosition(
-          function (pos) {
-            clearTimeout(timeout)
-            lat = pos.coords.latitude
-            lon = pos.coords.longitude
-            self.isLocationBlocked = false
-            // Fetch city name from service
-            fetchCityName(lat, lon)
-              .then(function (city) {
-                self.locationDisplay = city
-                resolve()
-              })
-              .catch(function () {
-                self.locationDisplay = 'Current Location'
-                resolve()
-              })
-          },
-          function () {
-            clearTimeout(timeout)
-            self.isLocationBlocked = true
-            resolve()
-          },
-          { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 },
-        )
-      })
+          // Explanation: Set an 8-second timeout for geolocation to prevent
+          // indefinite waiting if the user ignores the permission prompt.
+          const timeout = setTimeout(() => reject(new Error('Geolocation timeout')), 8000)
 
-      // 3. Chain weather fetch after geolocation attempt
-      getGeoLocation
-        .then(function () {
-          return fetchCurrentWeather(lat, lon)
-        })
-        .then(function (weather) {
-          // Explanation: Update component state with API results
-          var currentTemp = Math.round(weather.temperature)
-          var currentCode = weather.weathercode
-          self.temperature = currentTemp
-          self.updateUIFeedback(currentCode, currentTemp)
-
-          // 4. Update cache
-          localStorage.setItem(
-            CACHE_KEY,
-            JSON.stringify({
-              timestamp: Date.now(),
-              data: {
-                temp: currentTemp,
-                code: currentCode,
-                city: self.locationDisplay,
-                isBlocked: self.isLocationBlocked,
-              },
-            }),
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              clearTimeout(timeout)
+              resolve(pos)
+            },
+            (err) => {
+              clearTimeout(timeout)
+              reject(err)
+            },
+            { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 },
           )
         })
-        .catch(function (err) {
-          console.error('Weather Fetch Error:', err)
-          self.advisoryQuote = 'Gardening advisory unavailable.'
-          self.weatherIcon = 'cloud_off'
-        })
-        .finally(function () {
-          self.isLoading = false
-        })
+
+        // Explanation: Geolocation succeeded — use the real coordinates.
+        lat = position.coords.latitude
+        lon = position.coords.longitude
+        this.locationStatus = 'resolved'
+
+        try {
+          // Explanation: Attempt to reverse-geocode the coordinates to a city name.
+          this.locationDisplay = await fetchCityName(lat, lon)
+        } catch {
+          // Explanation: If geocoding fails, use a generic label.
+          this.locationDisplay = 'Current Location'
+        }
+      } catch {
+        // Explanation: Geolocation was denied, timed out, or is unsupported.
+        // Set status to 'blocked' — the template handles the fallback display.
+        this.locationStatus = 'blocked'
+      }
+
+      // 3. Fetch weather data from Open-Meteo
+      try {
+        const weather = await fetchCurrentWeather(lat, lon)
+        const currentTemp = Math.round(weather.temperature)
+        const currentCode = weather.weathercode
+        this.temperature = currentTemp
+        this.updateUIFeedback(currentCode, currentTemp)
+
+        // 4. Update cache with status field for proper restoration
+        localStorage.setItem(
+          CACHE_KEY,
+          JSON.stringify({
+            timestamp: Date.now(),
+            data: {
+              temp: currentTemp,
+              code: currentCode,
+              city: this.locationDisplay,
+              status: this.locationStatus,
+            },
+          }),
+        )
+      } catch (err) {
+        console.error('Weather Fetch Error:', err)
+        this.advisoryQuote = 'Gardening advisory unavailable.'
+        this.weatherIcon = 'cloud_off'
+      }
     },
   },
 
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
-  mounted: function () {
-    // Explanation: Trigger weather lookup immediately on component mount.
+  mounted() {
+    // Explanation: Trigger weather lookup immediately when the component mounts.
     this.fetchWeather()
   },
 }
 </script>
 
 <template>
-  <!-- Main Weather Card -->
+  <!-- Explanation: Main weather card with glassmorphism styling and live region for accessibility -->
   <div
-    class="card border-1 shadow-lg rounded-4 w-100 frosted-glass animate-fade-up"
-    style="padding: 1.6rem"
+    class="card border-1 shadow-lg rounded-4 w-100 frosted-glass animate-fade-up weather-card"
     aria-live="polite"
     aria-atomic="true"
   >
     <div class="container-fluid m-0 p-0">
-      <div class="d-flex flex-nowrap align-items-center justify-content-between gap-2 gap-lg-4">
-        <!-- Text Content Area -->
+      <div class="d-flex flex-nowrap align-items-center justify-content-between gap-2 gap-lg-3">
+        <!-- Explanation: Text content area — location, status, and advisory -->
         <div
           class="text-start flex-grow-1 flex-wrap flex-column align-items-end justify-content-around"
         >
-          <p class="text-uppercase fw-bold text-white-50 ls-1 m-0 p-0 text-xs">
+          <p class="text-uppercase fw-bold text-white-50 ls-1 text-xs p-0 m-0">
             Live Gardening Weather
           </p>
 
-          <div
-            class="fs-4 fw-bolder text-primary fst-italic ls-1 m-0 p-0"
-            style="text-shadow: 0 0 3px var(--color-primary); font-family: 'Zilla Slab'"
-          >
-            {{ locationDisplay }}
-          </div>
+          <!-- Explanation: Location display uses three distinct template blocks
+               based on locationStatus (Requirement 10) instead of relying on
+               locationDisplay string content -->
 
-          <!-- Location Access Warning (Conditional) -->
-          <p
-            v-if="isLocationBlocked"
-            class="text-md fw-normal text-secondary m-0 p-0"
-            style="font-family: 'Roboto Condensed'"
-          >
-            Location Access Blocked
-          </p>
+          <!-- Loading state -->
+          <template v-if="locationStatus === 'loading'">
+            <span class="text-md text-white-50 fst-italic">Finding Current Location…</span>
+          </template>
 
-          <div class="text-gray-300 w-100 text-sm fw-semibold lh-lg m-0 p-0">
-            {{ isLoading ? 'Analyzing data...' : advisoryQuote }}
+          <!-- Blocked state — geolocation was denied or failed -->
+          <template v-else-if="locationStatus === 'blocked'">
+            <div class="d-flex flex-row flex-wrap align-items-center justify-content-start">
+              <span class="fs-5 fw-bold text-primary font-zilla me-1">Melbourne, AU</span>
+              <span
+                class="badge bg-secondary bg-opacity-50 text-white text-xs rounded-pill font-roboto"
+                >Access Blocked</span
+              >
+            </div>
+          </template>
+
+          <!-- Resolved state — real location detected -->
+          <template v-else>
+            <span class="fs-5 fw-bolder text-primary fst-italic ls-1 font-zilla">
+              {{ locationDisplay }}
+            </span>
+          </template>
+
+          <!-- Explanation: Gardening advisory text — shows loading or condition-specific advice -->
+          <div class="text-gray-300 w-100 text-sm fw-semibold lh-lg mt-1">
+            {{ locationStatus === 'loading' ? 'Analyzing data...' : advisoryQuote }}
           </div>
         </div>
 
-        <!-- Visual Feedback Area (Icon & Temp) -->
+        <!-- Explanation: Visual feedback area — weather icon and temperature -->
         <div
           class="text-end flex-shrink-0 flex-wrap flex-column align-items-start justify-content-center"
         >
-          <!-- Loading Spinner -->
-          <div v-if="isLoading" class="spinner-border text-muted" role="status">
+          <!-- Explanation: Loading spinner displayed while data is being fetched -->
+          <div v-if="locationStatus === 'loading'" class="spinner-border text-muted" role="status">
             <span class="visually-hidden">Loading weather...</span>
           </div>
 
-          <!-- Weather Visuals -->
+          <!-- Explanation: Weather icon and temperature display once data is loaded -->
           <div v-else class="d-flex flex-column">
             <div
-              class="material-symbols-outlined icon-solid top-0"
-              style="font-size: 2.4rem"
+              class="material-symbols-outlined icon-solid top-0 weather-icon"
               :class="iconGradient"
               aria-hidden="true"
             >
@@ -250,7 +273,17 @@ export default {
 </template>
 
 <style scoped>
-/* AAA-Compliant Gradients applied strictly to the Material Icon text for maximum contrast */
+/* Explanation: Consistent padding for the weather card */
+.weather-card {
+  padding: 1.2rem 1.6rem;
+}
+
+/* Explanation: Weather icon size */
+.weather-icon {
+  font-size: 2.4rem;
+}
+
+/* Explanation: AAA-Compliant gradients applied to the Material Icon text */
 .icon-solid {
   font-variation-settings:
     'FILL' 1,

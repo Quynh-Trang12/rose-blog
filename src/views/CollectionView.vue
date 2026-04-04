@@ -5,7 +5,8 @@
  * ==========================================
  * Description:
  * A dedicated gallery for authenticated users to view their saved news
- * articles and curated rose information. Restricted by navigation guards.
+ * articles and curated rose information. Access is restricted by the
+ * Vue Router navigation guard (requires authentication).
  */
 import { mapState, mapGetters, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
@@ -23,9 +24,9 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
-      // Explanation: selectedRose state for the (optional/legacy) detail modal.
+      // Explanation: Controls the visibility of the legacy rose detail modal.
       selectedRose: null,
     }
   },
@@ -35,21 +36,21 @@ export default {
   // ==========================================
   computed: {
     ...mapState('auth', ['currentUser']),
-    ...mapState('news', ['articles']),
     ...mapGetters('auth', ['isLoggedIn', 'mySavedPostIds']),
-    ...mapGetters('news', ['filteredArticles']),
+    ...mapGetters('news', ['allArticles']),
 
     /**
      * Filters the global news articles to only include those saved by the current user.
+     * Explanation: Cross-references the mySavedPostIds getter from the auth module
+     * against allArticles to build the user's personal collection.
      * @returns {Array} List of saved article objects
      */
-    savedArticles: function () {
-      var self = this
-      return this.filteredArticles.filter(function (article) {
-        return self.mySavedPostIds.some(function (savedId) {
-          return String(savedId) === String(article.id)
-        })
-      })
+    savedArticles() {
+      // Accessing allArticles to ensure we find saved posts even if they are filtered
+      // in the public news feed (though normally private posts aren't savable).
+      return this.allArticles.filter((article) =>
+        this.mySavedPostIds.some((savedId) => String(savedId) === String(article.id)),
+      )
     },
   },
 
@@ -70,16 +71,41 @@ export default {
      * @param {Object} item - The news item object
      * @returns {boolean}
      */
-    isOwner: function (item) {
+    isOwner(item) {
       if (!this.isLoggedIn) return false
-      return this.currentUser.displayName === item.authorName
+      return this.currentUser?.displayName === item.authorName
     },
 
     /**
      * Closes the rose detail modal.
      */
-    closeDetail: function () {
+    closeDetail() {
       this.selectedRose = null
+    },
+
+    /**
+     * Handles edit events from NewsCard.
+     * Explanation: payload is { id, title, content }.
+     * @param {Object} payload - Corrected format from NewsCard emit.
+     */
+    handleEdit(payload) {
+      this.updateArticle(payload)
+    },
+
+    /**
+     * Handles share events from NewsCard.
+     * @param {Object} payload - { id, platform }
+     */
+    handleShare(payload) {
+      this.incrementShare(payload.id)
+    },
+
+    /**
+     * Handles react events from NewsCard.
+     * @param {Object} payload - { id, reaction }
+     */
+    handleReact(payload) {
+      this.reactToArticle(payload.id)
     },
   },
 }
@@ -88,63 +114,32 @@ export default {
 <template>
   <div class="position-relative min-vh-100 py-5">
     <!-- Visual Background Layer -->
-    <div
-      class="position-fixed top-0 start-0 w-100 h-100"
-      aria-hidden="true"
-      style="
-        z-index: -1;
-        background: linear-gradient(135deg, #fff5f8 0%, #fce7f3 50%, #f5f3ff 100%);
-      "
-    ></div>
+    <div class="position-fixed top-0 start-0 w-100 h-100 collection-bg" aria-hidden="true"></div>
 
     <div class="container position-relative z-1 pt-4">
-      <!-- Page Header -->
-      <!-- <div class="mb-5">
-        <h1
-          class="display-4 fw-bold fst-italic mb-1 animate-fade-up"
-          style="font-family: 'Zilla Slab'; color: #333"
-        >
-          The Collection
-        </h1>
-        <p class="text-muted fw-normal mb-0" style="font-family: 'Roboto Condensed'">
-          A curated gallery of exceptional roses. Members-only access.
-        </p>
-      </div> -->
-
-      <!-- Stats Summary -->
-      <!-- <div class="mb-4">
-        <p class="text-muted text-sm" style="font-family: 'Roboto Condensed'">
-          Showing saved articles: <strong>{{ savedArticles.length }}</strong> of
-          <strong>{{ articles.length }}</strong>
-        </p>
-      </div> -->
-
       <!-- Unauthorized State -->
       <div v-if="!isLoggedIn" class="text-center py-5 animate-fade-up">
         <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">lock</span>
-        <p class="text-muted fst-italic text-lg">Please login to view your collection.</p>
+        <p class="text-muted fst-italic text-lg font-zilla">
+          Please login to view your collection.
+        </p>
       </div>
 
       <!-- Empty Collection State -->
       <div v-else-if="savedArticles.length === 0" class="text-center py-5 animate-fade-up">
         <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">bookmark_border</span>
-        <p class="text-muted fst-italic text-lg">You have no saved articles yet.</p>
+        <p class="text-muted fst-italic text-lg font-zilla">You have no saved articles yet.</p>
       </div>
 
       <!-- Saved Articles Grid -->
       <div v-if="savedArticles.length > 0" class="mt-5 pt-3 animate-fade-up">
         <div class="mb-4 d-flex align-items-center gap-3">
-          <h2
-            class="display-5 fw-bold fst-italic mb-0"
-            style="font-family: 'Zilla Slab'; color: #333"
-          >
-            My Collection
-          </h2>
+          <h2 class="display-5 fw-bold fst-italic mb-0 font-zilla text-dark">My Collection</h2>
           <span class="badge rounded-pill bg-primary px-3 py-2 fs-6 shadow-sm">
             {{ savedArticles.length }} Articles
           </span>
         </div>
-        <p class="text-muted mb-5" style="font-family: 'Roboto Condensed'; max-width: 600px">
+        <p class="text-muted mb-5 font-roboto collection-subtitle">
           A dedicated space for the stories, tips, and inspirations you've saved from our daily news
           feed.
         </p>
@@ -153,111 +148,48 @@ export default {
           <div v-for="item in savedArticles" :key="item.id" class="col-12 col-md-6">
             <NewsCard
               :item="item"
-              layout="A"
               :is-authed="isLoggedIn"
               :is-owner="isOwner(item)"
-              @react="reactToArticle"
+              @react="handleReact"
               @comment="addComment"
-              @share="incrementShare"
-              @edit="updateArticle"
+              @share="handleShare"
+              @edit="handleEdit"
               @delete="deleteArticle"
             />
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Rose Detail Modal (Legacy/Optional - triggered by specific card interactions) -->
-    <teleport to="body">
-      <transition name="fade">
-        <div
-          v-if="selectedRose"
-          class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
-          style="z-index: 1055; background: rgba(0, 0, 0, 0.55)"
-          role="dialog"
-          :aria-label="'Details for ' + selectedRose.name"
-          @click.self="closeDetail"
-        >
-          <div
-            class="card border-0 rounded-4 shadow-lg overflow-hidden animate-fade-up"
-            style="max-width: 680px; width: 100%"
-          >
-            <!-- Image Area -->
-            <div style="position: relative; height: 280px; overflow: hidden">
-              <img
-                v-lazy-load="selectedRose.imageUrl"
-                :alt="selectedRose.name"
-                class="w-100 h-100"
-                style="object-fit: cover"
-              />
-              <div
-                style="
-                  position: absolute;
-                  inset: 0;
-                  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-                "
-              ></div>
-              <button
-                class="btn btn-light btn-sm rounded-circle position-absolute top-0 end-0 m-3"
-                @click="closeDetail"
-                aria-label="Close"
-                style="width: 36px; height: 36px"
-              >
-                <span class="material-symbols-outlined fs-6">close</span>
-              </button>
-              <div class="position-absolute bottom-0 start-0 p-4">
-                <h2
-                  class="text-white fw-bold display-6 mb-0"
-                  style="font-family: 'Zilla Slab'; font-style: italic"
-                >
-                  {{ selectedRose.name }}
-                </h2>
-              </div>
-            </div>
-            <!-- Body Content -->
-            <div class="card-body p-4">
-              <p
-                class="text-muted mb-4"
-                style="font-family: 'Roboto Condensed'; font-size: 1rem; line-height: 1.7"
-              >
-                {{ selectedRose.description }}
-              </p>
-              <!-- Info grid -->
-              <div class="row g-3 text-center">
-                <div
-                  v-for="info in [
-                    { label: 'Type', value: selectedRose.type },
-                    { label: 'Color', value: selectedRose.color },
-                    { label: 'Fragrance', value: selectedRose.fragrance },
-                    { label: 'Bloom', value: selectedRose.bloomSeason },
-                    { label: 'Hardiness', value: selectedRose.hardiness },
-                  ]"
-                  :key="info.label"
-                  class="col-4 col-sm"
-                >
-                  <div class="frosted-glass rounded-3 p-3 h-100">
-                    <div class="text-xs text-muted fw-bold text-uppercase ls-1 mb-1">
-                      {{ info.label }}
-                    </div>
-                    <div class="fw-bold text-dark text-sm">{{ info.value }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </teleport>
   </div>
 </template>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.25s ease;
+<style scoped lang="scss">
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+
+.collection-bg {
+  z-index: -1;
+  background: linear-gradient(135deg, #fff5f8 0%, #fce7f3 50%, #f5f3ff 100%);
+  opacity: 0.8;
 }
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+
+.collection-subtitle {
+  max-width: 600px;
+}
+
+.animate-fade-up {
+  // Reusing keyframe from base.scss if needed, but defining it here for local scope safety
+  animation: fadeUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

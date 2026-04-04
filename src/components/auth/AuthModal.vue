@@ -4,8 +4,11 @@
  * COMPONENT: AuthModal.vue
  * ==========================================
  * Description:
- * A highly cohesive authentication modal handling both Login and Sign Up flows.
- * Communicates directly with the Vuex auth store and manages internal form state.
+ * A cohesive authentication modal handling both Login and Sign Up flows.
+ * Communicates with the Vuex auth store and manages internal form state.
+ *
+ * Props: isOpen (Boolean).
+ * Emits: close — signals the parent to hide the modal.
  */
 import { mapActions } from 'vuex'
 
@@ -16,6 +19,9 @@ export default {
   // PROPS
   // ==========================================
   props: {
+    /**
+     * Controls the visibility of the modal overlay.
+     */
     isOpen: {
       type: Boolean,
       default: false,
@@ -30,15 +36,20 @@ export default {
   // ==========================================
   // DATA
   // ==========================================
-  data: function () {
+  data() {
     return {
+      // Explanation: Toggles between login and sign-up form views.
       isSignUpMode: false,
+      // Explanation: Toggles password field visibility (text vs password type).
       showPassword: false,
+      // Explanation: Stores the error message string when authentication fails.
       authError: '',
+      // Explanation: Pre-filled login form for demo convenience.
       loginForm: {
         username: 'rosegarden',
         password: 'rose123',
       },
+      // Explanation: Empty sign-up form fields.
       signupForm: {
         username: '',
         password: '',
@@ -54,57 +65,79 @@ export default {
     ...mapActions('auth', ['login', 'register']),
 
     /**
-     * Emits the close event to the parent.
+     * Emits the close event to the parent component.
+     * Explanation: The parent (AppNavBar) listens for this event
+     * and sets isAuthModalOpen to false.
      */
-    closeModal: function () {
+    closeModal() {
       this.$emit('close')
     },
 
     /**
-     * Toggles between Login and Sign Up modes.
+     * Toggles between Login and Sign Up form modes.
+     * Explanation: Clears any existing error message and resets
+     * password visibility when switching modes.
      */
-    toggleMode: function () {
+    toggleMode() {
       this.isSignUpMode = !this.isSignUpMode
       this.authError = ''
       this.showPassword = false
     },
 
     /**
-     * Validates and processes the authentication request.
-     * Explanation: Following the week-6 taught pattern of explicit preventDefault.
+     * Validates and processes the authentication form submission.
+     * Explanation: Uses async/await to handle the asynchronous password
+     * hashing performed by the auth store's login/register actions.
+     * On success, closes the modal. On failure, displays the error.
      * @param {Event} event - Native DOM submit event
      */
-    checkForm: function (event) {
+    async checkForm(event) {
       event.preventDefault()
-      var self = this
-      var action = this.isSignUpMode ? 'auth/register' : 'auth/login'
-      var payload = this.isSignUpMode
+
+      const action = this.isSignUpMode ? 'auth/register' : 'auth/login'
+      const payload = this.isSignUpMode
         ? {
             username: this.signupForm.username,
             password: this.signupForm.password,
             displayName: this.signupForm.displayName,
           }
-        : { username: this.loginForm.username, password: this.loginForm.password }
-
-      // Explanation: dispatch() returns a Promise because both login and register
-      // hash the password asynchronously via the Web Crypto API before committing.
-      this.$store
-        .dispatch(action, payload)
-        .then(function (res) {
-          if (res.success) {
-            if (self.isSignUpMode) {
-              self.isSignUpMode = false
-              self.signupForm = { username: '', password: '', displayName: '' }
-            }
-            self.closeModal()
-          } else {
-            self.authError = res.error
+        : {
+            username: this.loginForm.username,
+            password: this.loginForm.password,
           }
-        })
-        .catch(function (err) {
-          self.authError = 'Something went wrong. Please try again.'
-          console.error('Auth error:', err)
-        })
+
+      try {
+        // Explanation: dispatch() returns a Promise because both login and register
+        // hash the password asynchronously via the Web Crypto API before committing.
+        const res = await this.$store.dispatch(action, payload)
+
+        if (res.success) {
+          if (this.isSignUpMode) {
+            // Explanation: Reset to login mode after successful registration.
+            this.isSignUpMode = false
+            this.signupForm = { username: '', password: '', displayName: '' }
+          }
+          this.closeModal()
+        } else {
+          this.authError = res.error
+        }
+      } catch (err) {
+        this.authError = 'Something went wrong. Please try again.'
+        console.error('Auth error:', err)
+      }
+    },
+
+    /**
+     * Handles global Escape key press to close the modal.
+     * Explanation: Attached as a window-level keydown listener when
+     * the modal is open. Provides keyboard dismissal without requiring
+     * a click on the backdrop (Requirement 6).
+     * @param {KeyboardEvent} event - The keyboard event
+     */
+    handleEscapeKey(event) {
+      if (event.key === 'Escape' && this.isOpen) {
+        this.closeModal()
+      }
     },
   },
 
@@ -113,23 +146,42 @@ export default {
   // ==========================================
   watch: {
     /**
-     * Resets internal modal state when it opens or closes.
+     * Resets internal modal state when visibility changes.
+     * Explanation: On open, attaches the Escape key listener.
+     * On close, clears errors, hides password, and removes the listener.
+     * @param {boolean} newVal - The new isOpen value
      */
-    isOpen: function (newVal) {
-      if (!newVal) {
+    isOpen(newVal) {
+      if (newVal) {
+        // Explanation: Attach Escape key handler when the modal opens.
+        window.addEventListener('keydown', this.handleEscapeKey)
+      } else {
         this.authError = ''
         this.showPassword = false
+        // Explanation: Clean up the Escape key handler when the modal closes.
+        window.removeEventListener('keydown', this.handleEscapeKey)
       }
     },
+  },
+
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
+  unmounted() {
+    // Explanation: Safety cleanup to prevent memory leaks if the component
+    // is destroyed while the modal is still open.
+    window.removeEventListener('keydown', this.handleEscapeKey)
   },
 }
 </script>
 
 <template>
-  <!-- Teleport: Renders the modal at the root level of the document body -->
+  <!-- Explanation: Teleport renders the modal at the document body root
+       to escape parent stacking contexts and z-index constraints -->
   <teleport to="body">
     <transition name="modal-fade">
-      <!-- Explanation: Only renders when isOpen prop is true -->
+      <!-- Explanation: Modal backdrop — NO @click.self to prevent accidental
+           dismissal. Users must use the X button or Escape key (Requirement 6). -->
       <div
         v-if="isOpen"
         class="modal d-block bg-dark bg-opacity-50 z-index-modal"
@@ -137,22 +189,25 @@ export default {
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        @click.self="closeModal"
       >
         <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content border-0 shadow-lg rounded-4 p-4 frosted-glass w-100">
-            <!-- Modal Header -->
+            <!-- Explanation: Modal header with title and explicit close button -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <h4 id="auth-modal-title" class="mb-0 fw-bold font-heading fst-italic text-dark">
+              <h4 id="auth-modal-title" class="mb-0 fw-bold font-zilla fst-italic text-dark">
                 {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
               </h4>
-              <button @click="closeModal" class="btn-close" aria-label="Close"></button>
+              <button
+                @click="closeModal"
+                class="btn-close"
+                aria-label="Close"
+                type="button"
+              ></button>
             </div>
 
-            <!-- Auth Form -->
-            <!-- Explanation: Using explicit checkForm pattern with novalidate -->
+            <!-- Explanation: Authentication form — uses checkForm pattern with novalidate -->
             <form @submit="checkForm" novalidate>
-              <!-- Login Mode Inputs -->
+              <!-- Explanation: Login mode input fields -->
               <template v-if="!isSignUpMode">
                 <div class="mb-3">
                   <label for="auth-username" class="form-label text-sm fw-bold">Username</label>
@@ -176,10 +231,12 @@ export default {
                       aria-required="true"
                       required
                     />
+                    <!-- Explanation: Password visibility toggle button -->
                     <button
                       class="btn btn-outline-secondary rounded-end-3 d-flex align-items-center"
                       type="button"
                       @click="showPassword = !showPassword"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
                     >
                       <span class="material-symbols-outlined fs-5">
                         {{ showPassword ? 'visibility_off' : 'visibility' }}
@@ -189,7 +246,7 @@ export default {
                 </div>
               </template>
 
-              <!-- Sign Up Mode Inputs -->
+              <!-- Explanation: Sign Up mode input fields -->
               <template v-else>
                 <div class="mb-3">
                   <label for="signup-display" class="form-label text-sm fw-bold"
@@ -226,10 +283,12 @@ export default {
                       aria-required="true"
                       required
                     />
+                    <!-- Explanation: Password visibility toggle button -->
                     <button
                       class="btn btn-outline-secondary rounded-end-3 d-flex align-items-center"
                       type="button"
                       @click="showPassword = !showPassword"
+                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
                     >
                       <span class="material-symbols-outlined fs-5">
                         {{ showPassword ? 'visibility_off' : 'visibility' }}
@@ -239,7 +298,7 @@ export default {
                 </div>
               </template>
 
-              <!-- Error Alert -->
+              <!-- Explanation: Error alert with aria-live for screen reader announcement -->
               <div
                 v-if="authError"
                 class="alert alert-danger py-2 text-sm"
@@ -249,12 +308,12 @@ export default {
                 {{ authError }}
               </div>
 
-              <!-- Submit Button -->
+              <!-- Explanation: Submit button labelled based on current mode -->
               <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
                 {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
               </button>
 
-              <!-- Switch Mode Link -->
+              <!-- Explanation: Toggle link to switch between Login and Sign Up modes -->
               <div class="text-center mt-3 text-sm">
                 <button
                   type="button"
@@ -277,12 +336,7 @@ export default {
 </template>
 
 <style scoped>
-.font-heading {
-  font-family: 'Zilla Slab', serif;
-}
-.z-index-modal {
-  z-index: 1055;
-}
+/* Explanation: Fade transition for modal enter/leave animations */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.3s ease;
