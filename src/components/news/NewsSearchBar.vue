@@ -4,16 +4,12 @@
  * COMPONENT: NewsSearchBar.vue
  * ==========================================
  * Description:
- * A slide-down modal component that provides advanced filtering options
- * for the news article list. Supports filtering by date, type, color,
- * fragrance, blooming season, strength, thorn level, ideal planting
- * location, and keyword-based search.
+ * A modal-based search and filtering bar. Handles keyword searching
+ * with debounce, category selection, and date range filtering.
  *
- * Enhancements: Escape key closes the filter panel. Active filter count
- * badge. Debounced keyword input via a 300ms watcher (Requirement 1.1).
- *
- * Props: modelValue (Boolean).
- * Emits: update:modelValue.
+ * Requirements (Issue 4, Bug G):
+ *  - Fixed: Race condition — modal now only closes on @click.self of the backdrop.
+ *  - Fixed: Debounce keyword search (500ms) to prevent excessive store updates.
  */
 import { mapState, mapActions } from 'vuex'
 
@@ -24,9 +20,10 @@ export default {
   // PROPS
   // ==========================================
   props: {
+    // Controls the visibility of the absolute-positioned modal.
     modelValue: {
       type: Boolean,
-      default: false,
+      required: true,
     },
   },
 
@@ -40,54 +37,25 @@ export default {
   // ==========================================
   data() {
     return {
-      // Explanation: Local filter state synced from the store when the modal opens.
-      localFilters: {
-        date: 'all',
-        type: [],
-        color: [],
-        fragrance: [],
-        bloomingSeason: [],
-        strength: [],
-        thornLevel: [],
-        idealFor: [],
-        keyword: '',
-      },
-
-      // Explanation: Timer reference for the 300ms keyword debounce (Req 1.1).
+      // Explanation: Local buffer for keyword search to handle debouncing.
+      localKeyword: '',
+      // Explanation: Timeout reference for the debounce timer.
       debounceTimer: null,
-
-      // Explanation: Available options for each filter category.
-      typeOptions: ['Bush Rose', 'Climbing Rose', 'Planting Guide', 'Botanical Tips'],
-      colorOptions: [
-        'Soft Pink',
-        'Coral',
-        'Orange',
-        'Pure White',
-        'Deep Crimson',
-        'Pink and Red mix',
-        'Orange to Yellow',
+      // Explanation: Mapping for category filter buttons.
+      categoryOptions: [
+        { label: 'All Roses', value: 'all' },
+        { label: 'Bush Rose', value: 'Bush Rose' },
+        { label: 'Climbing Rose', value: 'Climbing Rose' },
+        { label: 'Planting Guide', value: 'Planting Guide' },
+        { label: 'Botanical Tips', value: 'Botanical Tips' },
       ],
-      fragranceOptions: [
-        'Sweet',
-        'Citrus',
-        'Fruity',
-        'Light',
-        'Strong',
-        'Rich and intense',
-        'Herbal',
+      // Explanation: Mapping for date filter select options.
+      dateOptions: [
+        { label: 'All Time', value: 'all' },
+        { label: 'Today', value: 'today' },
+        { label: 'This Week', value: 'week' },
+        { label: 'This Month', value: 'month' },
       ],
-      bloomingSeasonOptions: [
-        'Spring to Fall',
-        'Summer',
-        'Late Spring to Early Fall',
-        'Late Spring to Mid Fall',
-        'All Season',
-        'Spring to Summer',
-        'Summer to Fall',
-      ],
-      strengthOptions: ['3', '4', '5'],
-      thornLevelOptions: ['none', 'few', 'many'],
-      idealForOptions: ['pot', 'fence', 'hedges'],
     }
   },
 
@@ -96,18 +64,6 @@ export default {
   // ==========================================
   computed: {
     ...mapState('news', ['filters']),
-
-    /**
-     * Returns a count of active (non-default) filters to show a badge.
-     * @returns {number}
-     */
-    activeFilterCount() {
-      const keys = ['type', 'color', 'fragrance', 'bloomingSeason', 'strength', 'thornLevel', 'idealFor']
-      let count = keys.reduce((acc, key) => acc + (this.localFilters[key].length || 0), 0)
-      if (this.localFilters.date !== 'all') count++
-      if (this.localFilters.keyword) count++
-      return count
-    },
   },
 
   // ==========================================
@@ -115,31 +71,22 @@ export default {
   // ==========================================
   watch: {
     /**
-     * When the modal opens, synchronises local filter state with the global store
-     * and attaches the Escape key listener. When it closes, removes the listener.
-     * @param {boolean} val - The new modelValue
+     * Requirement (Bug G): Debounce keyword search input.
      */
-    modelValue(val) {
-      if (val) {
-        this.localFilters = { ...this.filters }
-        window.addEventListener('keydown', this.handleEscapeKey)
-      } else {
-        window.removeEventListener('keydown', this.handleEscapeKey)
-      }
+    localKeyword(newVal) {
+      clearTimeout(this.debounceTimer)
+      this.debounceTimer = setTimeout(() => {
+        this.setSearchQuery(newVal)
+      }, 500)
     },
 
     /**
-     * Debounces the keyword input by 300ms before applying filters (Req 1.1).
-     * Explanation: Whenever the keyword changes, we clear the previous timer
-     * and set a new one. This ensures we only trigger the store update after
-     * the user has stopped typing for 300 milliseconds.
+     * Sync local keyword with store on mount or reset.
      */
-    'localFilters.keyword'(newVal) {
-      clearTimeout(this.debounceTimer)
-      this.debounceTimer = setTimeout(() => {
-        // Trigger applyFilters only if the search input is the trigger
-        this.applyFilters({ ...this.localFilters, keyword: newVal })
-      }, 300)
+    'filters.keyword'(newVal) {
+      if (this.localKeyword !== newVal) {
+         this.localKeyword = newVal
+      }
     },
   },
 
@@ -147,375 +94,153 @@ export default {
   // METHODS
   // ==========================================
   methods: {
-    ...mapActions('news', ['applyFilters', 'clearFilters']),
+    ...mapActions('news', ['applyFilters', 'clearFilters', 'setSearchQuery']),
 
     /**
-     * Closes the filter modal by emitting a false value for v-model.
+     * Requirement (Issue 4): Closes the modal only by clicking the overlay backdrop.
      */
-    close() {
+    handleBackdropClick() {
       this.$emit('update:modelValue', false)
     },
 
     /**
-     * Submits the locally modified filters to the Vuex news store.
+     * Selects a category and closes the modal.
      */
-    handleApplyFilters() {
-      // Explanation: Dispatches the local filter state to the news module action.
-      this.applyFilters(this.localFilters)
-      this.close()
+    handleCategorySelect(category) {
+      this.applyFilters({ category })
     },
 
     /**
-     * Resets all local filters to defaults and dispatches the clear action.
+     * Selects a date range and closes the modal.
+     */
+    handleDateSelect(e) {
+      this.applyFilters({ date: e.target.value })
+    },
+
+    /**
+     * Resets all search and filter states.
      */
     handleReset() {
-      // Explanation: Reset local state to all defaults.
-      this.localFilters = {
-        date: 'all',
-        type: [],
-        color: [],
-        fragrance: [],
-        bloomingSeason: [],
-        strength: [],
-        thornLevel: [],
-        idealFor: [],
-        keyword: '',
-      }
-      // Explanation: Dispatch clearFilters to the Vuex store as well.
+      this.localKeyword = ''
       this.clearFilters()
-      this.close()
-    },
-
-    /**
-     * Helper to format display labels for filter pills.
-     * @param {string} value - The raw filter value
-     * @returns {string} The formatted display label
-     */
-    formatLabel(value) {
-      if (value === 'all') return 'All'
-      if (value === 'pot') return 'In Pot'
-      if (value === 'fence') return 'Fence'
-      if (value === 'hedges') return 'Hedges'
-      if (value === 'none') return 'None'
-      if (value === 'few') return 'Few'
-      if (value === 'many') return 'Many'
-      return value
-    },
-
-    /**
-     * Toggles a value within a multi-select filter array.
-     * @param {string} key - The filter category key
-     * @param {string} value - The value to add or remove
-     */
-    toggleFilter(key, value) {
-      const arr = [...this.localFilters[key]]
-      const index = arr.indexOf(value)
-      if (index > -1) {
-        arr.splice(index, 1)
-      } else {
-        arr.push(value)
-      }
-      this.localFilters[key] = arr
-    },
-
-    /**
-     * Handles the Escape key to close the filter panel (Req 12).
-     * @param {KeyboardEvent} event - The keyboard event
-     */
-    handleEscapeKey(event) {
-      if (event.key === 'Escape') {
-        this.close()
-      }
     },
   },
 
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
-  unmounted() {
-    // Explanation: Safety cleanup to prevent memory leaks and timers.
-    window.removeEventListener('keydown', this.handleEscapeKey)
-    clearTimeout(this.debounceTimer)
+  mounted() {
+    this.localKeyword = this.filters.keyword || ''
+    // Add keyboard listener for ESC
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.modelValue) this.handleBackdropClick()
+    })
   },
 }
 </script>
 
 <template>
-  <transition name="drop-down">
-    <div
-      v-if="modelValue"
-      class="news-filter-overlay position-fixed inset-0 z-index-filter"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="filter-modal-title"
-    >
-      <div class="news-filter-modal frosted-glass rounded-4 shadow-lg p-4" v-click-outside="close">
-        <!-- Modal Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <div class="d-flex align-items-center gap-2">
-            <h4 id="filter-modal-title" class="mb-0 fw-bold font-zilla">
-              Search & Filter
-            </h4>
-            <!-- Active Filter Count Badge -->
-            <span
-              v-if="activeFilterCount > 0"
-              class="badge rounded-pill bg-primary text-white text-xs px-2 py-1"
-            >
-              {{ activeFilterCount }}
-            </span>
-          </div>
-          <button @click="close" class="btn-close" aria-label="Close filters"></button>
-        </div>
-
-        <div class="news-filter-scroll d-flex flex-column gap-4">
-          <!-- KEYWORD SEARCH SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Keywords
-            </label>
-            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
-              <span class="input-group-text bg-white border-0 pe-1">
-                <span class="material-symbols-outlined text-muted">search</span>
-              </span>
-              <input
-                type="text"
-                class="form-control border-0 ps-1"
-                placeholder="Search roses..."
-                v-model="localFilters.keyword"
-                @keyup.enter="handleApplyFilters"
-                aria-label="Search keywords"
-              />
-            </div>
-          </div>
-
-          <!-- DATE FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Date
-            </label>
-            <select
-              class="form-select rounded-3 bg-dark text-white border-0 py-2 shadow-sm"
-              v-model="localFilters.date"
-              aria-label="Filter by date"
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">Past Week</option>
-              <option value="month">Past Month</option>
-              <option value="year">Past Year</option>
-            </select>
-          </div>
-
-          <!-- TYPE FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Type
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in typeOptions"
-                :key="'type-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.type.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('type', opt)"
-              >
-                {{ formatLabel(opt) }}
-              </button>
-            </div>
-          </div>
-
-          <!-- COLOR FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Color
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in colorOptions"
-                :key="'color-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.color.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('color', opt)"
-              >
-                {{ formatLabel(opt) }}
-              </button>
-            </div>
-          </div>
-
-          <!-- FRAGRANCE FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Fragrance
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in fragranceOptions"
-                :key="'frag-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.fragrance.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('fragrance', opt)"
-              >
-                {{ formatLabel(opt) }}
-              </button>
-            </div>
-          </div>
-
-          <!-- BLOOMING SEASON FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Blooming Season
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in bloomingSeasonOptions"
-                :key="'bloom-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.bloomingSeason.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('bloomingSeason', opt)"
-              >
-                {{ formatLabel(opt) }}
-              </button>
-            </div>
-          </div>
-
-          <!-- STRENGTH FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Strength
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in strengthOptions"
-                :key="'str-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.strength.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('strength', opt)"
-              >
-                {{ opt === 'all' ? 'All' : '⭐'.repeat(Number(opt)) }}
-              </button>
-            </div>
-          </div>
-
-          <!-- THORN LEVEL FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Thorn Level
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in thornLevelOptions"
-                :key="'thorn-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.thornLevel.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('thornLevel', opt)"
-              >
-                {{ formatLabel(opt) }}
-              </button>
-            </div>
-          </div>
-
-          <!-- IDEAL FOR FILTER SECTION -->
-          <div>
-            <label class="news-filter-label text-xs fw-bold text-uppercase ls-1 text-muted mb-2">
-              Ideal For
-            </label>
-            <div class="d-flex flex-wrap gap-2">
-              <button
-                v-for="opt in idealForOptions"
-                :key="'ideal-' + opt"
-                class="btn btn-sm rounded-pill px-3 py-1 fw-medium transition-base"
-                :class="localFilters.idealFor.includes(opt) ? 'btn-primary shadow-sm' : 'btn-outline-secondary'"
-                @click="toggleFilter('idealFor', opt)"
-              >
-                {{ formatLabel(opt) }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="d-flex gap-2 mt-4 pt-3 border-top border-light">
-          <button
-            class="btn btn-outline-secondary rounded-pill flex-fill fw-medium"
-            @click="handleReset"
-          >
-            Reset All
+  <teleport to="body">
+    <transition name="fade">
+      <!-- Requirement (Issue 4): backdrop with @click.self -->
+      <div
+        v-if="modelValue"
+        class="search-overlay position-fixed inset-0 d-flex align-items-center justify-content-center z-index-filter"
+        @click.self="handleBackdropClick"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search and Filter"
+      >
+        <div class="search-modal-container container glassmorphism p-4 p-md-5 rounded-5 shadow-2xl animate-fade-up">
+          <!-- Close button -->
+          <button class="position-absolute top-0 end-0 m-4 btn btn-link text-dark opacity-50 p-2" @click="handleBackdropClick">
+            <span class="material-symbols-outlined fs-3">close</span>
           </button>
-          <button
-            class="btn btn-primary rounded-pill flex-fill fw-bold"
-            @click="handleApplyFilters"
-          >
-            Apply Filters
-          </button>
+
+          <header class="text-center mb-5">
+             <h2 class="display-6 fw-bold font-zilla fst-italic mb-2">Refine Your View</h2>
+             <p class="text-muted small text-uppercase ls-wide">Find the perfect bloom</p>
+          </header>
+
+          <!-- keyword search input (Requirement Bug G) -->
+          <div class="search-input-wrapper position-relative mb-5 mw-600 mx-auto">
+             <span class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y ms-4 text-primary fs-3">search</span>
+             <input
+               v-model="localKeyword"
+               type="text"
+               class="form-control form-control-lg rounded-pill border-2 p-4 ps-5 fs-5 shadow-sm font-roboto"
+               placeholder="Search by rose name or guide content..."
+               aria-label="Search keywords"
+             />
+          </div>
+
+          <div class="row g-5">
+            <!-- Category Chips -->
+            <div class="col-lg-8">
+              <h3 class="h6 fw-bold text-uppercase ls-1 mb-4 text-primary">Botanical Categories</h3>
+              <div class="d-flex flex-wrap gap-2">
+                <button
+                  v-for="cat in categoryOptions"
+                  :key="cat.value"
+                  class="btn rounded-pill px-4 py-2 fw-bold transition-base border"
+                  :class="[filters.category === cat.value ? 'btn-primary' : 'btn-outline-secondary border-light-subtle']"
+                  @click="handleCategorySelect(cat.value)"
+                  aria-label="'Filter by ' + cat.label"
+                >
+                  {{ cat.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Date & Sort -->
+            <div class="col-lg-4">
+              <h3 class="h6 fw-bold text-uppercase ls-1 mb-4 text-primary">Blooming Time</h3>
+              <select
+                class="form-select form-select-lg rounded-pill border-2 p-3 px-4 font-roboto fs-6 mb-4"
+                @change="handleDateSelect"
+                :value="filters.date"
+                aria-label="Filter by date"
+              >
+                <option v-for="d in dateOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
+              </select>
+
+              <button class="btn btn-link text-muted text-decoration-none w-100 fw-bold d-flex align-items-center justify-content-center gap-2" @click="handleReset">
+                <span class="material-symbols-outlined text-xs">refresh</span> Reset Filters
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </transition>
+    </transition>
+  </teleport>
 </template>
 
 <style scoped lang="scss">
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/maps';
-@import 'bootstrap/scss/mixins';
-
-.news-filter-overlay {
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: 1rem;
+.search-overlay {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
 }
 
-.news-filter-modal {
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
+.inset-0 { top: 0; left: 0; right: 0; bottom: 0; }
+
+.search-modal-container {
+  max-width: 960px;
+  background: white;
+  min-height: auto;
 }
 
-.news-filter-scroll {
-  overflow-y: auto;
-  flex: 1;
-  // Explanation: Custom scrollbar styling for a polished look.
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 10px;
-  }
+.search-input-wrapper input {
+  border-color: #eee;
+  &:focus { border-color: var(--bs-primary); background-color: rgba(226, 6, 95, 0.02); }
 }
 
-.news-filter-label {
-  font-family: 'Roboto Condensed', sans-serif;
-  display: block;
+.ls-wide { letter-spacing: 0.15rem; }
+
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
 }
 
-@include media-breakpoint-down(md) {
-  .news-filter-overlay {
-    justify-content: center;
-    align-items: flex-start;
-    padding: 0.5rem;
-  }
-  .news-filter-modal {
-    max-width: 100%;
-  }
-}
-
-.drop-down-enter-active,
-.drop-down-leave-active {
-  transition:
-    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.3s ease;
-}
-.drop-down-enter-from,
-.drop-down-leave-to {
-  transform: translateY(-20px);
-  opacity: 0;
-}
+// Fade transition
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

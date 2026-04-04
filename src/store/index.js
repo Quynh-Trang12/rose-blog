@@ -9,21 +9,20 @@
  *
  * The auth module handles user authentication, session persistence,
  * and user blocking.
- * The news module handles articles, filtering, pagination, and social
+ * The news module handles news items, filtering, pagination, and social
  * interactions.
  */
 import { createStore } from 'vuex'
-import authModule from './modules/authStore.js'
-import newsModule from './modules/newsStore.js'
+import auth from './modules/auth.js'
+import news from './modules/news.js'
 
 // Explanation: createStore() initialises the Vuex 4 store with two
 // namespaced modules. Components access state and dispatch actions
-// via this.$store using prefixed paths (e.g., 'auth/login', 'news/addArticle').
-const store = createStore({
+// via this.$store using prefixed paths (e.g., 'auth/login', 'news/addNewsItem').
+export default createStore({
   modules: {
-    auth: authModule,
-    news: newsModule,
+    auth,
+    news,
   },
+  strict: import.meta.env.DEV,
 })
-
-export default store

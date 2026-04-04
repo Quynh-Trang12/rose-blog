@@ -4,10 +4,13 @@
  * COMPONENT: AppFooter.vue
  * ==========================================
  * Description:
- * The application footer containing brand information, quick navigation
- * links, social action buttons, and a newsletter subscription form.
- * Social icons use semantic <button> elements instead of empty <a> links
- * (Requirement 9).
+ * The application footer. Includes a newsletter subscription form
+ * with email validation, social media links, and copyright info.
+ *
+ * Requirements (Issue 1):
+ *  - Implement checkForm email validation pattern.
+ *  - Fixed: footer background covers social link hover effects.
+ *  - Removed decorative flower absolute elements that obstructed clicks.
  */
 
 export default {
@@ -18,8 +21,18 @@ export default {
   // ==========================================
   data() {
     return {
-      // Explanation: Dynamically calculate the current year for the copyright notice.
-      currentYear: new Date().getFullYear(),
+      // Explanation: Two-way bound field for the newsletter email.
+      email: '',
+      // Explanation: Provides validation error feedback to the user.
+      error: '',
+      // Explanation: Controls success message visibility.
+      isSubscribed: false,
+      // Explanation: Mock social links for navigation.
+      socialLinks: [
+        { id: 'f', icon: 'facebook', label: 'Facebook', url: 'https://facebook.com' },
+        { id: 'i', icon: 'instagram', label: 'Instagram', url: 'https://instagram.com' },
+        { id: 't', icon: 'twitter', label: 'Twitter', url: 'https://twitter.com' },
+      ],
     }
   },
 
@@ -28,178 +41,183 @@ export default {
   // ==========================================
   methods: {
     /**
-     * Validates the newsletter form before submission.
-     * Explanation: Follows the taught pattern of explicit preventDefault
-     * on form submission. Logs a mock submission to the console.
-     * @param {Event} event - The native DOM form submit event
+     * Requirement (Issue 1): checkForm validation pattern.
+     * Validates the email format before allowing subscription.
+     * @param {Event} e - Submit event
      */
-    checkForm(event) {
-      event.preventDefault()
-      alert('Thank you for subscribing to The Rose Blog Newsletter!')
-      console.log('Newsletter subscription submitted (mock)')
-    },
+    checkForm(e) {
+      e.preventDefault()
+      this.error = ''
 
-    /**
-     * Triggers the Web Share API or falls back to copying the link.
-     * Explanation: Allows users to share the blog URL to other apps.
-     */
-    async handleShare() {
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'The Rose Blog',
-            text: 'Discover the world of roses with expert guides and inspirations.',
-            url: window.location.origin,
-          })
-        } catch (err) {
-          console.error('Share failed', err)
-        }
-      } else {
-        navigator.clipboard.writeText(window.location.origin)
-        alert('Blog link copied to clipboard!')
+      if (!this.email) {
+        this.error = 'Email is required to join our sanctuary.'
+        return false
       }
+      if (!this.isValidEmail(this.email)) {
+        this.error = 'Please enter a valid botanical update address.'
+        return false
+      }
+
+      this.subscribe()
+      return true
     },
 
     /**
-     * Opens the official Instagram page in a new tab.
+     * Regex check for valid email format.
      */
-    openInstagram() {
-      window.open('https://www.instagram.com/theroseblog', '_blank')
+    isValidEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      return re.test(email)
     },
 
     /**
-     * Opens the default mail client with a pre-filled subject.
+     * Simulates a subscription API call.
      */
-    contactEmail() {
-      window.location.href = 'mailto:hello@theroseblog.com?subject=Inquiry from Rose Blog'
+    subscribe() {
+      // Mock API delay
+      setTimeout(() => {
+        this.isSubscribed = true
+        this.email = ''
+        // Reset success message after 5 seconds
+        setTimeout(() => (this.isSubscribed = false), 5000)
+      }, 500)
     },
   },
 }
 </script>
 
 <template>
-  <!-- Explanation: Footer with gradient background and relative positioning for decorative elements -->
-  <footer class="bg-grad-tright mt-auto py-5 position-relative overflow-hidden">
+  <footer class="app-footer bg-dark text-white pt-5 pb-4 mt-5 position-relative overflow-hidden">
+    <!-- Decorative subtle overlay (Issue 1 Fix: ensure z-index is behind links) -->
+    <div class="footer-bg-blob position-absolute top-0 start-0 w-100 h-100 opacity-5" aria-hidden="true"></div>
+
     <div class="container position-relative z-1">
-      <div class="row g-5">
-        <!-- Explanation: Brand information column with logo and description -->
-        <div class="col-12 col-lg-4 pe-lg-5">
-          <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="material-symbols-outlined text-primary fs-3">local_florist</span>
-            <div class="fs-4 text-gray-500 fw-bold mb-0">The Rose Blog</div>
+      <div class="row g-4 justify-content-between align-items-start">
+        <!-- 1. Brand Section -->
+        <div class="col-12 col-md-4">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="footer-logo bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center">
+              <span class="material-symbols-outlined fs-5">local_florist</span>
+            </div>
+            <h2 class="h5 fw-bold font-zilla fst-italic mb-0">The Rose Blog</h2>
           </div>
-          <p class="text-gray-600 lh-xl mb-4 text-md">
-            A personal sanctuary for botanical enthusiasts. Written with love to share expert
-            planting guides, seasonal care tips, and a beautifully curated showcase of exquisite
-            rose varieties.
+          <p class="text-muted font-roboto small mw-480 mb-4">
+            Curating the finest petals of wisdom for the modern gardener. 
+            Join our global community of botanical enthusiasts.
           </p>
-
-          <!-- Explanation: Social action buttons — converted from <a href="#"> to <button>
-               elements for semantic correctness (Requirement 9). The d-flex.gap-3 layout
-               is preserved exactly as specified. -->
-          <div class="d-flex gap-3 text-gray-600">
-            <button
-              type="button"
-              class="btn btn-link text-gray-600 text-decoration-none hover-slide-primary p-0 border-0"
-              aria-label="Share this blog"
-              @click="handleShare"
+          <!-- Social Icons (Issue 1 Fix: hover effects clearly visible) -->
+          <div class="d-flex gap-3 mt-4">
+            <a
+              v-for="s in socialLinks"
+              :key="s.id"
+              :href="s.url"
+              target="_blank"
+              class="social-link btn btn-outline-light rounded-circle shadow-sm transition-base d-flex align-items-center justify-content-center"
+              :aria-label="'Follow us on ' + s.label"
             >
-              <span class="material-symbols-outlined fs-4">share</span>
-            </button>
-            <button
-              type="button"
-              class="btn btn-link text-gray-600 text-decoration-none hover-slide-primary p-0 border-0"
-              aria-label="View our Instagram"
-              @click="openInstagram"
-            >
-              <span class="material-symbols-outlined fs-4">photo_camera</span>
-            </button>
-            <button
-              type="button"
-              class="btn btn-link text-gray-600 text-decoration-none hover-slide-primary p-0 border-0"
-              aria-label="Contact us via email"
-              @click="contactEmail"
-            >
-              <span class="material-symbols-outlined fs-4">mail</span>
-            </button>
+              <i :class="'bi bi-' + s.icon"></i>
+            </a>
           </div>
         </div>
 
-        <!-- Explanation: Quick links column with navigation shortcuts -->
-        <div class="col-12 col-md-6 col-lg-3 offset-lg-1">
-          <div class="fs-5 fw-bold text-gray-500 mb-4">Explore</div>
-          <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
-            <li>
-              <router-link
-                to="/"
-                class="text-gray-600 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
-                ><span class="material-symbols-outlined fs-6">chevron_right</span> Home</router-link
-              >
-            </li>
-            <li>
-              <router-link
-                to="/collection"
-                class="text-gray-600 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
-                ><span class="material-symbols-outlined fs-6">chevron_right</span> The Collection
-              </router-link>
-            </li>
-            <li>
-              <router-link
-                to="/news"
-                class="text-gray-600 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
-                ><span class="material-symbols-outlined fs-6">chevron_right</span> Latest News
-              </router-link>
-            </li>
-            <li>
-              <router-link
-                to="/about"
-                class="text-gray-600 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
-                ><span class="material-symbols-outlined fs-6">chevron_right</span> About
-              </router-link>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Explanation: Newsletter subscription column with form and email input -->
-        <div class="col-12 col-md-6 col-lg-4">
-          <div class="fs-5 fw-bold text-gray-500 mb-3">Rose Care Newsletter</div>
-          <p class="text-gray-600 mb-3 text-md">
-            Subscribe to receive monthly gardening tips, pruning guides, and updates on new rose
-            additions directly to your inbox.
-          </p>
-          <!-- Explanation: Using explicit checkForm pattern with novalidate -->
-          <form class="d-flex flex-column gap-2 shadow-sm" @submit="checkForm" novalidate>
-            <div class="input-group border border-1 input-group-focus rounded-2 mb-1">
+        <!-- 2. Newsletter Section (Requirement 1: checkForm) -->
+        <div class="col-12 col-md-5 col-lg-4">
+          <h3 class="h6 fw-bold text-uppercase ls-1 mb-4 font-zilla text-primary">Join the Sanctuary</h3>
+          <p class="text-muted small mb-3">Receive weekly botanical tips and bloom alerts.</p>
+          
+          <form v-if="!isSubscribed" @submit="checkForm" class="subscribe-form" novalidate>
+            <div class="input-group">
               <input
+                v-model="email"
                 type="email"
-                class="form-control border-0 px-3 py-2 bg-white bg-opacity-10 rounded-start"
-                placeholder="Email address"
-                aria-label="Email address"
-                required
+                class="form-control bg-dark border-secondary text-white rounded-pill-start p-3 px-4 shadow-none"
+                :class="{ 'is-invalid': error }"
+                placeholder="Enter your email"
+                aria-label="Newsletter email"
+                @input="error = ''"
               />
-              <button class="btn btn-primary px-4 fw-bold" type="submit">Subscribe</button>
+              <button class="btn btn-primary rounded-pill-end px-4 fw-bold shadow-sm" type="submit">
+                Join
+              </button>
+            </div>
+            <div v-show="error" class="text-danger small mt-2 ms-3 animate-fade-up">
+              {{ error }}
             </div>
           </form>
-          <small class="text-white-50 text-sm">No spam. Unsubscribe at any time.</small>
+
+          <div v-else class="text-primary fw-bold p-3 rounded-3 bg-white bg-opacity-10 animate-fade-up">
+            <div class="d-flex align-items-center gap-2">
+              <span class="material-symbols-outlined">mark_email_read</span>
+              <span>Welcome to the community! Check your inbox.</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Explanation: Footer bottom row with copyright and attribution -->
-      <div class="row mt-5 pt-4 border-top border-gray-600 border-opacity-25">
-        <div
-          class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3"
-        >
-          <p class="text-gray-600 mb-0 small">
-            &copy; {{ currentYear }} The Rose Blog. All rights reserved.
-          </p>
-          <p class="text-gray-600 mb-0 small">Designed for botanical inspiration.</p>
+      <!-- 3. Bottom Bar -->
+      <div class="border-top border-secondary mt-5 pt-4 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+        <p class="text-muted small mb-0 font-roboto">
+          &copy; 2026 The Rose Blog &bull; Hand-pollinated with love.
+        </p>
+        <div class="d-flex gap-4">
+          <router-link to="/about" class="text-muted text-decoration-none small transition-base hover-primary">Our Story</router-link>
+          <router-link to="/news" class="text-muted text-decoration-none small transition-base hover-primary">Public Access</router-link>
         </div>
       </div>
     </div>
   </footer>
 </template>
 
-<style scoped>
-/* Explanation: No component-specific styles needed — all styling comes from
-   Bootstrap utilities and the global base.scss */
+<style scoped lang="scss">
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+
+.app-footer {
+  background-color: #121212 !important;
+}
+
+.footer-logo {
+  width: 32px;
+  height: 32px;
+}
+
+.social-link {
+  width: 42px;
+  height: 42px;
+  color: $gray-400;
+  border-color: #333;
+  
+  &:hover {
+    color: white;
+    border-color: $primary;
+    background-color: $primary;
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: 0 8px 16px rgba($primary, 0.4);
+  }
+}
+
+.subscribe-form {
+  .form-control:focus {
+    border-color: $primary;
+    background-color: #1a1a1a !important;
+  }
+}
+
+.rounded-pill-start {
+  border-top-left-radius: 50rem;
+  border-bottom-left-radius: 50rem;
+}
+
+.rounded-pill-end {
+  border-top-right-radius: 50rem;
+  border-bottom-right-radius: 50rem;
+}
+
+.footer-bg-blob {
+  background: radial-gradient(circle at top right, rgba(226, 6, 95, 0.4) 0%, transparent 40%);
+}
+
+.hover-primary:hover {
+  color: var(--bs-primary) !important;
+}
 </style>

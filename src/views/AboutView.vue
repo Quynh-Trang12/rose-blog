@@ -5,12 +5,82 @@
  * ==========================================
  * Description:
  * The static About page for The Rose Blog. Shares the vision, history,
- * and mission of the sanctuary. All inline styles have been replaced
- * with scoped CSS classes and global utility classes.
+ * and mission. Includes interactive visitor welcome form and rose type
+ * selection (COS30043 Stage 1 requirements).
+ *
+ * Requirements (Issue 9):
+ *  1. Descriptive vision/history section.
+ *  2. Visitor welcome form with First/Last Name inputs and live welcome message.
+ *  3. Rose type selector with radio buttons for 'Bush Rose' and 'Climbing Rose'.
  */
 
 export default {
   name: 'AboutView',
+
+  // ==========================================
+  // DATA
+  // ==========================================
+  data() {
+    return {
+      // Explanation: Two-way bound fields for the visitor welcome form.
+      firstName: '',
+      lastName: '',
+      // Explanation: Track touched state for input validation feedback.
+      touched: {
+        firstName: false,
+        lastName: false,
+      },
+      // Explanation: Currently selected rose type (COS30043 radio button requirement).
+      selectedRoseType: 'bush',
+    }
+  },
+
+  // ==========================================
+  // COMPUTED
+  // ==========================================
+  computed: {
+    /**
+     * Constructs a dynamic welcome message based on visitor input.
+     * Explanation: Fulfills the "greeting based on user name input" requirement.
+     * @returns {string} The formatted welcome message or empty string.
+     */
+    welcomeMessage() {
+      const fn = this.firstName.trim()
+      const ln = this.lastName.trim()
+      if (!fn && !ln) return ''
+      if (fn && !ln) return `Hello, ${fn}!`
+      return `Hello, ${fn} ${ln}! Welcome to The Rose Blog. 🌹`
+    },
+
+    /**
+     * Determines which image to display based on the selected radio button.
+     * @returns {string}
+     */
+    selectedRoseImage() {
+      return this.selectedRoseType === 'climbing'
+        ? 'https://images.unsplash.com/photo-1559564283-0570183b16db?w=600&q=80'
+        : 'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=600&q=80'
+    },
+  },
+
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    /**
+     * Navigates to the news feed with a pre-applied category filter.
+     * Explanation: Triggers both a store dispatch and router navigation.
+     */
+    exploreRoses() {
+      const categoryMap = {
+        bush: 'Bush Rose',
+        climbing: 'Climbing Rose',
+      }
+      const cat = categoryMap[this.selectedRoseType]
+      this.$store.dispatch('news/applyFilters', { category: cat })
+      this.$router.push({ path: '/news', query: { category: cat } })
+    },
+  },
 }
 </script>
 
@@ -23,65 +93,122 @@ export default {
     <div class="container position-relative z-1 pt-5">
       <div class="row justify-content-center">
         <div class="col-12 col-lg-8 animate-fade-up">
-          <!-- Page Header -->
+          <!-- Section 1: Vision & History -->
           <div class="text-center mb-5">
             <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-dark">
               Our Botanical Story
             </h1>
-            <div class="mx-auto border-bottom border-primary border-4 about-divider"></div>
+            <div class="mx-auto border-bottom border-primary border-4 about-divider mb-4"></div>
+            <p class="text-muted lh-xl font-roboto fs-5">
+              Est. 2026 — A digital sanctuary for rose lovers worldwide. 
+              Our mission is to democratize rose care knowledge, providing expert-level 
+              guidance that is accessible to every level of gardener.
+            </p>
           </div>
 
-          <!-- Main Content -->
+          <!-- Section 2: Visitor Welcome Form -->
           <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
-            <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">
-              More Than Just a Blog
-            </h2>
-            <p class="text-muted lh-xl mb-4 font-roboto about-body-text">
-              The Rose Blog was founded in 2024 as a digital sanctuary for those who find
-              peace among petals. What started as a simple gardening journal has evolved
-              into a vibrant community for botanical enthusiasts, professional
-              horticulturists, and those who simply appreciate the timeless elegance
-              of the world's most beloved flower.
-            </p>
-            <p class="text-muted lh-xl mb-4 font-roboto about-body-text">
-              Our mission is to democratize rose care knowledge, providing expert-level
-              guidance that is accessible to the hobbyist gardener. From pruning
-              techniques to organic health remedies, we believe every garden, no
-              matter how small, deserves to bloom with majesty.
-            </p>
-
-            <!-- Mission Cards -->
-            <div class="row g-4 mt-2">
-              <div class="col-md-4 text-center">
-                <div class="p-3">
-                  <span class="material-symbols-outlined fs-1 text-primary mb-2">park</span>
-                  <h3 class="h6 fw-bold text-uppercase ls-1">Sustainability</h3>
-                  <p class="small text-muted">Promoting organic and eco-friendly rose care.</p>
-                </div>
+            <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Visitor Welcome</h2>
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-md-6">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="firstName">First Name</label>
+                <input
+                  id="firstName"
+                  type="text"
+                  class="form-control rounded-pill border-2 p-2 px-3"
+                  :class="{ 'is-valid': touched.firstName && firstName.trim(), 'is-invalid': touched.firstName && !firstName.trim() }"
+                  v-model="firstName"
+                  @blur="touched.firstName = true"
+                  placeholder="e.g. John"
+                />
               </div>
-              <div class="col-md-4 text-center">
-                <div class="p-3">
-                  <span class="material-symbols-outlined fs-1 text-primary mb-2">menu_book</span>
-                  <h3 class="h6 fw-bold text-uppercase ls-1">Education</h3>
-                  <p class="small text-muted">Sharing expert botanical wisdom daily.</p>
-                </div>
-              </div>
-              <div class="col-md-4 text-center">
-                <div class="p-3">
-                  <span class="material-symbols-outlined fs-1 text-primary mb-2">diversity_1</span>
-                  <h3 class="h6 fw-bold text-uppercase ls-1">Community</h3>
-                  <p class="small text-muted">Building a global network of flower lovers.</p>
-                </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="lastName">Last Name</label>
+                <input
+                  id="lastName"
+                  type="text"
+                  class="form-control rounded-pill border-2 p-2 px-3"
+                  :class="{ 'is-valid': touched.lastName && lastName.trim() }"
+                  v-model="lastName"
+                  @blur="touched.lastName = true"
+                  placeholder="e.g. Doe"
+                />
               </div>
             </div>
+
+            <transition name="fade">
+              <div v-show="welcomeMessage" class="welcome-message text-center p-3 rounded-3 bg-primary bg-opacity-10 mb-2">
+                <h3 class="h5 fw-bold font-zilla fst-italic mb-0 text-primary animate-fade-up">
+                  {{ welcomeMessage }}
+                </h3>
+              </div>
+            </transition>
           </div>
 
-          <!-- Contact/CTA Section -->
-          <div class="text-center">
-            <p class="text-muted mb-4 fst-italic">"A rose by any other name would smell as sweet."</p>
-            <router-link to="/news" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
-              Explore Our Latest News
-            </router-link>
+          <!-- Section 3: Rose Type Selection (Radio buttons) -->
+          <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
+            <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Find Your Perfect Rose</h2>
+            <p class="text-muted mb-4 font-roboto">Select which rose variety you wish to explore:</p>
+
+            <div class="row g-4">
+              <!-- Bush Rose Radio Option -->
+              <div class="col-12 col-md-6">
+                <label
+                  class="rose-selector-card rounded-4 p-3 border h-100 d-flex flex-column align-items-center text-center cursor-pointer transition-base"
+                  :class="{ 'active': selectedRoseType === 'bush' }"
+                  for="roseTypeBush"
+                >
+                  <input
+                    id="roseTypeBush"
+                    type="radio"
+                    name="roseType"
+                    value="bush"
+                    v-model="selectedRoseType"
+                    class="d-none"
+                  />
+                  <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
+                    <img v-lazy-load="'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=600&q=80'" class="w-100 h-100 object-fit-cover" alt="Bush Rose" />
+                  </div>
+                  <h3 class="h5 fw-bold font-zilla fst-italic">Bush Rose</h3>
+                  <p class="small text-muted font-roboto px-2 mb-0">Compact, fragrant, and perfect for containers or borders.</p>
+                </label>
+              </div>
+
+              <!-- Climbing Rose Radio Option -->
+              <div class="col-12 col-md-6">
+                <label
+                  class="rose-selector-card rounded-4 p-3 border h-100 d-flex flex-column align-items-center text-center cursor-pointer transition-base"
+                  :class="{ 'active': selectedRoseType === 'climbing' }"
+                  for="roseTypeClimbing"
+                >
+                  <input
+                    id="roseTypeClimbing"
+                    type="radio"
+                    name="roseType"
+                    value="climbing"
+                    v-model="selectedRoseType"
+                    class="d-none"
+                  />
+                  <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
+                    <img v-lazy-load="'https://images.unsplash.com/photo-1559564283-0570183b16db?w=600&q=80'" class="w-100 h-100 object-fit-cover" alt="Climbing Rose" />
+                  </div>
+                  <h3 class="h5 fw-bold font-zilla fst-italic">Climbing Rose</h3>
+                  <p class="small text-muted font-roboto px-2 mb-0">Dramatic vertical growth for fences, pergolas, and walls.</p>
+                </label>
+              </div>
+            </div>
+
+            <!-- Featured Selection Display -->
+            <div class="text-center mt-5">
+              <div class="position-relative d-inline-block featured-rose-box rounded- circle overflow-hidden mb-4 shadow-lg">
+                <img :src="selectedRoseImage" class="w-100 h-100 object-fit-cover" alt="Selected Rose" />
+              </div>
+              <div class="mt-2">
+                <button @click="exploreRoses" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
+                  Explore {{ selectedRoseType === 'climbing' ? 'Climbing' : 'Bush' }} Roses →
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -89,7 +216,7 @@ export default {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .about-view {
   background: linear-gradient(135deg, #fff5f8 0%, #fef9c3 100%);
 }
@@ -102,13 +229,47 @@ export default {
   filter: blur(120px);
 }
 
-/* Explanation: Replaces inline style="width: 80px" on the divider */
 .about-divider {
   width: 80px;
 }
 
-/* Explanation: Replaces inline style="font-size: 1.1rem" on body paragraphs */
-.about-body-text {
-  font-size: 1.1rem;
+.rose-selector-card {
+  background: #fff;
+  border-color: #eee !important;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(226, 6, 95, 0.02);
+  }
+
+  &.active {
+    border-color: var(--bs-primary) !important;
+    border-width: 2px !important;
+    background-color: rgba(226, 6, 95, 0.05);
+  }
+}
+
+.rose-selector-img-box {
+  width: 100%;
+  aspect-ratio: 16/10;
+}
+
+.featured-rose-box {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  border: 8px solid rgba(255, 255, 255, 0.8);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 </style>

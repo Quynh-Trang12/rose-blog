@@ -79,7 +79,17 @@ $utilities: map-merge(
         bold: $font-weight-bold,
         bolder: $font-weight-bolder,
       ),
-    )
+    ),
+    'max-width': (
+      property: max-width,
+      class: mw,
+      values: (480: 480px, 600: 600px, none: none, 100: 100%),
+    ),
+    'min-height': (
+      property: min-height,
+      class: mh,
+      values: (50: 50vh, 100: 100vh),
+    ),
   )
 );
 

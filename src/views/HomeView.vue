@@ -4,14 +4,15 @@
  * COMPONENT: HomeView.vue
  * ==========================================
  * Description:
- * The landing page of the application. Highlights a featured rose (computed
- * from Vuex state based on ratings), latest news snippets (computed from
- * Vuex state based on dates), and integrates the live weather widget.
- * Features a full-height hero section with dynamic navbar offset.
+ * The landing page of The Rose Blog. Features a heroic sanctuary vision,
+ * a weather-driven gardening assistant, and a curated feed of the latest
+ * news and guides.
+ *
+ * Requirements (Issue 6):
+ *  - Compute 'featuredProfile' and 'publications' directly from Vuex newsItems.
+ *  - Use hash-based navigation Links (/news#post-101) to scroll to exact items.
  */
-import { mapGetters } from 'vuex'
 import WeatherWidget from '@/components/weather/WeatherWidget.vue'
-import heroImage22 from '@/assets/images/image22.jpg'
 
 export default {
   name: 'HomeView',
@@ -24,273 +25,204 @@ export default {
   },
 
   // ==========================================
-  // DATA
-  // ==========================================
-  data() {
-    return {
-      // Explanation: Reference for the ResizeObserver cleanup on unmount.
-      resizeObserver: null,
-      // Explanation: Static data for the hero section banner content.
-      heroData: {
-        badge: 'EST. 2026',
-        titleNormal: 'Sanctuary for the',
-        titleHighlight: 'Botanical Mind',
-        description:
-          'Explore our curated showcase of exquisite roses, read expert planting guides, and discover the perfect additions to your garden.',
-        image: heroImage22,
-      },
-    }
-  },
-
-  // ==========================================
   // COMPUTED
   // ==========================================
   computed: {
-    ...mapGetters('news', ['allArticles']),
-    ...mapGetters('auth', ['blockedUserIds']),
+    /**
+     * Filters the raw news items to only those that are publicly visible.
+     * @returns {Array} All public, non-blocked, approved news items.
+     */
+    _publicFeed() {
+      const blockedIds = this.$store.getters['auth/blockedUserIds'] || []
+      return this.$store.getters['news/allNewsItems'].filter((a) => {
+        const isPublic = a.isPublic !== false
+        const isApproved = a.moderation?.status === 'approved' || !a.moderation
+        const isAuthorBlocked = blockedIds.includes(a.authorID)
+        return isPublic && isApproved && !isAuthorBlocked
+      })
+    },
 
     /**
-     * Derives the "Rose of the Month" featured profile (Req 2.1).
-     * Explanation: Finds the article with the highest rating (or reactions
-     * if ratings are tied). Strips HTML and limits description to 160 chars.
-     * @returns {Object}
+     * Identifies the highest-rated (or most popular) post as the featured guide.
+     * @returns {Object|null}
      */
     featuredProfile() {
-      const articles = this.allArticles
-      if (articles.length === 0) return null
+      const feed = [...this._publicFeed]
+      if (feed.length === 0) return null
 
-      // Sort by rating descending, then by reactions descending if tied
-      const sorted = [...articles].sort((a, b) => {
-        const ratingA = a.rating || 0
-        const ratingB = b.rating || 0
-        if (ratingB !== ratingA) return ratingB - ratingA
+      const winner = feed.sort((a, b) => {
+        const scoreA = a.rating ?? a.reactions ?? 0
+        const scoreB = b.rating ?? b.reactions ?? 0
+        return scoreB - scoreA
+      })[0]
 
-        const reactA = a.reactions || 0
-        const reactB = b.reactions || 0
-        return reactB - reactA
-      })
-
-      const best = sorted[0]
-      const strippedContent = (best.content || best.description || '').replace(/<[^>]*>/g, '')
-
+      const plain = (winner.content || winner.description || '').replace(/<[^>]*>/g, '')
       return {
-        id: best.id,
-        title: best.title,
-        description:
-          strippedContent.substring(0, 160) + (strippedContent.length > 160 ? '...' : ''),
-        image: best.images?.[0] || best.image || '',
-        link: `/news#post-${best.id}`,
+        title: winner.title,
+        description: plain.substring(0, 160) + '...',
+        image: winner.images?.[0] || winner.image || '',
+        link: `/news#post-${winner.id}`,
       }
     },
 
     /**
-     * Derives the "Latest Posts" sidebar content (Req 2.2).
-     * Explanation: Takes the 2 most recently dated articles that are public,
-     * approved, and authored by non-blocked users.
-     * @returns {Array<Object>}
+     * Latest two publications for the "Recent News" cards.
+     * @returns {Array}
      */
     publications() {
-      const articles = this.allArticles
-      const blockedIds = this.blockedUserIds || []
-
-      const validLatest = articles
-        .filter((a) => {
-          return (
-            a.isPublic !== false &&
-            a.moderation?.status !== 'blocked' &&
-            !blockedIds.includes(a.authorID)
-          )
-        })
+      const feed = [...this._publicFeed]
+      return feed
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 2)
-
-      return validLatest.map((a) => {
-        const strippedContent = (a.content || a.description || '').replace(/<[^>]*>/g, '')
-        return {
+        .map((a) => ({
           id: a.id,
-          category: (a.type || a.category || 'ROSE NEWS').toUpperCase(),
+          category: a.type || a.category || 'Rose News',
           title: a.title,
           description:
-            strippedContent.substring(0, 80) + (strippedContent.length > 80 ? '...' : ''),
+            (a.content || a.description || '').replace(/<[^>]*>/g, '').substring(0, 80) + '...',
           image: a.images?.[0] || a.image || '',
           link: `/news#post-${a.id}`,
-        }
-      })
+        }))
     },
-  },
-
-  // ==========================================
-  // METHODS
-  // ==========================================
-  methods: {
-    /**
-     * Calculates the sticky navbar height and sets a CSS variable.
-     * Explanation: Ensures the full-height sections fit the screen correctly
-     * by subtracting the navbar height from 100vh.
-     */
-    updateNavbarHeight() {
-      const navbar = document.querySelector('.navbar.sticky-top')
-      if (navbar && this.$refs.homeRef) {
-        const h = navbar.getBoundingClientRect().height
-        this.$refs.homeRef.style.setProperty('--nav-h', `${h}px`)
-      }
-    },
-  },
-
-  // ==========================================
-  // LIFECYCLE HOOKS
-  // ==========================================
-  mounted() {
-    // Explanation: Initialise ResizeObserver to react to navbar resizing.
-    const navbar = document.querySelector('.navbar.sticky-top')
-    if (navbar) {
-      this.resizeObserver = new ResizeObserver(this.updateNavbarHeight)
-      this.resizeObserver.observe(navbar)
-    }
-    this.updateNavbarHeight()
-  },
-
-  unmounted() {
-    // Explanation: Cleanup observer to prevent memory leaks.
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect()
-    }
   },
 }
 </script>
 
 <template>
-  <div ref="homeRef">
-    <!-- HERO SECTION -->
-    <section
-      class="full-height-section position-relative overflow-hidden bg-dark d-flex flex-column justify-content-center hero-banner"
-      :style="{ backgroundImage: 'url(' + heroData.image + ')' }"
-      aria-label="Welcome to The Rose Blog"
-    >
-      <div class="container position-relative z-1 d-flex flex-column flex-grow-1 py-0 px-5 px-lg-3">
-        <div class="row d-flex flex-column flex-lg-row flex-grow-1">
-          <div
-            class="col-12 col-lg-8 d-flex flex-column justify-content-center flex-grow-1 animate-fade-up"
-          >
-            <div>
-              <span
-                class="badge text-md bg-white text-dark px-3 py-2 rounded-pill fw-bolder my-3 shadow-sm"
-              >
-                {{ heroData.badge }}
-              </span>
-              <h1 class="fs-2 text-gray-200 fw-bold text-break">
-                {{ heroData.titleNormal }} <br />
-                <span class="display-3 fw-bold text-secondary">{{ heroData.titleHighlight }}</span>
-              </h1>
-              <p class="fs-6 fs-lg-5 text-gray-300 fw-medium w-100 hero-subtitle">
-                {{ heroData.description }}
-              </p>
+  <div class="home-view overflow-hidden">
+    <!-- Hero Section -->
+    <header class="hero-section min-vh-100 d-flex align-items-center position-relative pb-5">
+      <div class="container pt-5">
+        <div class="row align-items-center g-5">
+          <!-- Hero Text -->
+          <div class="col-lg-6 animate-fade-up">
+            <h1 class="display-3 fw-bold fst-italic mb-4 font-zilla text-dark lh-tight">
+              A Petal for Your <span class="text-primary">Thoughts</span>
+            </h1>
+            <p class="fs-4 text-muted mb-5 font-roboto about-body-text">
+              Welcome to The Rose Blog — a digital sanctuary dedicated to the timeless elegance of
+              the world's most beloved flower. Discover pruning wisdom, botanical updates, and a
+              community passionate about every bloom.
+            </p>
+            <div class="d-flex flex-row flex-wrap gap-3">
               <router-link
-                to="/collection"
-                class="btn rounded-pill btn-primary px-4 py-2 m-0 text-md fw-bold text-white text-uppercase shadow-sm ls-1"
-                aria-label="Explore our rose collection"
+                to="/news"
+                class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-lg ls-1 text-uppercase"
               >
-                Explore Collection
+                Join the Garden
+              </router-link>
+              <router-link
+                to="/about"
+                class="btn btn-outline-primary rounded-pill px-5 py-3 fw-bold ls-1 text-uppercase"
+              >
+                Our Story
               </router-link>
             </div>
           </div>
 
-          <!-- SIDEBAR with Weather -->
-          <div
-            class="col-12 col-lg-4 d-flex flex-column flex-grow-1 justify-content-start justify-content-lg-center"
-          >
-            <WeatherWidget class="home-weather-widget" />
+          <!-- Hero Widget Area -->
+          <div class="col-lg-5 offset-lg-1 animate-fade-up">
+            <WeatherWidget />
           </div>
         </div>
       </div>
-    </section>
+    </header>
 
-    <!-- CONTENT SECTION (Rose of the Month & Latest Posts) -->
-    <section
-      class="bg-white full-height-section d-flex flex-column justify-content-center py-5 py-xl-0"
-      aria-label="Editorial Content"
-    >
-      <div class="container">
-        <div class="row align-items-stretch mx-2 mx-lg-0 gx-lg-5 gy-5 gy-lg-0">
-          <!-- Featured Rose Card (Req 2.1) -->
-          <article v-if="featuredProfile" class="col-12 col-lg-6 col-xl-5 d-flex flex-column px-4">
-            <div class="d-flex align-items-center gap-3 mb-4">
-              <h2 class="fs-4 fw-bolder mb-0 text-dark">Rose of the Month</h2>
-              <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
-            </div>
+    <!-- Curated Feed Section -->
+    <section class="feed-section py-5 bg-white position-relative" id="guides">
+      <!-- Decorative background -->
+      <div
+        class="bg-light-stripe position-absolute top-0 w-100 h-50 opacity-25"
+        aria-hidden="true"
+      ></div>
 
+      <div class="container position-relative z-1 pt-5">
+        <!-- Section Header -->
+        <div
+          class="d-flex flex-column flex-md-row justify-content-between align-items-end mb-5 gap-3"
+        >
+          <div class="section-title-wrapper">
+            <span class="text-primary text-uppercase fw-bold ls-wide small">The Collective</span>
+            <h2 class="display-5 fw-bold fst-italic font-zilla text-dark mb-0">Petals & Prose</h2>
+          </div>
+          <router-link
+            to="/news"
+            class="btn btn-link text-primary text-decoration-none fw-bold p-0"
+          >
+            View full sanctuary catalogue →
+          </router-link>
+        </div>
+
+        <div class="row g-4">
+          <!-- Featured Profile Card -->
+          <div class="col-12 col-lg-7" v-if="featuredProfile">
             <div
-              class="card img-zoom-hover border-0 rounded-4 overflow-hidden shadow-sm position-relative flex-grow-1 d-flex bg-dark featured-card-min"
+              class="featured-card position-relative overflow-hidden rounded-5 shadow-lg h-100 group card-hover"
             >
               <img
-                :src="featuredProfile.image"
-                alt="Thumbnail for Rose of the Month"
-                class="position-absolute w-100 h-100 object-fit-cover img-zoom featured-bg-img"
+                v-lazy-load="featuredProfile.image"
+                class="w-100 h-100 object-fit-cover transition-slow group-hover-scale"
+                alt="Featured Botanical Profile"
               />
-              <div class="position-relative mt-auto w-100 px-4 py-4 px-md-5 z-1 featured-overlay">
-                <h3 class="text-white fw-bold display-7 mb-1 font-zilla fst-italic">
+              <div
+                class="position-absolute bottom-0 start-0 w-100 p-5 pt-5 overlay-gradient text-white"
+              >
+                <span
+                  class="badge glassmorphism-pink text-primary fw-bold px-3 py-2 rounded-pill mb-3 text-sm"
+                >
+                  Rose of the Month
+                </span>
+                <h3 class="display-6 fw-bold fst-italic font-zilla mb-3">
                   {{ featuredProfile.title }}
                 </h3>
-                <p class="text-white text-md opacity-75 mb-3 fw-medium font-roboto">
+                <p class="text-white-50 font-roboto mw-480 mb-4 lh-lg">
                   {{ featuredProfile.description }}
                 </p>
                 <router-link
                   :to="featuredProfile.link"
-                  class="btn btn-outline-light rounded-pill px-4 py-2 fw-bold"
-                  :aria-label="'Read full guide on ' + featuredProfile.title"
+                  class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm"
                 >
                   Read Full Guide
                 </router-link>
               </div>
             </div>
-          </article>
+          </div>
 
-          <!-- Latest Posts Sidebar (Req 2.2) -->
-          <div class="col-12 col-lg-6 col-xl-7 d-flex flex-column px-4">
-            <div class="d-flex align-items-center gap-3 mb-3">
-              <h2 class="fs-4 fw-bolder mb-0 text-dark">Latest Posts</h2>
-              <div class="flex-grow-1 border-bottom border-2 border-primary"></div>
-            </div>
-
-            <div class="d-flex flex-column justify-content-between flex-grow-1 gap-3">
-              <!-- Post Loop -->
-              <article
+          <!-- Latest Publications Column -->
+          <div class="col-12 col-lg-5">
+            <div class="d-flex flex-column gap-4 h-100">
+              <div
                 v-for="item in publications"
                 :key="item.id"
-                class="card card-hover border-0 bg-transparent h-100 p-1 rounded-4"
+                class="publication-card frosted-glass rounded-5 p-4 shadow-sm border border-white h-50 d-flex flex-column justify-content-center transition-base card-hover"
               >
-                <router-link
-                  :to="item.link"
-                  class="text-decoration-none d-block h-100"
-                  :aria-label="'Read article: ' + item.title"
-                >
-                  <div class="row g-0 align-items-center h-100">
-                    <div
-                      class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm latest-img-container"
+                <div class="d-flex column gap-3">
+                  <div class="flex-grow-1">
+                    <span class="text-primary text-uppercase fw-bold ls-1 x-small d-block mb-1">
+                      {{ item.category }}
+                    </span>
+                    <h4 class="h5 fw-bold fst-italic font-zilla text-dark mb-2">
+                      {{ item.title }}
+                    </h4>
+                    <p class="text-muted small font-roboto mb-3 line-clamp-2">
+                      {{ item.description }}
+                    </p>
+                    <router-link
+                      :to="item.link"
+                      class="btn btn-xs btn-link text-primary text-decoration-none fw-bold p-0"
                     >
-                      <img
-                        v-lazy-load="item.image"
-                        :alt="'Thumbnail for ' + item.title"
-                        class="w-100 h-100 object-fit-cover"
-                      />
-                    </div>
-                    <div class="col-8 col-md-9 col-lg-8 ps-3 ps-md-4">
-                      <p
-                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide text-sm font-roboto"
-                        aria-hidden="true"
-                      >
-                        {{ item.category }}
-                      </p>
-                      <h3 class="h5 fw-bold text-dark mb-2 font-zilla fst-italic">
-                        {{ item.title }}
-                      </h3>
-                      <p class="small mb-0 fw-medium text-muted font-roboto">
-                        {{ item.description }}
-                      </p>
-                    </div>
+                      Explore Post →
+                    </router-link>
                   </div>
-                </router-link>
-              </article>
+                  <div class="publication-img rounded-4 overflow-hidden shadow-sm flex-shrink-0">
+                    <img
+                      v-lazy-load="item.image"
+                      class="w-100 h-100 object-fit-cover"
+                      :alt="item.title"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -304,46 +236,69 @@ export default {
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/mixins';
 
-/* Explanation: Responsive height logic ensuring consistent fullscreen sections. */
-.full-height-section {
-  min-height: calc(100vh - var(--nav-h, 0px));
-  min-height: calc(100dvh - var(--nav-h, 0px));
+/* Hero Section background and height */
+.hero-section {
+  background: radial-gradient(
+    circle at 10% 20%,
+    rgba(255, 237, 245, 1) 0%,
+    rgba(255, 255, 255, 1) 70%
+  );
 }
 
-.hero-banner {
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
+.bg-light-stripe {
+  background: linear-gradient(180deg, #f8f9fa 0%, transparent 100%);
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom left, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.6));
+.overlay-gradient {
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.4) 60%,
+    transparent 100%
+  );
+}
+
+/* Specific card heights and transitions */
+.featured-card {
+  min-height: 500px;
+}
+
+.group-hover-scale {
+  transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.featured-card:hover .group-hover-scale {
+  transform: scale(1.05);
+}
+
+.publication-card {
+  border-width: 1.5px !important;
+}
+
+.publication-img {
+  width: 100px;
+  height: 100px;
+}
+
+.x-small {
+  font-size: 0.7rem;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@include media-breakpoint-down(lg) {
+  .hero-section {
+    padding-top: 5rem;
+    min-height: auto;
   }
-}
-
-.hero-subtitle {
-  max-width: 660px;
-}
-
-.home-weather-widget {
-  max-width: 335px;
-}
-
-.featured-card-min {
-  min-height: 50vh;
-}
-
-.featured-bg-img {
-  opacity: 0.65;
-}
-
-.featured-overlay {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-}
-
-.latest-img-container {
-  height: 100px; // Standard height for latest posts list
+  .featured-card {
+    min-height: 400px;
+  }
 }
 </style>

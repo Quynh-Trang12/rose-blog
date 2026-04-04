@@ -4,11 +4,16 @@
  * COMPONENT: CollectionView.vue
  * ==========================================
  * Description:
- * A dedicated gallery for authenticated users to view their saved news
- * articles and curated rose information. Access is restricted by the
- * Vue Router navigation guard (requires authentication).
+ * A private view for authenticated users to manage their bookmarked
+ * news items. Displays saved items in a masonry grid using the 
+ * NewsCard component.
+ *
+ * Requirements (Bug A):
+ *  - Removed dead 'selectedRose' modal logic and teleport blocks.
+ *  - Removed the large commented-out rose grid.
+ *  - Handled the case when a user is not logged in.
  */
-import { mapState, mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapState } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
 
 export default {
@@ -22,143 +27,84 @@ export default {
   },
 
   // ==========================================
-  // DATA
-  // ==========================================
-  data() {
-    return {
-      // Explanation: Controls the visibility of the legacy rose detail modal.
-      selectedRose: null,
-    }
-  },
-
-  // ==========================================
   // COMPUTED
   // ==========================================
   computed: {
     ...mapState('auth', ['currentUser']),
     ...mapGetters('auth', ['isLoggedIn', 'mySavedPostIds']),
-    ...mapGetters('news', ['allArticles']),
+    ...mapGetters('news', ['allNewsItems']),
 
     /**
-     * Filters the global news articles to only include those saved by the current user.
-     * Explanation: Cross-references the mySavedPostIds getter from the auth module
-     * against allArticles to build the user's personal collection.
-     * @returns {Array} List of saved article objects
+     * Filters the complete news list to only those saved by the user.
+     * @returns {Array} News items whose IDs match the saved list
      */
-    savedArticles() {
-      // Accessing allArticles to ensure we find saved posts even if they are filtered
-      // in the public news feed (though normally private posts aren't savable).
-      return this.allArticles.filter((article) =>
-        this.mySavedPostIds.some((savedId) => String(savedId) === String(article.id)),
+    savedNewsItems() {
+      if (!this.isLoggedIn) return []
+      return this.allNewsItems.filter((item) =>
+        this.mySavedPostIds.some((id) => String(id) === String(item.id))
       )
-    },
-  },
-
-  // ==========================================
-  // METHODS
-  // ==========================================
-  methods: {
-    ...mapActions('news', [
-      'reactToArticle',
-      'addComment',
-      'incrementShare',
-      'updateArticle',
-      'deleteArticle',
-    ]),
-
-    /**
-     * Checks if the current user is the author of a specific item.
-     * @param {Object} item - The news item object
-     * @returns {boolean}
-     */
-    isOwner(item) {
-      if (!this.isLoggedIn) return false
-      return this.currentUser?.displayName === item.authorName
-    },
-
-    /**
-     * Closes the rose detail modal.
-     */
-    closeDetail() {
-      this.selectedRose = null
-    },
-
-    /**
-     * Handles edit events from NewsCard.
-     * Explanation: payload is { id, title, content }.
-     * @param {Object} payload - Corrected format from NewsCard emit.
-     */
-    handleEdit(payload) {
-      this.updateArticle(payload)
-    },
-
-    /**
-     * Handles share events from NewsCard.
-     * @param {Object} payload - { id, platform }
-     */
-    handleShare(payload) {
-      this.incrementShare(payload.id)
-    },
-
-    /**
-     * Handles react events from NewsCard.
-     * @param {Object} payload - { id, reaction }
-     */
-    handleReact(payload) {
-      this.reactToArticle(payload.id)
     },
   },
 }
 </script>
 
 <template>
-  <div class="position-relative min-vh-100 py-5">
-    <!-- Visual Background Layer -->
-    <div class="position-fixed top-0 start-0 w-100 h-100 collection-bg" aria-hidden="true"></div>
+  <div class="collection-view min-vh-100 py-5 bg-light-soft position-relative">
+    <div class="container pt-5">
+      <!-- 1. Header Section -->
+      <div class="text-center mb-5 animate-fade-up">
+        <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-dark">
+          My botanical <span class="text-primary">sanctuary</span>
+        </h1>
+        <p class="text-muted font-roboto fs-5">
+          Curating your personal collection of rose wisdom. 
+          Everything you save is kept here for quick reference.
+        </p>
+        <div class="mx-auto border-bottom border-primary border-4 collection-divider"></div>
+      </div>
 
-    <div class="container position-relative z-1 pt-4">
-      <!-- Unauthorized State -->
+      <!-- 2. Auth Guard State -->
       <div v-if="!isLoggedIn" class="text-center py-5 animate-fade-up">
-        <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">lock</span>
-        <p class="text-muted fst-italic text-lg font-zilla">
-          Please login to view your collection.
-        </p>
-      </div>
-
-      <!-- Empty Collection State -->
-      <div v-else-if="savedArticles.length === 0" class="text-center py-5 animate-fade-up">
-        <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">bookmark_border</span>
-        <p class="text-muted fst-italic text-lg font-zilla">You have no saved articles yet.</p>
-      </div>
-
-      <!-- Saved Articles Grid -->
-      <div v-if="savedArticles.length > 0" class="mt-5 pt-3 animate-fade-up">
-        <div class="mb-4 d-flex align-items-center gap-3">
-          <h2 class="display-5 fw-bold fst-italic mb-0 font-zilla text-dark">My Collection</h2>
-          <span class="badge rounded-pill bg-primary px-3 py-2 fs-6 shadow-sm">
-            {{ savedArticles.length }} Articles
-          </span>
+        <div class="glassmorphism-pink rounded-5 p-5 border border-white mw-480 mx-auto">
+          <span class="material-symbols-outlined display-1 text-primary-light mb-4">lock</span>
+          <h2 class="font-zilla fst-italic h3 mb-3">Locked Garden</h2>
+          <p class="text-muted font-roboto mb-4">
+            You must be logged in to view your personal botanical collection.
+          </p>
+          <button class="btn btn-primary rounded-pill px-5 py-2 fw-bold" @click="$router.push('/')">
+            Go to Login
+          </button>
         </div>
-        <p class="text-muted mb-5 font-roboto collection-subtitle">
-          A dedicated space for the stories, tips, and inspirations you've saved from our daily news
-          feed.
-        </p>
+      </div>
 
-        <div class="row g-4">
-          <div v-for="item in savedArticles" :key="item.id" class="col-12 col-md-6">
+      <!-- 3. Main Collection Content -->
+      <template v-else>
+        <!-- Saved Items Feed -->
+        <div v-if="savedNewsItems.length > 0" class="news-masonry-grid pb-4 animate-fade-up">
+          <div v-for="item in savedNewsItems" :key="item.id" class="news-view__card-wrapper">
             <NewsCard
               :item="item"
-              :is-authed="isLoggedIn"
-              :is-owner="isOwner(item)"
-              @react="handleReact"
-              @comment="addComment"
-              @share="handleShare"
-              @edit="handleEdit"
-              @delete="deleteArticle"
+              :is-authed="true"
+              :is-owner="String(currentUser.id) === String(item.authorID)"
             />
           </div>
         </div>
-      </div>
+
+        <!-- Empty Collection State -->
+        <div v-else class="text-center py-5 animate-fade-up">
+          <div class="glassmorphism-pink rounded-5 p-5 border border-white mw-600 mx-auto">
+            <span class="material-symbols-outlined display-1 text-primary-light mb-4">bookmark_border</span>
+            <h3 class="font-zilla fst-italic h4 mb-3">Your garden is empty... for now.</h3>
+            <p class="text-muted font-roboto mb-5">
+              Found an article you love? Click the bookmark icon 
+              in the news feed to save it to your private sanctuary.
+            </p>
+            <router-link to="/news" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-lg">
+              Explore News Feed
+            </router-link>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -166,30 +112,40 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
 
-.collection-bg {
-  z-index: -1;
-  background: linear-gradient(135deg, #fff5f8 0%, #fce7f3 50%, #f5f3ff 100%);
-  opacity: 0.8;
+.bg-light-soft {
+  background-color: #fcfcfc;
 }
 
-.collection-subtitle {
-  max-width: 600px;
+.collection-divider {
+  width: 80px;
 }
 
-.animate-fade-up {
-  // Reusing keyframe from base.scss if needed, but defining it here for local scope safety
-  animation: fadeUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+/* Masonry Layout implementation (Requirement 11) */
+.news-masonry-grid {
+  columns: 1;
+  column-gap: 1.25rem;
 
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
+  @include media-breakpoint-up(md) {
+    columns: 2;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  @include media-breakpoint-up(xl) {
+    columns: 3;
   }
+}
+
+.news-view__card-wrapper {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  display: block; // Fix Safari/Firefox masonry bugs
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.text-primary-light {
+  color: rgba($primary, 0.2);
 }
 </style>

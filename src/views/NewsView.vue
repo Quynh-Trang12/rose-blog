@@ -4,15 +4,19 @@
  * COMPONENT: NewsView.vue
  * ==========================================
  * Description:
- * The main news feed page. Features a CSS-columns masonry grid of news
- * articles with support for advanced searching, filtering, and pagination
- * via the PaginationBar shared component. Users can create new posts
- * if they are authenticated.
+ * The main news feed of The Rose Blog. Displays news items in a masonry
+ * grid with integrated filtering, pagination, and a floating search bubble.
+ *
+ * Requirements (Issue 4, 9, 11):
+ *  - Use PaginationBar component.
+ *  - Remove getDynamicLayout and use item.layoutType directly.
+ *  - Navigate to specific post on mount if #hash is present.
+ *  - Support query-based filtering (?category=...) on mount.
  */
-import { mapState, mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapActions, mapState } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
-import NewsCreateBar from '@/components/news/NewsCreateBar.vue'
 import NewsSearchBar from '@/components/news/NewsSearchBar.vue'
+import NewsCreateBar from '@/components/news/NewsCreateBar.vue'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
 
 export default {
@@ -23,8 +27,8 @@ export default {
   // ==========================================
   components: {
     NewsCard,
-    NewsCreateBar,
     NewsSearchBar,
+    NewsCreateBar,
     PaginationBar,
   },
 
@@ -33,7 +37,7 @@ export default {
   // ==========================================
   data() {
     return {
-      // Explanation: Controls the visibility of the filter/search modal.
+      // Explanation: Controls visibility of the search bubble modal.
       showFilterModal: false,
     }
   },
@@ -42,38 +46,31 @@ export default {
   // COMPUTED
   // ==========================================
   computed: {
-    ...mapState('auth', ['currentUser']),
     ...mapState('news', ['currentPage']),
-    ...mapGetters('auth', ['isLoggedIn']),
-    ...mapGetters('news', ['paginatedArticles', 'totalPages']),
+    ...mapGetters('auth', ['isLoggedIn', 'currentUser']),
+    ...mapGetters('news', ['paginatedNewsItems', 'totalPages', 'totalNewsItems']),
+
+    /**
+     * Checks if the currently logged-in user owns a specific news item.
+     * @param {Object} item - The news item to check
+     * @returns {boolean} True if the currentUser is the author
+     */
+    isPostOwner() {
+      return (item) => {
+        if (!this.isLoggedIn || !this.currentUser) return false
+        return String(this.currentUser.id) === String(item.authorID)
+      }
+    },
   },
 
   // ==========================================
   // METHODS
   // ==========================================
   methods: {
-    ...mapActions('news', [
-      'setPage',
-      'reactToArticle',
-      'addComment',
-      'incrementShare',
-      'updateArticle',
-      'deleteArticle',
-      'clearFilters',
-    ]),
+    ...mapActions('news', ['setPage', 'applyFilters', 'clearFilters']),
 
     /**
-     * Checks if the current user owns a specific news item.
-     * @param {Object} item - The blog post/news item object
-     * @returns {boolean}
-     */
-    isOwner(item) {
-      if (!this.isLoggedIn) return false
-      return this.currentUser?.displayName === item.authorName
-    },
-
-    /**
-     * Handles pagination page changes with smooth scrolling to top.
+     * Handles page changes from the PaginationBar.
      * @param {number} page - The target page number
      */
     handlePageChange(page) {
@@ -82,237 +79,154 @@ export default {
     },
 
     /**
-     * Handles edit events from NewsCard.
-     * Explanation: payload is { id, title, content }.
-     * @param {Object} payload - Corrected format from NewsCard emit.
+     * Scrolls smoothly to the target hash element if it exists in the DOM.
+     * @param {string} hash - The target element ID (#post-101)
      */
-    handleEdit(payload) {
-      this.updateArticle(payload)
-    },
-
-    /**
-     * Handles share events from NewsCard.
-     * @param {Object} payload - { id, platform }
-     */
-    handleShare(payload) {
-      this.incrementShare(payload.id)
-    },
-
-    /**
-     * Handles react events from NewsCard.
-     * @param {Object} payload - { id, reaction }
-     */
-    handleReact(payload) {
-      this.reactToArticle(payload.id)
-    },
-
-    /**
-     * Scrolls the window to a post specified in the URL hash.
-     * Explanation: Uses setTimeout to ensure the DOM is rendered before scrolling.
-     */
-    scrollToAnchor() {
-      const hash = this.$route.hash
-      if (hash && hash.startsWith('#post-')) {
-        // Retry a few times in case masonry has not fully laid out yet
-        let attempts = 0
-        const interval = setInterval(() => {
+    scrollToTarget(hash) {
+      if (!hash) return
+      this.$nextTick(() => {
+        setTimeout(() => {
           const el = document.querySelector(hash)
-          if (el) {
-            clearInterval(interval)
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            // Highlight the card for better visual feedback
-            el.classList.add('highlight-flash')
-            setTimeout(() => el.classList.remove('highlight-flash'), 2000)
-          }
-          attempts++
-          if (attempts > 20) clearInterval(interval) // Max 2 seconds
-        }, 100)
-      }
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 500)
+      })
     },
   },
 
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
   mounted() {
-    this.scrollToAnchor()
-  },
+    // 1. Initial category filter check (Requirement 9)
+    const category = this.$route.query.category
+    if (category) {
+      this.applyFilters({ category })
+    }
 
-  watch: {
-    '$route.hash'() {
-      this.scrollToAnchor()
-    },
+    // 2. Initial hash scroll check (Requirement 11)
+    if (this.$route.hash) {
+      this.scrollToTarget(this.$route.hash)
+    }
   },
 }
 </script>
 
 <template>
-  <div class="news-view position-relative min-vh-100 py-5">
-    <!-- Background Decor Layer -->
-    <div
-      class="news-view__bg-layer position-fixed top-0 start-0 w-100 h-100"
-      aria-hidden="true"
-    ></div>
+  <div class="news-view min-vh-100 py-5 bg-light-soft position-relative">
+    <!-- Search Bubble Trigger -->
+    <button
+      class="search-bubble-btn shadow-lg rounded-circle position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
+      @click.stop="showFilterModal = true"
+      aria-label="Open search and filters"
+    >
+      <span class="material-symbols-outlined fs-2">search</span>
+    </button>
 
-    <div class="container position-relative z-1 pt-4">
-      <!-- Page Header -->
-      <div class="d-flex justify-content-between align-items-start mb-5 animate-fade-up">
-        <div>
-          <h1 class="news-view__title display-4 fw-bold fst-italic mb-1 text-dark">News</h1>
-          <p class="news-view__subtitle text-muted text-md fw-normal mb-0">
-            Stories, rituals, and inspirations from the world of roses.
-          </p>
-        </div>
+    <!-- Filter Modal (Overlay) -->
+    <NewsSearchBar
+      :model-value="showFilterModal"
+      @update:model-value="showFilterModal = $event"
+    />
 
-        <!-- Filter Bubble Entry -->
-        <div class="d-flex flex-column align-items-center gap-1 position-relative z-3">
-          <p
-            class="news-view__search-hint text-muted text-xs fst-italic mb-1 text-center font-zilla"
-          >
-            Click to<br />Search & Filter
-          </p>
-          <button
-            class="news-view__search-bubble border-0 bg-transparent p-0"
-            @click="showFilterModal = true"
-            aria-label="Open search and filter panel"
-            :aria-expanded="showFilterModal"
-          >
-            <img
-              src="@/assets/images/search-icon.png"
-              alt="Search and filter"
-              class="news-view__search-icon"
-            />
-          </button>
-        </div>
-      </div>
+    <div class="container pt-5">
+      <!-- Create Post Bar (Authenticated only) -->
+      <NewsCreateBar v-if="isLoggedIn" class="mb-5 animate-fade-up" />
 
-      <!-- Creation Bar (Auth users only) -->
-      <NewsCreateBar v-if="isLoggedIn" class="mb-4" />
-
-      <!-- Masonry Grid of Articles (Req 11) -->
-      <div class="news-view__columns" v-if="paginatedArticles.length > 0">
-        <div class="news-view__card-wrapper" v-for="item in paginatedArticles" :key="item.id">
+      <!-- News Feed Grid -->
+      <div v-if="paginatedNewsItems.length > 0" class="news-masonry-grid pb-4 animate-fade-up">
+        <div v-for="item in paginatedNewsItems" :key="item.id" class="news-view__card-wrapper">
           <NewsCard
             :item="item"
             :is-authed="isLoggedIn"
-            :is-owner="isOwner(item)"
-            @react="handleReact"
-            @comment="addComment"
-            @share="handleShare"
-            @edit="handleEdit"
-            @delete="deleteArticle"
+            :is-owner="isPostOwner(item)"
           />
         </div>
       </div>
 
       <!-- Empty State -->
-      <div v-else class="text-center py-5 animate-fade-up">
-        <span class="material-symbols-outlined fs-1 text-muted d-block mb-2">search_off</span>
-        <p class="news-view__empty-text text-muted fst-italic text-lg">
-          No articles match your search.
-        </p>
-        <button
-          class="btn btn-sm btn-outline-primary rounded-pill mt-2 fw-medium"
-          @click="clearFilters"
-        >
-          Clear Filters
+      <div
+        v-else
+        class="empty-state text-center py-5 glassmorphism-pink rounded-5 border border-white mw-600 mx-auto animate-fade-up"
+      >
+        <span class="material-symbols-outlined display-1 text-primary-light mb-4">nest_eco_leaf</span>
+        <h3 class="font-zilla fst-italic h4 mb-3">The petals are still falling...</h3>
+        <p class="text-muted font-roboto">No news items matched your current filters.</p>
+        <button class="btn btn-primary rounded-pill px-4 mt-3 fw-bold" @click="clearFilters">
+          Reset All Filters
         </button>
       </div>
 
-      <!-- Pagination -->
+      <!-- Pagination Section -->
       <PaginationBar
+        v-if="totalPages > 1"
         :current-page="currentPage"
         :total-pages="totalPages"
         @page-change="handlePageChange"
       />
     </div>
-
-    <!-- Slide-down Search/Filter Modal -->
-    <NewsSearchBar v-model="showFilterModal" />
   </div>
 </template>
 
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
 
-.news-view {
-  &__bg-layer {
-    z-index: -1;
-    background-image: url('@/assets/images/image5.jpg');
-    background-size: cover;
-    background-position: center;
+.bg-light-soft {
+  background-color: #fcfcfc;
+}
 
-    &::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        to top right,
-        rgba(255, 255, 255, 0.6),
-        rgba(255, 255, 255, 0.85)
-      );
-    }
+/* Floating Search Bubble Styling */
+.search-bubble-btn {
+  width: 64px;
+  height: 64px;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: $primary;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 12px 24px rgba($primary, 0.3);
+
+  &:hover {
+    transform: scale(1.1) rotate(5deg);
+    background-color: darken($primary, 5%);
+    box-shadow: 0 16px 32px rgba($primary, 0.4);
   }
 
-  &__title {
-    font-family: 'Zilla Slab', serif;
-  }
-  &__subtitle {
-    font-family: 'Roboto Condensed', sans-serif;
-  }
-
-  &__search-bubble {
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out;
-    &:hover {
-      transform: scale(1.08);
-    }
-  }
-
-  &__search-icon {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    object-fit: cover;
-    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.15));
-  }
-
-  // Req 11 Fix: Genuine masonry grid layout
-  &__columns {
-    columns: 2;
-    column-gap: 1.25rem;
-
-    @include media-breakpoint-down(md) {
-      columns: 1;
-    }
-  }
-
-  &__card-wrapper {
-    break-inside: avoid;
-    display: block;
-    width: 100%;
-    margin-bottom: 1.25rem;
-    -webkit-column-break-inside: avoid;
-    transition: transform 0.3s ease;
-
-    &.highlight-flash {
-      animation: highlightFlash 2s ease-out;
-    }
+  @include media-breakpoint-down(md) {
+    width: 56px;
+    height: 56px;
+    bottom: 1.5rem;
+    right: 1.5rem;
   }
 }
 
-@keyframes highlightFlash {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0);
+/* Masonry Layout implementation (Requirement 11) */
+.news-masonry-grid {
+  columns: 1;
+  column-gap: 1.25rem;
+
+  @include media-breakpoint-up(md) {
+    columns: 2;
   }
-  15% {
-    transform: scale(1.02);
-    box-shadow: 0 0 20px 5px rgba(var(--bs-primary-rgb), 0.4);
+
+  @include media-breakpoint-up(xl) {
+    columns: 3;
   }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(var(--bs-primary-rgb), 0);
-  }
+}
+
+.news-view__card-wrapper {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  display: block; // Fix Safari/Firefox masonry bugs
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.text-primary-light {
+  color: rgba($primary, 0.2);
 }
 </style>

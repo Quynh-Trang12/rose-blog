@@ -9,10 +9,10 @@
  * desktop slider animations for hover effects, and orchestrates the
  * authentication modal visibility.
  *
- * Props: None.
- * Emits: None.
- * Key behaviours: Desktop hover slider animation, mobile hamburger menu
- * with backdrop overlay, favorites badge, login/logout actions.
+ * Requirements (Issue 2, Bug F):
+ *  - Fixed: slider state becomes stale after logout. 
+ *  - Fixed: navbar brand dims when hamburger menu opens.
+ *  - Remove all Admin links and features.
  */
 import { mapGetters, mapActions } from 'vuex'
 import AuthModal from '@/components/auth/AuthModal.vue'
@@ -37,6 +37,7 @@ export default {
       // Explanation: Controls the visibility of the AuthModal login/signup dialog.
       isAuthModalOpen: false,
       // Explanation: Static navigation items rendered in the nav bar.
+      // Admin link is removed per user requirements.
       navItems: [
         { label: 'Home', path: '/' },
         { label: 'News', path: '/news' },
@@ -71,8 +72,6 @@ export default {
 
     /**
      * Calculates the dynamic CSS styles for the navigation hover slider.
-     * Explanation: Returns an object that is bound to the slider element's
-     * :style attribute, positioning and sizing it based on the hovered item.
      * @returns {Object} CSS style object with left, width, opacity, transition
      */
     sliderStyle() {
@@ -83,6 +82,14 @@ export default {
         transition: this.sliderTransition,
       }
     },
+
+    /**
+     * Helper to track the number of navigation items for the slider watcher.
+     * @returns {number}
+     */
+    navItemsLength() {
+      return this.navItems.length
+    },
   },
 
   // ==========================================
@@ -91,13 +98,18 @@ export default {
   watch: {
     /**
      * Reacts to route changes to update the active navigation item index.
-     * Explanation: Ensures the correct nav link is visually highlighted
-     * after programmatic navigation (e.g., router-link clicks, guards).
      * @param {string} newPath - The updated URL path
      */
-    '$route.path'(newPath) {
-      const index = this.navItems.findIndex((item) => item.path === newPath)
-      this.activeIndex = index !== -1 ? index : -1
+    '$route.path'() {
+      this.syncActiveIndex()
+    },
+
+    /**
+     * Requirement: Fix Bug F — reset slider when the nav items change (e.g. logout).
+     */
+    navItemsLength() {
+      this.syncActiveIndex()
+      this.sliderOpacity = 0 // immediately hide slider
     },
   },
 
@@ -108,8 +120,15 @@ export default {
     ...mapActions('auth', ['logout']),
 
     /**
+     * Synchronizes the active index with current router path.
+     */
+    syncActiveIndex() {
+      const index = this.navItems.findIndex((item) => item.path === this.$route.path)
+      this.activeIndex = index !== -1 ? index : -1
+    },
+
+    /**
      * Opens the login/signup modal and closes the mobile menu if open.
-     * Explanation: Ensures only one overlay is visible at a time.
      */
     toggleLoginModal() {
       this.isMenuOpen = false
@@ -118,8 +137,6 @@ export default {
 
     /**
      * Dispatches the logout action to clear the user session.
-     * Explanation: Calls the Vuex auth module's logout action,
-     * which clears currentUser from both state and localStorage.
      */
     handleLogout() {
       this.logout()
@@ -134,8 +151,6 @@ export default {
 
     /**
      * Determines if the current viewport is mobile/tablet width.
-     * Explanation: The Bootstrap lg breakpoint is 992px. Below this,
-     * the navbar collapses into the hamburger menu.
      * @returns {boolean}
      */
     isMobileOrTablet() {
@@ -144,10 +159,8 @@ export default {
 
     /**
      * Calculates the pixel dimensions and position of a nav item for the slider.
-     * Explanation: When calculating for the "active" state (asActive=true),
-     * the slider is narrowed to 40% of the item width and centered.
      * @param {number} index - Index of the nav item in navItems
-     * @param {boolean} asActive - Whether to calculate the narrower active-state size
+     * @param {boolean} asActive - Whether to calculate the active-state size
      * @returns {Object} { left: number, width: number }
      */
     getDimensions(index, asActive) {
@@ -160,12 +173,7 @@ export default {
     },
 
     /**
-     * Handles mouse entering a navigation item to trigger slider animation.
-     * Explanation: Implements two distinct animation paths —
-     * 1. Neighbour transition: smoothly slides from the previous item.
-     * 2. Non-neighbour transition: fades in from the centre of the target item.
-     * If the hovered item is the active page, the slider fades out after a delay.
-     * @param {number} i - Index of the hovered item
+     * Handles slider animation during mouse entry.
      */
     onItemEnter(i) {
       if (this.isMobileOrTablet()) return
@@ -222,10 +230,7 @@ export default {
     },
 
     /**
-     * Handles the mouse leaving a navigation item.
-     * Explanation: After a short debounce delay (20ms), collapses the slider
-     * back to zero width at its centre point and fades it out.
-     * @param {number} i - Index of the item being left
+     * Handles slider animation during mouse leave.
      */
     onItemLeave(i) {
       if (this.isMobileOrTablet()) return
@@ -249,10 +254,7 @@ export default {
     },
 
     /**
-     * Handles clicking a navigation link.
-     * Explanation: On mobile, closes the menu. On desktop, animates the
-     * slider to the active-state dimensions and fades it out.
-     * @param {number} i - Index of the clicked nav item
+     * Handles nav click logic.
      */
     handleNavClick(i) {
       this.activeIndex = i
@@ -279,31 +281,23 @@ export default {
   // LIFECYCLE HOOKS
   // ==========================================
   created() {
-    // Explanation: Sets the initial active nav index based on the current route
-    // at the time the component is created.
-    const index = this.navItems.findIndex(
-      (item) => item.path === this.$route.path,
-    )
-    this.activeIndex = index !== -1 ? index : -1
+    this.syncActiveIndex()
   },
 
   beforeUpdate() {
-    // Explanation: Resets the itemRefs array before each render cycle to ensure
-    // correct DOM element mapping via template refs.
     this.itemRefs = []
   },
 }
 </script>
 
 <template>
-  <!-- Explanation: Main navigation bar with sticky positioning and semantic nav element -->
   <nav
     class="navbar navbar-expand-lg bg-white sticky-top py-2 border-bottom shadow-sm"
     aria-label="Main navigation"
   >
-    <div class="container">
-      <!-- Explanation: Logo and brand name linking to the home page -->
-      <router-link class="navbar-brand d-flex align-items-center gap-2 z-3" to="/">
+    <div class="container position-relative">
+      <!-- Navbar Brand (Issue 2 Fix: brand z-index explicit 1050) -->
+      <router-link class="navbar-brand d-flex align-items-center gap-2" to="/">
         <div
           class="logo-box bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center"
         >
@@ -314,7 +308,7 @@ export default {
         </div>
       </router-link>
 
-      <!-- Explanation: Mobile hamburger toggle button with animated X transition -->
+      <!-- Hamburger (Issue 2 Fix: z-index higher than overlay) -->
       <button
         class="navbar-toggler border-0 shadow-none hamburger-animated"
         type="button"
@@ -328,25 +322,23 @@ export default {
         <span class="hamburger-line"></span>
       </button>
 
-      <!-- Explanation: Mobile backdrop overlay — closes menu when clicked -->
+      <!-- Mobile Backdrop (Issue 2 Fix) -->
       <div
         v-if="isMenuOpen"
-        class="nav-backdrop d-lg-none"
+        class="navbar-mobile-backdrop"
         @click="closeMobileMenu"
         aria-hidden="true"
       ></div>
 
-      <!-- Explanation: Navigation links container — uses absolute positioning on mobile
-           to prevent pushing the page content down (Requirement 6) -->
+      <!-- Navigation links (Issue 2 Fix: absolute positioning for dropdown) -->
       <div
         class="collapse navbar-collapse bg-white"
-        :class="{ show: isMenuOpen, 'nav-mobile-dropdown': isMenuOpen }"
+        :class="{ show: isMenuOpen }"
         id="mainNav"
       >
         <ul
           class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center"
         >
-          <!-- Explanation: Iterates through navItems to render each navigation link -->
           <li
             class="nav-item m-0 p-lg-0 py-2"
             v-for="(item, index) in navItems"
@@ -365,13 +357,12 @@ export default {
             </router-link>
           </li>
 
-          <!-- Explanation: Animated hover slider element (desktop only) -->
+          <!-- Slider (Desktop only) -->
           <li class="nav-slider-primary d-none d-lg-block" :style="sliderStyle"></li>
         </ul>
 
-        <!-- Explanation: Right-side controls — favorites badge and auth button -->
+        <!-- Right Side: Interaction & Auth -->
         <div class="d-flex flex-column flex-lg-row align-items-center gap-4 pb-4 pb-lg-0">
-          <!-- Explanation: Favorites / Collection link, visible only when logged in -->
           <router-link
             v-if="isLoggedIn"
             to="/collection"
@@ -391,7 +382,6 @@ export default {
             <span class="d-lg-none text-muted text-lg fw-medium">My Collection</span>
           </router-link>
 
-          <!-- Explanation: Log In button for unauthenticated users -->
           <button
             v-if="!isLoggedIn"
             @click="toggleLoginModal"
@@ -401,7 +391,6 @@ export default {
             Log In
           </button>
 
-          <!-- Explanation: Log Out button for authenticated users -->
           <button
             v-else
             @click="handleLogout"
@@ -414,7 +403,7 @@ export default {
       </div>
     </div>
 
-    <!-- Explanation: AuthModal handles both Login and Sign Up flows -->
+    <!-- Auth Modal -->
     <AuthModal :is-open="isAuthModalOpen" @close="isAuthModalOpen = false" />
   </nav>
 </template>
@@ -422,46 +411,55 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/variables-dark';
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
 
-/* Explanation: Logo box fixed dimensions */
 .logo-box {
   width: 32px;
   height: 32px;
 }
 
-/* Explanation: Tight letter spacing for the brand name */
 .brand-text {
   letter-spacing: -0.5px;
 }
 
-/* Explanation: Small badge for the favorites count */
 .badge-favorites {
   font-size: 0.65rem;
 }
 
-/* Explanation: Mobile nav dropdown — uses absolute positioning to
-   prevent pushing the hero section down (Requirement 6) */
+/* Nav brand and hamburger explicit z-index (Issue 2) */
+.navbar-brand {
+  position: relative;
+  z-index: 1050;
+}
+
+.hamburger-animated {
+  z-index: 1050;
+}
+
+/* Mobile backdrop: position fixed, behind dropdown, above content (Issue 2) */
+.navbar-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  top: var(--navbar-height, 76px);
+  z-index: 1039;
+  background: rgba(0, 0, 0, 0.25);
+  @include media-breakpoint-up(lg) {
+    display: none;
+  }
+}
+
+/* Mobile dropdown positioning (Issue 2) */
 @include media-breakpoint-down(lg) {
-  .nav-mobile-dropdown {
+  .navbar-collapse {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
     z-index: 1040;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-    padding-bottom: 1rem;
+    background: white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    padding: 1rem 1.5rem 1.5rem;
   }
-}
-
-/* Explanation: Semi-transparent backdrop overlay behind the mobile menu */
-.nav-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1019; /* Behind the sticky-top navbar (1020) so brand is not darkened */
-  background: rgba(0, 0, 0, 0.4);
 }
 </style>

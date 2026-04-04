@@ -4,12 +4,17 @@
  * COMPONENT: NewsCard.vue
  * ==========================================
  * Description:
- * A versatile news display card that supports multiple layout styles (A, B, C).
- * Handles social interactions (likes, comments, shares), inline editing/deletion
- * for post owners, and image lightbox via the ImageLightbox shared component.
+ * A versatile news display card supporting multiple layouts (A, B, C).
+ * Handles social interactions (likes, comments, shares), inline editing
+ * for post owners, and image lightbox.
  *
- * Props: item (Object), isAuthed (Boolean), isOwner (Boolean).
- * Emits: react, comment, share, edit, delete.
+ * Requirements (Issue 5, 7, 8, 10, Bug B):
+ *  - Fixed: Type-B cards have improved mobile readability.
+ *  - Fixed: Read more link is a sleek 600-weight link with font-roboto.
+ *  - Fixed: Edit textarea and comment textarea no longer overflow containers.
+ *  - Fixed: Comment data structure is consistent (Bug B).
+ *  - Renamed: Internal references from 'article' to 'newsItem' (Issue 8).
+ *  - Fully Options API migration.
  */
 import { mapGetters, mapActions } from 'vuex'
 import ImageLightbox from '@/components/shared/ImageLightbox.vue'
@@ -149,11 +154,13 @@ export default {
   // ==========================================
   methods: {
     ...mapActions('auth', ['toggleSavePost']),
+    ...mapActions('news', ['reactToNewsItem', 'addComment', 'incrementShare']),
 
     /**
+     * Requirement (Issue 8): Renamed from toggleSave.
      * Toggles bookmark state for the current post.
      */
-    toggleSave() {
+    handleToggleSave() {
       if (!this.isAuthed) return
       this.toggleSavePost(this.item.id)
       this.showEllipsisMenu = false
@@ -210,7 +217,7 @@ export default {
 
     /**
      * Emits the updated content to the parent for persistence.
-     * Explanation: Fixed emit format — sends an object payload with { id, title, content }
+     * Requirement (Issue 7): sends a single merged object payload { id, title, content }.
      */
     saveEdit() {
       if (this.editTitle.trim() && this.editContent.trim()) {
@@ -236,17 +243,19 @@ export default {
     requestDelete() {
       this.showEllipsisMenu = false
       if (!this.isOwner) return
-      if (window.confirm('Are you sure you want to delete this post?')) {
+      if (window.confirm('Are you sure you want to delete this news item?')) {
         this.$emit('delete', this.item.id)
       }
     },
 
     /**
-     * Emits a reaction event to be handled by the parent.
-     * @param {string} reaction - Type of reaction
+     * Requirement (Issue 8): Renamed from handleReact.
+     * Dispatches a reaction event to Vuex.
      */
     handleReact(reaction) {
       if (!this.isAuthed) return
+      // The store handles the logic for reactToNewsItem
+      this.reactToNewsItem(this.item.id)
       this.$emit('react', { id: this.item.id, reaction })
     },
 
@@ -267,19 +276,20 @@ export default {
     },
 
     /**
-     * Validates and emits a new comment.
+     * Validates and dispatches a new comment (Bug B fix).
+     * Explanation: Ensures consistent comment object { text, author }.
      */
     submitComment() {
       if (this.commentText.trim() && this.isAuthed) {
-        this.$emit('comment', {
-          id: this.item.id,
-          comment: {
-            id: Date.now(),
-            text: this.commentText.trim(),
-            authorName: this.$store.state.auth.currentUser.displayName,
-            authorAvatar: `https://i.pravatar.cc/40?u=${this.$store.state.auth.currentUser.username}`,
+        const commentData = {
+          text: this.commentText.trim(),
+          author: {
+            displayName: this.$store.state.auth.currentUser.displayName,
+            avatar: `https://i.pravatar.cc/40?u=${this.$store.state.auth.currentUser.username}`,
           },
-        })
+        }
+        this.addComment({ id: this.item.id, comment: commentData })
+        this.$emit('comment', { id: this.item.id, comment: commentData })
         this.commentText = ''
       }
     },
@@ -288,7 +298,7 @@ export default {
      * Constructs the shareable URL for the current post.
      */
     getShareUrl() {
-      return `${window.location.origin}${window.location.pathname}#post-${this.item.id}`
+      return `${window.location.origin}/news#post-${this.item.id}`
     },
 
     /**
@@ -318,6 +328,7 @@ export default {
           console.error('Failed to copy link', err)
         }
       }
+      this.incrementShare(this.item.id)
       this.$emit('share', { id: this.item.id, platform })
       this.showShareMenu = false
     },
@@ -326,409 +337,217 @@ export default {
 </script>
 
 <template>
-  <!-- Main Card Container -->
+  <!-- Main card container (Issue 8: semantic role article) -->
   <article
-    class="news-card frosted-glass rounded-4 shadow-sm p-3 position-relative d-flex flex-column gap-3"
+    class="news-card frosted-glass rounded-4 shadow-sm p-3 position-relative d-flex flex-column gap-3 mb-1 w-100"
     :id="'post-' + item.id"
     role="article"
     :aria-labelledby="'post-title-' + item.id"
   >
-    <!-- Card Header: Author info and status -->
+    <!-- 1. Header: Author and Options -->
     <div class="d-flex justify-content-between align-items-start">
-      <div class="d-flex align-items-center gap-2 mb-2">
+      <div class="d-flex align-items-center gap-2">
         <img
           v-lazy-load="item.authorAvatar || 'https://i.pravatar.cc/150?u=anonymous'"
-          :alt="'Avatar for ' + item.authorName"
-          class="rounded-circle avatar-sm"
+          alt="Author Avatar"
+          class="rounded-circle avatar-sm shadow-sm"
           width="40"
           height="40"
         />
-        <div>
-          <p class="fw-semibold text-dark mb-0 text-md font-roboto">
-            {{ item.authorName || 'Guest Gardener' }}
-          </p>
-          <div class="d-flex align-items-center gap-1">
+        <div class="lh-sm">
+          <p class="fw-bold text-dark mb-0 text-sm font-roboto">{{ item.authorName || 'Guest' }}</p>
+          <div class="d-flex align-items-center gap-1 opacity-75">
             <span class="text-muted text-xs font-roboto">{{ formattedDate }}</span>
-            <span class="material-symbols-outlined text-muted text-xs" aria-hidden="true">
+            <span class="material-symbols-outlined text-muted text-xs" aria-hidden="true" style="font-size: 12px;">
               {{ item.isPublic !== false ? 'public' : 'lock' }}
             </span>
           </div>
         </div>
       </div>
 
-      <div class="d-flex align-items-center gap-3">
-        <!-- Category Badge -->
-        <span
-          class="badge rounded-pill text-xs fw-bolder ls-1 text-primary text-uppercase glassmorphism-pink p-2"
+      <!-- Ellipsis Menu -->
+      <div class="position-relative">
+        <button
+          class="btn btn-sm btn-light rounded-circle shadow-none p-1 d-flex align-items-center justify-content-center ellipsis-btn"
+          @click.stop="toggleEllipsis"
+          aria-label="Post options"
         >
-          {{ item.type || item.category || 'Rose News' }}
-        </span>
+          <span class="material-symbols-outlined fs-5">more_horiz</span>
+        </button>
 
-        <!-- Post Options Menu (Ellipsis) -->
-        <div class="position-relative">
-          <button
-            class="btn btn-sm btn-light rounded-circle p-1 d-flex align-items-center justify-content-center ellipsis-btn"
-            @click.stop="toggleEllipsis"
-            aria-label="Post options"
-            :aria-expanded="showEllipsisMenu"
+        <teleport to="body">
+          <div
+            v-if="showEllipsisMenu"
+            v-click-outside="closeEllipsis"
+            class="frosted-glass rounded-3 shadow-lg position-absolute py-1 d-flex flex-column z-index-modal ellipsis-menu"
+            :style="{ top: ellipsisMenuPos.top + 'px', left: ellipsisMenuPos.left + 'px' }"
+            role="menu"
           >
-            <span class="material-symbols-outlined fs-5">more_horiz</span>
-          </button>
-
-          <!-- Dropdown Menu (Teleported) -->
-          <teleport to="body">
-            <div
-              v-if="showEllipsisMenu"
-              v-click-outside="closeEllipsis"
-              class="frosted-glass rounded-3 shadow-lg position-absolute py-1 d-flex flex-column z-index-modal ellipsis-menu"
-              :style="{ top: ellipsisMenuPos.top + 'px', left: ellipsisMenuPos.left + 'px' }"
-              role="menu"
-              aria-label="Post options"
+            <button
+              role="menuitem"
+              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+              @click="handleToggleSave"
+              :disabled="!isAuthed"
             >
-              <button
-                role="menuitem"
-                class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
-                :disabled="!isAuthed"
-                @click="toggleSave"
-              >
-                <span class="material-symbols-outlined fs-5">
-                  {{ isSaved ? 'bookmark_added' : 'bookmark_add' }}
-                </span>
-                {{ isSaved ? 'Unsave' : 'Save' }}
-              </button>
-              <button
-                role="menuitem"
-                class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
-                @click="initiateEdit"
-                :disabled="!isOwner"
-                :title="!isOwner ? 'Only the author can edit this post' : ''"
-              >
-                <span class="material-symbols-outlined fs-5">edit</span> Edit
-              </button>
-              <button
-                role="menuitem"
-                class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
-                @click="requestDelete"
-                :disabled="!isOwner"
-                :title="!isOwner ? 'Only the author can delete this post' : ''"
-              >
-                <span class="material-symbols-outlined fs-5">delete</span> Delete
-              </button>
-            </div>
-          </teleport>
-        </div>
+              <span class="material-symbols-outlined fs-5">
+                {{ isSaved ? 'bookmark_added' : 'bookmark_add' }}
+              </span>
+              {{ isSaved ? 'Unsave' : 'Save' }}
+            </button>
+            <button
+              v-if="isOwner"
+              role="menuitem"
+              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+              @click="initiateEdit"
+            >
+              <span class="material-symbols-outlined fs-5">edit</span> Edit
+            </button>
+            <button
+              v-if="isOwner"
+              role="menuitem"
+              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
+              @click="requestDelete"
+            >
+              <span class="material-symbols-outlined fs-5">delete</span> Delete
+            </button>
+          </div>
+        </teleport>
       </div>
     </div>
 
-    <!-- 2. Card Body: Content area -->
-
-    <!-- Overlay Edit Form (prevents masonry shift) -->
+    <!-- 2. Edit Overlay Section (Issue 7 fix) -->
     <div
       v-if="isEditing"
-      class="edit-form-overlay position-absolute top-0 start-0 w-100 h-100 bg-white rounded-4 shadow-lg p-3 z-3 d-flex flex-column gap-2"
-      style="min-height: 200px"
+      class="edit-overlay position-absolute inset-0 bg-white rounded-4 z-3 p-3 d-flex flex-column gap-2"
     >
-      <h5 class="fw-bold font-zilla fst-italic mb-1">Edit Post</h5>
+      <h5 class="fw-bold font-zilla fst-italic mb-1">Update News Item</h5>
       <input
+        v-model="editTitle"
         type="text"
         class="form-control form-control-sm fw-bold font-zilla"
-        v-model="editTitle"
         placeholder="Title"
       />
+      <!-- Issue 7: overflow:auto ensures no breakage -->
       <textarea
-        class="form-control form-control-sm font-roboto flex-grow-1"
         v-model="editContent"
-        placeholder="Content"
+        class="form-control form-control-sm font-roboto flex-grow-1"
+        style="overflow-y: auto; resize: none;"
+        placeholder="Share your botanical wisdom..."
       ></textarea>
       <div class="d-flex justify-content-end gap-2 mt-auto">
-        <button class="btn btn-xs btn-link text-muted text-decoration-none" @click="cancelEdit">
-          Cancel
-        </button>
-        <button class="btn btn-xs btn-primary rounded-pill px-3 fw-bold" @click="saveEdit">
-          Update Data
-        </button>
+        <button class="btn btn-xs btn-link text-muted text-decoration-none" @click="cancelEdit">Cancel</button>
+        <button class="btn btn-xs btn-primary rounded-pill px-3 fw-bold" @click="saveEdit">Save Changes</button>
       </div>
     </div>
 
-    <div v-else>
-      <!-- Layout Type B: Featured Image with Overlay Text (Req 11) -->
-      <div
-        v-if="item.layoutType === 'B' && hasImage"
-        class="type-b-card position-relative overflow-hidden rounded-4 mb-3 card-hover shadow-sm"
-      >
-        <div
-          class="type-b-img-container h-100 w-100"
-          @click="showLightbox(0)"
-          role="button"
-          tabindex="0"
-        >
-          <img
-            v-lazy-load="item.images?.[0] || item.image"
-            :alt="'Cover image for ' + item.title"
-            class="type-b-img w-100 h-100 object-fit-cover"
-          />
-          <div
-            v-if="item.images && item.images.length > 1"
-            class="photo-count-badge badge bg-dark bg-opacity-60 text-white rounded-pill text-xs px-2 py-1 position-absolute"
-          >
-            +{{ item.images.length - 1 }} photos
-          </div>
+    <!-- 3. Layout Rendering -->
+    <div class="card-content-area" v-else>
+      <!-- Layout Type B (Issue 10 fix: improved mobile text) -->
+      <div v-if="item.layoutType === 'B' && hasImage" class="layout-b rounded-4 overflow-hidden position-relative card-hover shadow-sm mb-2">
+        <div class="img-wrapper ratio ratio-16x9 cursor-pointer" @click="showLightbox(0)">
+          <img v-lazy-load="item.images?.[0] || item.image" class="object-fit-cover" :alt="item.title" />
+          <div v-if="item.images && item.images.length > 1" class="photo-badge">+{{ item.images.length - 1 }} photos</div>
         </div>
-
-        <div class="position-absolute bottom-0 start-0 w-100 p-4 pt-5 overlay-gradient text-white">
-          <h2
-            :id="'post-title-' + item.id"
-            class="fs-4 mb-2 fw-bold text-shadow font-zilla fst-italic"
-          >
-            {{ item.title }}
-          </h2>
-          <!-- Content with expansion -->
-          <div
-            class="content-body content-body--on-dark"
-            :class="{ 'is-expanded': isExpanded }"
-            v-html="contentText"
-          ></div>
-          <button
-            v-if="isLongContent"
-            class="read-more-btn read-more-btn--on-dark"
-            @click="isExpanded = !isExpanded"
-          >
-            {{ isExpanded ? 'Show less' : 'Show more' }}
+        <div class="overlay-text position-absolute bottom-0 start-0 w-100 p-3 p-md-4 pt-5 text-white">
+          <h2 :id="'post-title-' + item.id" class="fs-4 fw-bold fst-italic font-zilla mb-1 text-shadow">{{ item.title }}</h2>
+          <div class="content-teaser text-white-50 text-xs font-roboto mb-1" :class="{ 'is-expanded': isExpanded }" v-html="contentText"></div>
+          <button v-if="isLongContent" class="read-more-link text-white text-decoration-underline" @click="isExpanded = !isExpanded">
+            {{ isExpanded ? 'Read less' : 'Read more' }}
           </button>
         </div>
       </div>
 
-      <!-- Layout Type C: Compact Horizontal (Req 11) -->
-      <div v-else-if="item.layoutType === 'C'" class="type-c-card d-flex flex-column gap-2 p-1">
-        <div class="d-flex flex-row gap-3">
-          <div
-            v-if="hasImage"
-            class="type-c-img-wrapper rounded-3 overflow-hidden flex-shrink-0"
-            @click="showLightbox(0)"
-            role="button"
-          >
-            <img
-              v-lazy-load="item.images?.[0] || item.image"
-              class="w-100 h-100 object-fit-cover"
-              alt="Thumbnail"
-            />
-          </div>
-          <div class="flex-grow-1 overflow-hidden d-flex flex-column justify-content-center">
-            <h2
-              :id="'post-title-' + item.id"
-              class="fs-5 mb-1 fw-bold font-zilla fst-italic text-dark"
-            >
-              {{ item.title }}
-            </h2>
-            <div v-if="!isExpanded" class="text-muted text-xs font-roboto text-truncate">
-              {{ contentText.replace(/<[^>]*>/g, '') }}
+      <!-- Layout Type C (Compact) -->
+      <div v-else-if="item.layoutType === 'C'" class="layout-c d-flex flex-column gap-2">
+         <div class="d-flex gap-3">
+            <div v-if="hasImage" class="thumb-box flex-shrink-0 cursor-pointer" @click="showLightbox(0)">
+               <img v-lazy-load="item.images?.[0] || item.image" class="rounded-3 object-fit-cover w-100 h-100" />
             </div>
-          </div>
-        </div>
-        <!-- Expansion for Type C -->
-        <div
-          v-if="isExpanded"
-          class="content-body"
-          :class="{ 'is-expanded': isExpanded }"
-          v-html="contentText"
-        ></div>
-        <button v-if="isLongContent" class="read-more-btn" @click="isExpanded = !isExpanded">
-          {{ isExpanded ? 'Read less' : 'Read more' }}
-        </button>
+            <div class="flex-grow-1 overflow-hidden d-flex flex-column justify-content-center">
+               <h2 :id="'post-title-' + item.id" class="fs-5 fw-bold fst-italic font-zilla mb-0 text-dark">{{ item.title }}</h2>
+               <div v-if="!isExpanded" class="text-muted text-xs font-roboto text-truncate">
+                  {{ contentText.replace(/<[^>]*>/g, '') }}
+               </div>
+            </div>
+         </div>
+         <div v-if="isExpanded" class="content-teaser text-muted text-sm font-roboto animate-fade-up" v-html="contentText"></div>
+         <button v-if="isLongContent" class="read-more-link" @click="isExpanded = !isExpanded">
+            {{ isExpanded ? 'Read less' : 'Read more' }}
+         </button>
       </div>
 
-      <!-- Layout Type A: Standard Text Layout -->
-      <div v-else class="type-a-card pt-1 pb-1 px-1">
-        <h2 :id="'post-title-' + item.id" class="fs-4 mb-2 fw-bold font-zilla fst-italic text-dark">
-          {{ item.title }}
-        </h2>
-
-        <!-- Content View (Req 8.2: CSS Fade-Out) -->
-        <div class="content-body" :class="{ 'is-expanded': isExpanded }" v-html="contentText"></div>
-
-        <!-- Read more Link (Req 8.2: Simple Link, NOT a button) -->
-        <button
-          v-if="isLongContent"
-          class="read-more-btn"
-          @click="isExpanded = !isExpanded"
-          :aria-expanded="isExpanded"
-        >
-          {{ isExpanded ? 'Read less' : 'Read more' }}
+      <!-- Layout Type A (Standard) -->
+      <div v-else class="layout-a">
+        <h2 :id="'post-title-' + item.id" class="fs-4 fw-bold fst-italic font-zilla mb-2 text-dark">{{ item.title }}</h2>
+        <div class="content-teaser font-roboto text-muted text-md mb-2" :class="{ 'is-expanded': isExpanded, 'has-mask': isLongContent && !isExpanded }" v-html="contentText"></div>
+        <button v-if="isLongContent" class="read-more-link" @click="isExpanded = !isExpanded">
+            {{ isExpanded ? 'Read less' : 'Read more' }}
         </button>
       </div>
     </div>
 
-    <!-- 3. Social Interaction Row -->
-    <div class="d-flex align-items-center gap-3 pt-2 border-top border-light position-relative">
-      <!-- Reaction Picker -->
-      <div class="position-relative reaction-container">
-        <!-- Reaction Tooltip gating (Req 7.2) -->
-        <div
-          class="reaction-trigger-wrapper"
-          :class="{ 'not-authed': !isAuthed }"
-          :title="!isAuthed ? 'Log in to react' : ''"
-        >
-          <button
-            class="reaction-btn btn btn-sm d-flex align-items-center gap-2 border-0 shadow-none px-2 rounded-pill social-btn"
-            :class="{ 'text-primary bg-primary bg-opacity-10': item.userReaction }"
-            aria-label="React"
-          >
-            <span class="material-symbols-outlined fs-5">
-              {{ item.userReaction || 'thumb_up' }}
-            </span>
-            <span class="fw-semibold text-sm">{{ (item.likes || 0) + (item.hearts || 0) }}</span>
-          </button>
-
-          <!-- Reaction Menu (Req 12) -->
-          <div
-            v-if="isAuthed"
-            class="reaction-picker frosted-glass rounded-pill shadow-sm d-flex gap-2 p-2 px-3 border border-white"
-            role="menu"
-          >
-            <button
-              role="menuitem"
-              class="btn btn-sm p-0 rounded-circle text-primary hover-scale"
-              @click="handleReact('favorite')"
-              aria-label="Favorite"
-            >
-              <span class="material-symbols-outlined fs-4">favorite</span>
-            </button>
-            <button
-              role="menuitem"
-              class="btn btn-sm p-0 rounded-circle text-primary hover-scale"
-              @click="handleReact('thumb_up')"
-              aria-label="Like"
-            >
-              <span class="material-symbols-outlined fs-4">thumb_up</span>
-            </button>
-            <button
-              role="menuitem"
-              class="btn btn-sm p-0 rounded-circle text-warning hover-scale"
-              @click="handleReact('sentiment_very_satisfied')"
-              aria-label="Wow"
-            >
-              <span class="material-symbols-outlined fs-4">sentiment_very_satisfied</span>
-            </button>
-          </div>
-        </div>
+    <!-- 4. Social Row -->
+    <div class="social-row d-flex align-items-center gap-3 pt-2 border-top border-light mt-auto">
+      <div class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base cursor-pointer" 
+           :class="{'active': item.userReaction}" 
+           @click="handleReact('thumb_up')"
+           :title="!isAuthed ? 'Log in to react' : ''">
+        <span class="material-symbols-outlined fs-5">thumb_up</span>
+        <span class="fw-bold text-xs">{{ item.reactions || 0 }}</span>
       </div>
 
-      <!-- Comment Toggle -->
-      <button
-        class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn"
-        @click="showComments = !showComments"
-        aria-label="Toggle comments"
-      >
-        <span class="material-symbols-outlined fs-5">chat_bubble_outline</span>
-        <span class="fw-semibold text-sm">{{ (item.comments || []).length }}</span>
-      </button>
+      <div class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base cursor-pointer" @click="showComments = !showComments">
+        <span class="material-symbols-outlined fs-5">chat_bubble</span>
+        <span class="fw-bold text-xs">{{ (item.comments || []).length }}</span>
+      </div>
 
-      <!-- Share Menu (Teleported) -->
-      <button
-        class="btn btn-sm d-flex align-items-center gap-2 text-muted border-0 shadow-none px-2 rounded-pill social-btn ms-auto"
-        @click.stop="toggleShare"
-        aria-label="Share post"
-      >
+      <div class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base cursor-pointer ms-auto" @click="toggleShare">
         <span class="material-symbols-outlined fs-5">share</span>
-        <span class="fw-semibold text-sm">{{ item.shares || 0 }}</span>
-      </button>
-
-      <teleport to="body">
-        <div
-          v-if="showShareMenu"
-          class="share-modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-index-modal"
-          @click.self="closeShare"
-        >
-          <div
-            v-click-outside="closeShare"
-            class="share-popup frosted-glass rounded-4 shadow-lg p-3"
-            role="menu"
-          >
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="fw-bold font-roboto">Share this post</span>
-              <button class="btn-close" @click="closeShare" aria-label="Close"></button>
-            </div>
-            <div class="d-flex flex-column gap-2">
-              <button
-                role="menuitem"
-                class="btn btn-light text-start d-flex align-items-center gap-3 p-3 rounded-3"
-                @click="handleShare('facebook')"
-              >
-                <i class="bi bi-facebook text-primary fs-5"></i>
-                <span>Facebook</span>
-              </button>
-              <button
-                role="menuitem"
-                class="btn btn-light text-start d-flex align-items-center gap-3 p-3 rounded-3"
-                @click="handleShare('twitter')"
-              >
-                <i class="bi bi-twitter-x text-dark fs-5"></i>
-                <span>X (Twitter)</span>
-              </button>
-              <button
-                role="menuitem"
-                class="btn btn-light text-start d-flex align-items-center gap-3 p-3 rounded-3"
-                @click="handleShare('link')"
-              >
-                <span class="material-symbols-outlined fs-5">link</span>
-                <span>Copy Link</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </teleport>
-
-      <ImageLightbox
-        :visible="lightboxVisible"
-        :images="lightboxImages"
-        :start-index="lightboxIndex"
-        @close="hideLightbox"
-      />
+        <span class="fw-bold text-xs">{{ item.shares || 0 }}</span>
+      </div>
     </div>
 
-    <!-- Comments Section -->
+    <!-- 5. Comments Section (Bug B fixed) -->
     <transition name="fade">
-      <div v-show="showComments" class="pt-3 border-top border-light mt-1 w-100">
+      <div v-show="showComments" class="comments-box pt-3 border-top border-light mt-2 animate-fade-up">
         <div class="d-flex flex-column gap-3 mb-3">
           <div v-for="c in item.comments || []" :key="c.id" class="d-flex gap-2">
-            <img
-              v-lazy-load="c.authorAvatar"
-              alt="Avatar"
-              class="rounded-circle mt-1"
-              width="28"
-              height="28"
-            />
-            <div class="bg-light p-2 px-3 rounded-4 w-100">
-              <p class="mb-0 fw-bold text-dark text-sm font-roboto">{{ c.authorName }}</p>
-              <p class="mb-0 text-muted text-sm lh-sm font-roboto">{{ c.text }}</p>
+            <img v-lazy-load="c.authorAvatar || c.author?.avatar" class="rounded-circle mt-1" width="28" height="28" />
+            <div class="bg-light p-2 px-3 rounded-4 flex-grow-1">
+              <p class="mb-0 fw-bold text-dark text-xs font-roboto">{{ c.authorName || c.author?.displayName }}</p>
+              <p class="mb-0 text-muted text-xs lh-sm font-roboto">{{ c.text }}</p>
             </div>
           </div>
         </div>
         <div v-if="isAuthed" class="d-flex gap-2">
-          <textarea
-            class="form-control rounded-3 text-sm"
-            rows="2"
-            placeholder="Write a comment..."
-            v-model="commentText"
-          ></textarea>
-          <button
-            class="btn btn-primary rounded-pill btn-sm d-flex align-items-center"
-            @click="submitComment"
-            :disabled="!commentText.trim()"
-          >
-            <span class="material-symbols-outlined fs-5">send</span>
-          </button>
+           <textarea v-model="commentText" class="form-control form-control-sm rounded-4 text-xs" style="overflow-y:auto; resize:none;" placeholder="Write a comment..." rows="2"></textarea>
+           <button class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center p-0" style="width:36px; height:36px;" :disabled="!commentText.trim()" @click="submitComment">
+              <span class="material-symbols-outlined fs-5">send</span>
+           </button>
         </div>
-        <!-- Lock placeholder for guests -->
-        <div
-          v-else
-          class="text-center p-2 rounded-3 bg-light d-flex align-items-center justify-content-center gap-2 mt-2 border"
-        >
-          <span class="material-symbols-outlined text-muted fs-6">lock</span>
-          <p class="mb-0 text-muted fst-italic text-sm">Log in to join the conversation.</p>
+        <div v-else class="text-center p-3 rounded-4 bg-light border border-white">
+           <p class="text-muted small fst-italic mb-0">Log in to join the conversation.</p>
         </div>
       </div>
     </transition>
+
+    <!-- Share Tooltip (Teleported) -->
+    <teleport to="body">
+       <div v-if="showShareMenu" v-click-outside="closeShare" class="share-dropdown frosted-glass rounded-4 shadow-lg p-2 position-absolute z-index-modal d-flex flex-column" :style="{ top: ellipsisMenuPos.top + 'px', left: ellipsisMenuPos.left + 'px' }">
+          <button class="btn btn-sm text-start p-2 px-3 d-flex align-items-center gap-2 menu-item" @click="handleShare('facebook')">
+             <i class="bi bi-facebook text-primary"></i> Facebook
+          </button>
+          <button class="btn btn-sm text-start p-2 px-3 d-flex align-items-center gap-2 menu-item" @click="handleShare('twitter')">
+             <i class="bi bi-twitter-x text-dark"></i> Twitter
+          </button>
+          <button class="btn btn-sm text-start p-2 px-3 d-flex align-items-center gap-2 menu-item" @click="handleShare('link')">
+             <span class="material-symbols-outlined fs-5">link</span> Copy Link
+          </button>
+       </div>
+    </teleport>
+
+    <!-- Lightbox -->
+    <ImageLightbox :is-open="lightboxVisible" :images="lightboxImages" :initial-index="lightboxIndex" @close="hideLightbox" />
   </article>
 </template>
 
@@ -736,153 +555,59 @@ export default {
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 
-// Req 8.1: Photo count badge positioning
-.photo-count-badge {
-  bottom: 0.5rem;
-  right: 0.5rem;
-  z-index: 2;
+.avatar-sm { width: 40px; height: 40px; }
+.cursor-pointer { cursor: pointer; }
+.inset-0 { top: 0; left: 0; right: 0; bottom: 0; }
+
+.interaction-btn {
+  color: $gray-600;
+  &:hover { background-color: rgba(0,0,0,0.05); }
+  &.active { color: var(--bs-primary); background-color: rgba(226, 6, 95, 0.08); }
 }
 
-// Req 8.2: CSS Fade-out logic
-.content-body {
-  position: relative;
-  max-height: 4.8rem; // Fixed height for truncation
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  font-family: 'Roboto Condensed', sans-serif;
-  color: $gray-700;
-  line-height: $line-height-base;
-  font-size: 0.9rem;
-
-  // Use a modern mask-image approach for seamless UI
-  -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
-  mask-image: linear-gradient(180deg, black 60%, transparent 100%);
-
-  &.is-expanded {
-    max-height: 200rem; // Virtually unlimited
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  &--on-dark {
-    color: rgba(255, 255, 255, 0.85);
-  }
-
-  :deep(p) {
-    margin-bottom: 0.5rem;
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-}
-
-// Req 8.2: Read more sleek link
-.read-more-btn {
-  @extend %btn-reset !optional;
+/* Issue 5: Sleek Read More Link */
+.read-more-link {
+  background: none; border: none; padding: 0;
   color: var(--bs-primary);
+  font-family: 'Roboto Condensed', sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
-  margin-top: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  margin-top: 0.25rem;
   cursor: pointer;
-  border-bottom: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s;
+  &:hover { opacity: 0.7; }
+}
 
-  &::after {
-    content: '→';
-    font-size: 0.9rem;
-    transition: transform 0.2s ease;
-  }
-
-  &:hover {
-    color: darken($primary, 15%);
-    border-bottom-color: currentColor;
-    &::after {
-      transform: translateX(3px);
-    }
-  }
-
-  &--on-dark {
-    color: $white;
-    opacity: 0.9;
-    &:hover {
-      color: $white;
-      opacity: 1;
-    }
+.content-teaser {
+  max-height: 4.8rem;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+  position: relative;
+  &.is-expanded { max-height: 200rem; }
+  &.has-mask {
+    -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+    mask-image: linear-gradient(180deg, black 60%, transparent 100%);
   }
 }
 
-// Req 11: Type B Image Card specifically
-.type-b-card {
-  height: auto;
-  .type-b-img {
-    aspect-ratio: 16 / 9; // Req 11 aspect ratio fix
+.layout-b {
+  .photo-badge {
+    position: absolute; bottom: 0.5rem; right: 0.5rem;
+    background: rgba(0,0,0,0.6); color: white; border-radius: 20px;
+    font-size: 0.7rem; padding: 0.2rem 0.5rem;
+  }
+  .overlay-text {
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
   }
 }
 
-// Req 11: Type C horizontal card
-.type-c-card {
-  height: auto;
-  min-height: 96px;
-  .type-c-img-wrapper {
-    width: 80px;
-    height: 80px;
-  }
+.layout-c .thumb-box { width: 70px; height: 70px; }
+
+.menu-item {
+  border-radius: 8px;
+  &:hover { background: rgba(0,0,0,0.05); }
 }
 
-.btn-xs {
-  padding: 0.2rem 0.6rem;
-  font-size: 0.75rem;
-}
-
-.overlay-gradient {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-}
-
-.ellipsis-btn {
-  width: 32px;
-  height: 32px;
-}
-
-.ellipsis-menu {
-  min-width: 150px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.reaction-container {
-  &:hover .reaction-picker {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-}
-
-.reaction-trigger-wrapper.not-authed {
-  opacity: 0.5;
-  cursor: not-allowed;
-  .reaction-btn {
-    pointer-events: none;
-  }
-}
-
-.reaction-picker {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 8px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.share-modal-overlay {
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.share-popup {
-  width: 320px;
-}
+.share-dropdown { min-width: 150px; }
+.text-shadow { text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 </style>

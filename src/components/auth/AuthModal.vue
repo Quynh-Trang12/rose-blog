@@ -4,11 +4,15 @@
  * COMPONENT: AuthModal.vue
  * ==========================================
  * Description:
- * A cohesive authentication modal handling both Login and Sign Up flows.
- * Communicates with the Vuex auth store and manages internal form state.
+ * A unified authentication modal handling Login and Registration.
+ * Supports password visibility toggling, email validation, and
+ * prevents race conditions during authentication requests.
  *
- * Props: isOpen (Boolean).
- * Emits: close — signals the parent to hide the modal.
+ * Requirements (Bug K, Part 8.1):
+ *  - Fixed: Race condition — don't close modal until successful login response.
+ *  - Fixed: Prevent duplicate submissions via 'isSubmitting' state.
+ *  - Implement: checkForm validation pattern for both Login and Register.
+ *  - Fully Options API migration.
  */
 import { mapActions } from 'vuex'
 
@@ -19,12 +23,9 @@ export default {
   // PROPS
   // ==========================================
   props: {
-    /**
-     * Controls the visibility of the modal overlay.
-     */
     isOpen: {
       type: Boolean,
-      default: false,
+      required: true,
     },
   },
 
@@ -38,24 +39,36 @@ export default {
   // ==========================================
   data() {
     return {
-      // Explanation: Toggles between login and sign-up form views.
-      isSignUpMode: false,
-      // Explanation: Toggles password field visibility (text vs password type).
+      // Explanation: Toggles between 'login' and 'register' modes.
+      mode: 'login',
+      // Explanation: Two-way bound form fields.
+      username: '',
+      password: '',
+      displayName: '',
+      // Explanation: Toggle for the password input type (password/text).
       showPassword: false,
-      // Explanation: Stores the error message string when authentication fails.
-      authError: '',
-      // Explanation: Pre-filled login form for demo convenience.
-      loginForm: {
-        username: 'rosegarden',
-        password: 'rose123',
-      },
-      // Explanation: Empty sign-up form fields.
-      signupForm: {
-        username: '',
-        password: '',
-        displayName: '',
-      },
+      // Explanation: Tracks form submission state to prevent double-clicks.
+      isSubmitting: false,
+      // Explanation: Validation and API error feedback.
+      error: '',
     }
+  },
+
+  // ==========================================
+  // WATCH
+  // ==========================================
+  watch: {
+    /**
+     * Reset form state whenever the modal closes.
+     */
+    isOpen(newVal) {
+      if (!newVal) {
+        this.handleReset()
+      } else {
+        // Prevent body scroll
+        document.body.classList.add('overflow-hidden')
+      }
+    },
   },
 
   // ==========================================
@@ -65,284 +78,193 @@ export default {
     ...mapActions('auth', ['login', 'register']),
 
     /**
-     * Emits the close event to the parent component.
-     * Explanation: The parent (AppNavBar) listens for this event
-     * and sets isAuthModalOpen to false.
+     * Requirement: checkForm validation pattern.
+     * Validates input fields before calling the Vuex auth actions.
      */
-    closeModal() {
+    checkForm(e) {
+      e.preventDefault()
+      if (this.isSubmitting) return false
+      this.error = ''
+
+      if (!this.username.trim()) {
+         this.error = 'Username is required.'
+         return false
+      }
+      if (!this.password.trim()) {
+         this.error = 'Password is required.'
+         return false
+      }
+      if (this.mode === 'register' && !this.displayName.trim()) {
+         this.error = 'Display name is required for identification.'
+         return false
+      }
+
+      this.submit()
+      return true
+    },
+
+    /**
+     * Requirement (Bug K): Handles the authentication request asynchronously.
+     * Ensures the modal only closes upon successful authentication success.
+     */
+    async submit() {
+      this.isSubmitting = true
+      try {
+        let result
+        if (this.mode === 'login') {
+          result = await this.login({
+            username: this.username.trim(),
+            password: this.password.trim(),
+          })
+        } else {
+          result = await this.register({
+            username: this.username.trim(),
+            password: this.password.trim(),
+            displayName: this.displayName.trim(),
+          })
+        }
+
+        if (result.success) {
+          // Success: Close modal and reset
+          this.close()
+        } else {
+          // Failure: Show error and keep modal open
+          this.error = result.error || 'Authentication failed.'
+        }
+      } catch (err) {
+        console.error('Auth Request Error:', err)
+        this.error = 'The botanical server is unreachable. Please try again.'
+      } finally {
+        this.isSubmitting = false
+      }
+    },
+
+    /**
+     * Closes the modal and emits the close event.
+     */
+    close() {
+      document.body.classList.remove('overflow-hidden')
       this.$emit('close')
     },
 
     /**
-     * Toggles between Login and Sign Up form modes.
-     * Explanation: Clears any existing error message and resets
-     * password visibility when switching modes.
+     * Resets the form fields.
      */
-    toggleMode() {
-      this.isSignUpMode = !this.isSignUpMode
-      this.authError = ''
+    handleReset() {
+      this.username = ''
+      this.password = ''
+      this.displayName = ''
+      this.error = ''
+      this.isSubmitting = false
       this.showPassword = false
-    },
-
-    /**
-     * Validates and processes the authentication form submission.
-     * Explanation: Uses async/await to handle the asynchronous password
-     * hashing performed by the auth store's login/register actions.
-     * On success, closes the modal. On failure, displays the error.
-     * @param {Event} event - Native DOM submit event
-     */
-    async checkForm(event) {
-      event.preventDefault()
-
-      const action = this.isSignUpMode ? 'auth/register' : 'auth/login'
-      const payload = this.isSignUpMode
-        ? {
-            username: this.signupForm.username,
-            password: this.signupForm.password,
-            displayName: this.signupForm.displayName,
-          }
-        : {
-            username: this.loginForm.username,
-            password: this.loginForm.password,
-          }
-
-      try {
-        // Explanation: dispatch() returns a Promise because both login and register
-        // hash the password asynchronously via the Web Crypto API before committing.
-        const res = await this.$store.dispatch(action, payload)
-
-        if (res.success) {
-          if (this.isSignUpMode) {
-            // Explanation: Reset to login mode after successful registration.
-            this.isSignUpMode = false
-            this.signupForm = { username: '', password: '', displayName: '' }
-          }
-          this.closeModal()
-        } else {
-          this.authError = res.error
-        }
-      } catch (err) {
-        this.authError = 'Something went wrong. Please try again.'
-        console.error('Auth error:', err)
-      }
-    },
-
-    /**
-     * Handles global Escape key press to close the modal.
-     * Explanation: Attached as a window-level keydown listener when
-     * the modal is open. Provides keyboard dismissal without requiring
-     * a click on the backdrop (Requirement 6).
-     * @param {KeyboardEvent} event - The keyboard event
-     */
-    handleEscapeKey(event) {
-      if (event.key === 'Escape' && this.isOpen) {
-        this.closeModal()
-      }
-    },
-  },
-
-  // ==========================================
-  // WATCH
-  // ==========================================
-  watch: {
-    /**
-     * Resets internal modal state when visibility changes.
-     * Explanation: On open, attaches the Escape key listener.
-     * On close, clears errors, hides password, and removes the listener.
-     * @param {boolean} newVal - The new isOpen value
-     */
-    isOpen(newVal) {
-      if (newVal) {
-        // Explanation: Attach Escape key handler when the modal opens.
-        window.addEventListener('keydown', this.handleEscapeKey)
-      } else {
-        this.authError = ''
-        this.showPassword = false
-        // Explanation: Clean up the Escape key handler when the modal closes.
-        window.removeEventListener('keydown', this.handleEscapeKey)
-      }
+      this.mode = 'login'
     },
   },
 
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
-  unmounted() {
-    // Explanation: Safety cleanup to prevent memory leaks if the component
-    // is destroyed while the modal is still open.
-    window.removeEventListener('keydown', this.handleEscapeKey)
+  beforeUnmount() {
+    document.body.classList.remove('overflow-hidden')
   },
 }
 </script>
 
 <template>
-  <!-- Explanation: Teleport renders the modal at the document body root
-       to escape parent stacking contexts and z-index constraints -->
   <teleport to="body">
-    <transition name="modal-fade">
-      <!-- Explanation: Modal backdrop — NO @click.self to prevent accidental
-           dismissal. Users must use the X button or Escape key (Requirement 6). -->
+    <transition name="fade">
       <div
         v-if="isOpen"
-        class="modal d-block bg-dark bg-opacity-50 z-index-modal"
-        tabindex="-1"
+        class="auth-overlay position-fixed inset-0 d-flex align-items-center justify-content-center z-index-modal"
+        @click.self="close"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="auth-modal-title"
+        aria-label="Account access"
       >
-        <div class="modal-dialog modal-dialog-centered" role="document">
-          <div class="modal-content border-0 shadow-lg rounded-4 p-4 frosted-glass w-100">
-            <!-- Explanation: Modal header with title and explicit close button -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
-              <h4 id="auth-modal-title" class="mb-0 fw-bold font-zilla fst-italic text-dark">
-                {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
-              </h4>
-              <button
-                @click="closeModal"
-                class="btn-close"
-                aria-label="Close"
-                type="button"
-              ></button>
-            </div>
+        <div class="auth-modal frosted-glass rounded-5 shadow-2xl p-4 p-md-5 mw-480 position-relative animate-fade-up border border-white mx-3">
+          <!-- Close button -->
+          <button class="position-absolute top-0 end-0 m-4 btn btn-link text-dark opacity-50 p-2" @click="close" :disabled="isSubmitting">
+             <span class="material-symbols-outlined fs-3">close</span>
+          </button>
 
-            <!-- Explanation: Authentication form — uses checkForm pattern with novalidate -->
-            <form @submit="checkForm" novalidate>
-              <!-- Explanation: Login mode input fields -->
-              <template v-if="!isSignUpMode">
-                <div class="mb-3">
-                  <label for="auth-username" class="form-label text-sm fw-bold">Username</label>
-                  <input
-                    id="auth-username"
-                    type="text"
-                    class="form-control rounded-3"
-                    v-model="loginForm.username"
-                    aria-required="true"
-                    required
-                  />
-                </div>
-                <div class="mb-4">
-                  <label for="auth-password" class="form-label text-sm fw-bold">Password</label>
-                  <div class="input-group">
-                    <input
-                      id="auth-password"
-                      :type="showPassword ? 'text' : 'password'"
-                      class="form-control rounded-start-3"
-                      v-model="loginForm.password"
-                      aria-required="true"
-                      required
-                    />
-                    <!-- Explanation: Password visibility toggle button -->
-                    <button
-                      class="btn btn-outline-secondary rounded-end-3 d-flex align-items-center"
-                      type="button"
-                      @click="showPassword = !showPassword"
-                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                    >
-                      <span class="material-symbols-outlined fs-5">
-                        {{ showPassword ? 'visibility_off' : 'visibility' }}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </template>
+          <!-- Modal Header -->
+          <header class="text-center mb-5">
+             <div class="footer-logo bg-primary text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center mb-3 shadow-sm">
+                <span class="material-symbols-outlined fs-2">local_florist</span>
+             </div>
+             <h2 class="display-6 fw-bold font-zilla fst-italic mb-1">
+                {{ mode === 'login' ? 'Welcome Back' : 'Join the Sanctuary' }}
+             </h2>
+             <p class="text-muted small text-uppercase ls-wide">
+                {{ mode === 'login' ? 'Login' : 'Register' }} to access the garden
+             </p>
+          </header>
 
-              <!-- Explanation: Sign Up mode input fields -->
-              <template v-else>
-                <div class="mb-3">
-                  <label for="signup-display" class="form-label text-sm fw-bold"
-                    >Display Name</label
-                  >
-                  <input
-                    id="signup-display"
-                    type="text"
-                    class="form-control rounded-3"
-                    v-model="signupForm.displayName"
-                    aria-required="true"
-                    required
-                  />
-                </div>
-                <div class="mb-3">
-                  <label for="signup-username" class="form-label text-sm fw-bold">Username</label>
-                  <input
-                    id="signup-username"
-                    type="text"
-                    class="form-control rounded-3"
-                    v-model="signupForm.username"
-                    aria-required="true"
-                    required
-                  />
-                </div>
-                <div class="mb-4">
-                  <label for="signup-password" class="form-label text-sm fw-bold">Password</label>
-                  <div class="input-group">
-                    <input
-                      id="signup-password"
-                      :type="showPassword ? 'text' : 'password'"
-                      class="form-control rounded-start-3"
-                      v-model="signupForm.password"
-                      aria-required="true"
-                      required
-                    />
-                    <!-- Explanation: Password visibility toggle button -->
-                    <button
-                      class="btn btn-outline-secondary rounded-end-3 d-flex align-items-center"
-                      type="button"
-                      @click="showPassword = !showPassword"
-                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                    >
-                      <span class="material-symbols-outlined fs-5">
-                        {{ showPassword ? 'visibility_off' : 'visibility' }}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </template>
+          <!-- Auth Form -->
+          <form @submit="checkForm" novalidate>
+             <div class="mb-3">
+               <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="username">Username</label>
+               <input v-model="username" id="username" type="text" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm font-roboto" placeholder="flower_lover_99" :disabled="isSubmitting" />
+             </div>
 
-              <!-- Explanation: Error alert with aria-live for screen reader announcement -->
-              <div
-                v-if="authError"
-                class="alert alert-danger py-2 text-sm"
-                role="alert"
-                aria-live="polite"
-              >
-                {{ authError }}
-              </div>
+             <div class="mb-4 position-relative">
+               <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="password">Password</label>
+               <input v-model="password" id="password" :type="showPassword ? 'text' : 'password'" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm font-roboto" placeholder="••••••••" :disabled="isSubmitting" />
+               <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-3 mt-3 text-muted" @click="showPassword = !showPassword">
+                  <span class="material-symbols-outlined fs-5">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+               </button>
+             </div>
 
-              <!-- Explanation: Submit button labelled based on current mode -->
-              <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">
-                {{ isSignUpMode ? 'Sign Up' : 'Log In' }}
-              </button>
+             <div v-if="mode === 'register'" class="mb-4 animate-fade-up">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="displayName">Display Name</label>
+                <input v-model="displayName" id="displayName" type="text" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm font-roboto" placeholder="Lily Gardener" :disabled="isSubmitting" />
+             </div>
 
-              <!-- Explanation: Toggle link to switch between Login and Sign Up modes -->
-              <div class="text-center mt-3 text-sm">
-                <button
-                  type="button"
-                  class="btn btn-link text-decoration-none p-0 text-muted"
-                  @click="toggleMode"
-                >
-                  {{
-                    isSignUpMode
-                      ? 'Already have an account? Log In'
-                      : "Don't have an account? Sign Up"
-                  }}
+             <div v-if="error" class="alert alert-danger rounded-4 py-2 text-sm text-center mb-4 animate-fade-up">
+                {{ error }}
+             </div>
+
+             <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-lg mb-4 text-uppercase ls-1" :disabled="isSubmitting">
+                <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                {{ mode === 'login' ? 'Grant Access' : 'Create Sanctuary Account' }}
+             </button>
+
+             <div class="text-center">
+                <button type="button" class="btn btn-link text-muted text-decoration-none small fw-bold" @click="mode = (mode === 'login' ? 'register' : 'login')" :disabled="isSubmitting">
+                   {{ mode === 'login' ? "Don't have an account? Sign up" : 'Already part of the garden? Login' }}
                 </button>
-              </div>
-            </form>
-          </div>
+             </div>
+          </form>
         </div>
       </div>
     </transition>
   </teleport>
 </template>
 
-<style scoped>
-/* Explanation: Fade transition for modal enter/leave animations */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
+<style scoped lang="scss">
+.auth-overlay {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
 }
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
+
+.auth-modal {
+  background-color: white;
+  width: 100%;
 }
+
+.inset-0 { top: 0; left: 0; right: 0; bottom: 0; }
+
+.footer-logo {
+  width: 56px;
+  height: 56px;
+}
+
+.ls-wide { letter-spacing: 0.15rem; }
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+}
+
+// Fade transition
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

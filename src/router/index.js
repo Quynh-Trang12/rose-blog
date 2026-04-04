@@ -22,22 +22,18 @@ import UnauthorizedView from '../views/UnauthorizedView.vue'
 // ==========================================
 // ROUTES
 // ==========================================
-// Explanation: Each route object defines a URL path, a named identifier,
-// and the component to render. The meta.requiresAuth flag is checked
-// by the navigation guard below.
 const routes = [
   { path: '/', name: 'home', component: HomeView },
   {
     path: '/collection',
     name: 'collection',
     component: CollectionView,
-    // Explanation: This route is accessible only to authenticated users.
     meta: { requiresAuth: true },
   },
   { path: '/news', name: 'news', component: NewsView },
   { path: '/about', name: 'about', component: AboutView },
   { path: '/unauthorized', name: 'unauthorized', component: UnauthorizedView },
-  // Explanation: Catch-all route — redirects any unknown paths back to home.
+  // Catch-all route — redirects any unknown paths back to home.
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
@@ -47,18 +43,22 @@ const router = createRouter({
 
   /**
    * Controls scroll behaviour when navigating between routes.
-   * Explanation: If the target route includes a hash (e.g., /news#post-101),
-   * the browser scrolls to that element. Otherwise, it scrolls to the top.
+   * Explanation: Fixed scrollBehavior (Issue 6) with a delay to allow
+   * components to render before attempting to scroll to a hash element.
    * @param {Object} to - The target route object
-   * @returns {Object} Scroll position descriptor
+   * @param {Object} _from - The previous route object
+   * @param {Object} savedPosition - The previous scroll position
+   * @returns {Promise|Object} Scroll position descriptor
    */
-  scrollBehavior(to) {
+  scrollBehavior(to, _from, savedPosition) {
+    if (savedPosition) return savedPosition
     if (to.hash) {
-      return {
-        el: to.hash,
-        behavior: 'smooth',
-        top: 80,
-      }
+      return new Promise((resolve) => {
+        // Defer scroll to allow DOM to settle after page load/mount
+        setTimeout(() => {
+          resolve({ el: to.hash, behavior: 'smooth', top: 80 })
+        }, 350)
+      })
     }
     return { top: 0, behavior: 'smooth' }
   },
@@ -69,20 +69,17 @@ const router = createRouter({
 // ==========================================
 /**
  * Explanation: The beforeEach guard runs before every route transition.
- * It checks whether the target route requires authentication (via the
- * meta.requiresAuth flag) and redirects unauthenticated users to the
- * /unauthorized view. Authentication state is read from the Vuex
- * auth module's isLoggedIn getter.
+ * Uses Vuex 4 auth module's isLoggedIn getter to control protected access.
  */
 router.beforeEach((to, _from, next) => {
   const isLoggedIn = store.getters['auth/isLoggedIn']
 
   if (to.meta.requiresAuth && !isLoggedIn) {
-    // Explanation: Redirect to the unauthorized view when a guest
-    // attempts to access a protected route.
+    // Redirect to the unauthorized view when a guest
+    // attempts to access a protected route (/collection).
     next({ name: 'unauthorized' })
   } else {
-    // Explanation: Allow navigation to proceed normally.
+    // Allow navigation to proceed normally.
     next()
   }
 })

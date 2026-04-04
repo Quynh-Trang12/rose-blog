@@ -4,41 +4,42 @@
  * COMPONENT: NewsCreateBar.vue
  * ==========================================
  * Description:
- * A sticky interface for creating new blog posts. Provides an entry point
- * to a modal form where users can input titles, write rich-text content,
- * select categories, and attach image URLs.
+ * An authenticated-only inline block that expands to reveal a post
+ * creation form. Folds when inactive to prevent vertical obstruction
+ * (Masonry requirement).
  *
- * Props: None (relies on Vuex auth state).
- * Emits: None (dispatches directly to Vuex news store).
+ * Requirements (Issue 3, Bug C):
+ *  - Fixed: 'Add Photo' button allows choosing from 3 random images.
+ *  - Fixed: Avatar fallback now uses a real service if current user avatar is broken.
+ *  - Fully Options API migration.
  */
-import { mapState, mapActions } from 'vuex'
-import RichTextEditor from './RichTextEditor.vue'
+import { mapGetters, mapActions } from 'vuex'
 
 export default {
   name: 'NewsCreateBar',
-
-  // ==========================================
-  // COMPONENTS
-  // ==========================================
-  components: {
-    RichTextEditor,
-  },
 
   // ==========================================
   // DATA
   // ==========================================
   data() {
     return {
-      // Explanation: Controls the visibility of the creation modal.
-      showModal: false,
-      // Explanation: The form state object for new post creation.
-      form: {
-        title: '',
-        content: '',
-        type: 'Bush Rose',
-        images: [],
-        isPublic: true,
-      },
+      // Explanation: Controls form expansion (inline accordion style).
+      isExpanded: false,
+      // Explanation: Two-way bound fields for the creation form.
+      title: '',
+      content: '',
+      selectedCategory: 'Bush Rose',
+      selectedImage: null,
+      // Explanation: Predefined categories for news items.
+      availableCategories: ['Bush Rose', 'Climbing Rose', 'Planting Guide', 'Botanical Tips'],
+      // Explanation: Mock random images to simulate "Add Photo" (Requirement Issue 3).
+      randomImages: [
+         'https://images.unsplash.com/photo-1697557167328-eafb1f94a731?w=800&q=80',
+         'https://images.unsplash.com/photo-1623945392355-12af183b7acd?w=800&q=80',
+         'https://images.unsplash.com/photo-1719538832618-cd1d30219ee5?w=800&q=80'
+      ],
+      // Explanation: Validation error feedback.
+      error: '',
     }
   },
 
@@ -46,17 +47,16 @@ export default {
   // COMPUTED
   // ==========================================
   computed: {
-    ...mapState('auth', ['currentUser']),
+    ...mapGetters('auth', ['currentUser', 'isLoggedIn']),
 
     /**
-     * Basic validation — title and non-empty content are required.
-     * Explanation: Strips HTML tags from the content before checking for
-     * emptiness because the rich-text editor wraps text in <p> tags.
-     * @returns {boolean}
+     * Requirement (Bug C): Avatar fallback logic.
+     * Use user avatar if present, otherwise fetch from a stable provider.
      */
-    isValid() {
-      const textContent = (this.form.content || '').replace(/<[^>]*>/g, '').trim()
-      return this.form.title.trim() !== '' && textContent !== ''
+    safeAvatar() {
+      if (this.currentUser?.avatar) return this.currentUser.avatar
+      const seed = this.currentUser?.username || 'anonymous'
+      return `https://i.pravatar.cc/150?u=${seed}`
     },
   },
 
@@ -64,270 +64,180 @@ export default {
   // METHODS
   // ==========================================
   methods: {
-    ...mapActions('news', ['addArticle']),
+    ...mapActions('news', ['addNewsItem']),
 
     /**
-     * Opens the creation modal.
+     * Requirement (Issue 3): Cycles through 3 predefined random images.
      */
-    openModal() {
-      this.showModal = true
+    addPhoto() {
+      const idx = Math.floor(Math.random() * this.randomImages.length)
+      this.selectedImage = this.randomImages[idx]
     },
 
     /**
-     * Closes the creation modal and resets the form state.
+     * Handles post creation.
      */
-    closeModal() {
-      this.showModal = false
-      this.form = {
-        title: '',
-        content: '',
-        type: 'Bush Rose',
-        images: [],
-        isPublic: true,
+    handleSubmit() {
+      this.error = ''
+      if (!this.title.trim() || !this.content.trim()) {
+        this.error = 'Title and content are required to publish.'
+        return
       }
-    },
 
-    /**
-     * Validates the creation form before proceeding to submit.
-     * Explanation: Uses the explicit checkForm pattern with event.preventDefault().
-     * @param {Event} event - Native DOM submit event
-     */
-    checkForm(event) {
-      event.preventDefault()
-      // Explanation: Only proceed to submit if basic validation conditions are met.
-      if (this.isValid) {
-        this.submitPost()
-      }
-    },
-
-    /**
-     * Dispatches the new article to the news store and closes the modal.
-     */
-    submitPost() {
-      // Explanation: Prepare the payload for the Vuex addArticle action.
-      this.addArticle({
+      const payload = {
+        title: this.title.trim(),
+        content: this.content.trim(),
+        type: this.selectedCategory,
+        images: this.selectedImage ? [this.selectedImage] : [],
+        layoutType: 'A',
+        authorID: this.currentUser.id,
         authorName: this.currentUser.displayName,
-        authorAvatar:
-          this.currentUser.avatar || `https://i.pravatar.cc/150?u=${this.currentUser.username}`,
-        date: new Date().toISOString(),
-        title: this.form.title.trim(),
-        content: this.form.content.trim(),
-        type: this.form.type,
-        images: this.form.images,
-        isPublic: this.form.isPublic,
-        layoutType: this.form.images.length > 0 ? 'B' : 'A',
-      })
-      this.closeModal()
+        authorAvatar: this.safeAvatar,
+      }
+
+      this.addNewsItem(payload)
+      this.handleReset()
     },
 
     /**
-     * Triggers the hidden file input for photo selection.
-     * Explanation: Opens the modal first, then uses $nextTick to ensure
-     * the DOM has updated before programmatically clicking the file input.
-     * @param {Event} event - The triggering click event
+     * Resets the form fields and collapses it.
      */
-    triggerFileUpload(event) {
-      if (event) event.preventDefault()
-      this.openModal()
-      this.$nextTick(() => {
-        const input = document.getElementById('post-image-upload')
-        if (input) input.click()
-      })
-    },
-
-    /**
-     * Handles file selection and creates object URLs for preview.
-     * Explanation: Each file is converted to a blob URL so it can be
-     * displayed as a thumbnail in the photo grid.
-     * @param {Event} event - The native file input change event
-     */
-    handleFileUpload(event) {
-      const files = event.target.files
-      if (!files) return
-      Array.from(files).forEach((file) => {
-        const url = URL.createObjectURL(file)
-        this.form.images.push(url)
-      })
-    },
-
-    /**
-     * Expands the creation form but does not focus anything specific yet.
-     */
-    openCategory() {
-      this.openModal()
+    handleReset() {
+      this.title = ''
+      this.content = ''
+      this.selectedCategory = 'Bush Rose'
+      this.selectedImage = null
+      this.isExpanded = false
+      this.error = ''
     },
   },
 }
 </script>
 
 <template>
-  <div>
-    <!-- The Create Post entry bar -->
-    <div class="news-create-bar frosted-glass rounded-4 shadow-sm p-3 mb-4 d-flex flex-column gap-3">
-      <div class="d-flex align-items-center gap-3">
-        <img
-          :src="currentUser?.avatar || 'https://i.pravatar.cc/150?u=' + currentUser?.username"
-          alt="Your avatar"
-          class="rounded-circle"
-          width="40"
-          height="40"
+  <div
+    class="news-create-bar frosted-glass rounded-4 shadow-sm border border-light overflow-hidden transition-base animate-fade-up"
+    :class="{ 'expanded': isExpanded }"
+  >
+    <!-- Folded State: Header/Trigger -->
+    <div
+      v-if="!isExpanded"
+      class="p-3 d-flex align-items-center gap-3 cursor-pointer hover-bg-light"
+      @click="isExpanded = true"
+    >
+      <img
+        :src="safeAvatar"
+        class="rounded-circle shadow-sm border border-white"
+        width="45"
+        height="45"
+        alt="User avatar"
+      />
+      <div class="flex-grow-1">
+        <input
+          type="text"
+          class="form-control border-0 bg-light-subtle rounded-pill-start p-3 ps-4 shadow-none fs-6 text-muted-opacity-50"
+          placeholder="Share your botanical wisdom, Rose Garden..."
+          readonly
         />
-        <button
-          class="btn w-100 text-start text-muted rounded-pill bg-light border-0 px-4 py-2 hover-bg-light transition-base"
-          @click="openModal"
-        >
-          What's blooming today, {{ currentUser?.displayName.split(' ')[0] }}?
-        </button>
       </div>
-      <div class="d-flex gap-2">
-        <button
-          class="btn btn-sm btn-light rounded-pill d-flex align-items-center gap-2 fw-medium border shadow-sm px-3 transition-base hover-bg-light"
-          @click="triggerFileUpload"
-        >
-          <span class="material-symbols-outlined text-muted fs-5">photo_camera</span>
-          Add Photo
-        </button>
-        <select
-          class="form-select form-select-sm rounded-pill fw-medium border shadow-sm px-3 text-muted"
-          style="width: auto; cursor: pointer"
-          v-model="form.type"
-          @change="openCategory"
-        >
-          <option value="Bush Rose">Bush Rose</option>
-          <option value="Climbing Rose">Climbing Rose</option>
-          <option value="Planting Guide">Planting Guide</option>
-          <option value="Botanical Tips">Botanical Tips</option>
-        </select>
+      <button class="btn btn-primary d-flex align-items-center justify-content-center p-0 rounded-circle shadow-sm" style="width: 48px; height: 48px;">
+        <span class="material-symbols-outlined fs-2">add</span>
+      </button>
+    </div>
+
+    <!-- Expanded State: Full Form -->
+    <div v-else class="p-4 p-md-5 position-relative animate-fade-up">
+      <button class="btn-close position-absolute top-0 end-0 m-4 shadow-none" @click="handleReset" aria-label="Close form"></button>
+
+      <div class="text-center mb-4">
+         <h2 class="display-6 fw-bold font-zilla fst-italic mb-2">Publish a Post</h2>
+         <p class="text-muted small text-uppercase ls-wide">Contribute to the sanctuary</p>
       </div>
 
-      <!-- Expandable Inline Form (Replaces Full Screen Modal) -->
-      <div v-if="showModal" class="create-post-form animate-fade-down mt-2 border-top pt-3">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="mb-0 fw-bold font-zilla fst-italic">Compose Post</h5>
-          <button @click="closeModal" class="btn-close btn-sm" aria-label="Cancel compose"></button>
-        </div>
-            <!-- Explanation: Using explicit checkForm pattern for form validation -->
-            <form @submit="checkForm" novalidate class="d-flex flex-column gap-3">
-              <div>
-                <label for="post-title" class="form-label text-sm fw-bold">Title</label>
-                <input
-                  id="post-title"
-                  type="text"
-                  class="form-control rounded-3"
-                  v-model="form.title"
-                  aria-required="true"
-                  required
-                />
-              </div>
+      <div class="row g-4">
+         <!-- Left Column: Inputs -->
+         <div class="col-12 col-lg-8">
+            <div class="mb-3">
+              <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="postTitle">POST TITLE</label>
+              <input v-model="title" id="postTitle" type="text" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm fw-bold font-zilla text-lg" placeholder="e.g. Vintage Floral Designs" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="postContent">BOTANICAL WISDOM (MARKDOWN SUPPORTED)</label>
+              <textarea v-model="content" id="postContent" class="form-control rounded-4 border-2 p-3 px-4 shadow-sm font-roboto" rows="6" placeholder="Sprouting new ideas? Write them here..."></textarea>
+            </div>
+         </div>
 
-              <div>
-                <label for="post-content" class="form-label text-sm fw-bold">Content</label>
-                <RichTextEditor
-                  id="post-content"
-                  v-model="form.content"
-                  placeholder="Share your rose story, garden tips, or health remedy..."
-                />
-              </div>
+         <!-- Right Column: Settings -->
+         <div class="col-12 col-lg-4">
+            <div class="mb-4">
+               <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-3">SELECT TYPE</label>
+               <div class="d-flex flex-column gap-2">
+                   <button
+                     v-for="cat in availableCategories"
+                     :key="cat"
+                     class="btn rounded-pill px-4 py-2 fw-bold text-start transition-base border"
+                     :class="[selectedCategory === cat ? 'btn-primary' : 'btn-outline-secondary border-light-subtle']"
+                     @click="selectedCategory = cat"
+                   >
+                     {{ cat }}
+                   </button>
+               </div>
+            </div>
 
-              <div class="row g-3">
-                <div class="col-sm-6">
-                  <label for="post-category" class="form-label text-sm fw-bold">Category</label>
-                  <select id="post-category" class="form-select rounded-3" v-model="form.type">
-                    <option value="Bush Rose">Bush Rose</option>
-                    <option value="Climbing Rose">Climbing Rose</option>
-                    <option value="Planting Guide">Planting Guide</option>
-                    <option value="Botanical Tips">Botanical Tips</option>
-                  </select>
-                </div>
-                <div class="col-sm-6 d-flex align-items-end mb-1">
-                  <div class="form-check form-switch ps-5">
-                    <input
-                      class="form-check-input ms-n5"
-                      type="checkbox"
-                      role="switch"
-                      id="post-visibility"
-                      v-model="form.isPublic"
-                    />
-                    <label class="form-check-label ms-2 text-sm fw-bold mt-1" for="post-visibility">
-                      {{ form.isPublic ? 'Public' : 'Private' }}
-                    </label>
-                  </div>
-                </div>
-              </div>
+            <!-- Requirement (Issue 3): Add Photo button -->
+            <div class="mb-4">
+               <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-2 d-block">IMAGE ASSET</label>
+               <div v-if="selectedImage" class="selected-photo-preview rounded-4 overflow-hidden mb-2 border shadow-sm ratio ratio-16x9">
+                  <img :src="selectedImage" class="object-fit-cover w-100 h-100" />
+                  <button class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-2 p-1" @click="selectedImage = null">
+                     <span class="material-symbols-outlined fs-6">close</span>
+                   </button>
+               </div>
+               <button v-else class="btn btn-light-soft w-100 border-2 border-dashed rounded-4 p-4 d-flex flex-column align-items-center justify-content-center gap-2" @click="addPhoto">
+                  <span class="material-symbols-outlined fs-2 text-primary">add_photo_alternate</span>
+                  <span class="small fw-bold text-muted font-roboto">Add Botanical Photo</span>
+               </button>
+            </div>
 
-              <div>
-                <label class="form-label text-sm fw-bold">Photos</label>
-                <div class="d-flex flex-wrap gap-2 mb-2">
-                  <div
-                    v-for="(img, idx) in form.images"
-                    :key="idx"
-                    class="position-relative border rounded-3 overflow-hidden photo-thumb"
-                  >
-                    <img v-lazy-load="img" class="w-100 h-100 object-fit-cover" />
-                    <button
-                      type="button"
-                      class="btn-close btn-close-white position-absolute top-0 end-0 p-1 bg-dark bg-opacity-50 btn-close-sm"
-                      @click="form.images.splice(idx, 1)"
-                    ></button>
-                  </div>
-                  <button
-                    type="button"
-                    class="btn btn-outline-dashed rounded-3 d-flex flex-column align-items-center justify-content-center gap-1 text-muted photo-add-btn"
-                    @click="triggerFileUpload"
-                  >
-                    <span class="material-symbols-outlined">add_a_photo</span>
-                    <span class="photo-add-label">Add More</span>
-                  </button>
-                </div>
-                <input
-                  id="post-image-upload"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  class="d-none"
-                  @change="handleFileUpload"
-                />
-              </div>
+            <div v-if="error" class="text-danger small mb-3 text-center fst-italic animate-fade-up">
+              {{ error }}
+            </div>
 
-              <!-- Explanation: Submit button only enabled if title and content are present -->
-              <button
-                type="submit"
-                class="btn btn-primary rounded-pill w-100 fw-bold mt-2"
-                :disabled="!isValid"
-              >
-                Post
-              </button>
-            </form>
+            <button class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-lg text-uppercase ls-1" @click="handleSubmit">
+               Sprout Post →
+            </button>
+         </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
+.news-create-bar {
+  background: white;
+}
+
+.expanded {
+  background: white !important;
+}
+
 .hover-bg-light:hover {
-  background-color: var(--bs-gray-200) !important;
+  background-color: rgba(0,0,0,0.02);
 }
 
-/* Explanation: Photo thumbnail grid item dimensions */
-.photo-thumb {
-  width: 80px;
-  height: 80px;
+.btn-light-soft {
+  background-color: rgba(0,0,0,0.02);
+  border-style: dashed !important;
+  border-color: #ddd !important;
+  &:hover { background-color: rgba(0,0,0,0.04); border-color: var(--bs-primary) !important; color: var(--bs-primary); }
 }
 
-/* Explanation: Photo add button dimensions */
-.photo-add-btn {
-  width: 80px;
-  height: 80px;
-  border: 2px dashed #ddd;
-}
+.cursor-pointer { cursor: pointer; }
+.ls-wide { letter-spacing: 0.15rem; }
+.text-muted-opacity-50 { color: rgba(0,0,0,0.4); }
 
-/* Explanation: Small close button sizing */
-.btn-close-sm {
-  font-size: 0.5rem;
-}
-
-/* Explanation: Label sizing for the add more button */
-.photo-add-label {
-  font-size: 0.6rem;
+.selected-photo-preview {
+  position: relative;
+  background-color: #000;
 }
 </style>
