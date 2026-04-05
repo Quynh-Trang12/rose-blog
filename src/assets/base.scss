@@ -41,7 +41,7 @@ $gray-utils: ();
     )
   );
 }
-$colors-utils: map-merge-multiple($pinks, $yellows, $gray-utils);
+$colors-utils: map-merge-multiple($pinks, $reds, $yellows, $gray-utils);
 
 $utilities: map-merge(
   $utilities,
@@ -83,13 +83,21 @@ $utilities: map-merge(
     'max-width': (
       property: max-width,
       class: mw,
-      values: (480: 480px, 600: 600px, none: none, 100: 100%),
+      values: (
+        480: 480px,
+        600: 600px,
+        none: none,
+        100: 100%,
+      ),
     ),
     'min-height': (
       property: min-height,
       class: mh,
-      values: (50: 50vh, 100: 100vh),
-    ),
+      values: (
+        50: 50vh,
+        100: 100vh,
+      ),
+    )
   )
 );
 
@@ -263,7 +271,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 
 // --- Decorative Backgrounds ---
 .bg-grad-tright {
-  background: linear-gradient(to top right, $blue-900, rgba($blue-900, 0.75));
+  background: linear-gradient(to top right, $red-700, $pink-100);
 }
 
 // Explanation: Blurred backdrop effect for custom glassmorphism contexts.

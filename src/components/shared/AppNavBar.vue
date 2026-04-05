@@ -10,7 +10,7 @@
  * authentication modal visibility.
  *
  * Requirements (Issue 2, Bug F):
- *  - Fixed: slider state becomes stale after logout. 
+ *  - Fixed: slider state becomes stale after logout.
  *  - Fixed: navbar brand dims when hamburger menu opens.
  *  - Remove all Admin links and features.
  */
@@ -297,7 +297,7 @@ export default {
   >
     <div class="container position-relative">
       <!-- Navbar Brand (Issue 2 Fix: brand z-index explicit 1050) -->
-      <router-link class="navbar-brand d-flex align-items-center gap-2" to="/">
+      <router-link class="navbar-brand d-flex align-items-center gap-2" to="/home">
         <div
           class="logo-box bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center"
         >
@@ -331,11 +331,7 @@ export default {
       ></div>
 
       <!-- Navigation links (Issue 2 Fix: absolute positioning for dropdown) -->
-      <div
-        class="collapse navbar-collapse bg-white"
-        :class="{ show: isMenuOpen }"
-        id="mainNav"
-      >
+      <div class="collapse navbar-collapse bg-white" :class="{ show: isMenuOpen }" id="mainNav">
         <ul
           class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center"
         >
@@ -343,7 +339,11 @@ export default {
             class="nav-item m-0 p-lg-0 py-2"
             v-for="(item, index) in navItems"
             :key="item.path"
-            :ref="(el) => { if (el) itemRefs[index] = el }"
+            :ref="
+              (el) => {
+                if (el) itemRefs[index] = el
+              }
+            "
             @mouseenter="onItemEnter(index)"
             @mouseleave="onItemLeave(index)"
           >
@@ -374,7 +374,7 @@ export default {
                 >favorite</span
               >
               <span
-                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary shadow-sm badge-favorites"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary shadow-sm text-xs"
               >
                 {{ favoritesCount }}
               </span>
@@ -421,10 +421,6 @@ export default {
 
 .brand-text {
   letter-spacing: -0.5px;
-}
-
-.badge-favorites {
-  font-size: 0.65rem;
 }
 
 /* Nav brand and hamburger explicit z-index (Issue 2) */

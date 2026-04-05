@@ -24,6 +24,7 @@ import UnauthorizedView from '../views/UnauthorizedView.vue'
 // ==========================================
 const routes = [
   { path: '/', name: 'home', component: HomeView },
+  { path: '/home', name: 'homePage', component: HomeView },
   {
     path: '/collection',
     name: 'collection',
