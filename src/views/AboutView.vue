@@ -7,11 +7,6 @@
  * The static About page for The Rose Blog. Shares the vision, history,
  * and mission. Includes interactive visitor welcome form and rose type
  * selection (COS30043 Stage 1 requirements).
- *
- * Requirements (Issue 9):
- *  1. Descriptive vision/history section.
- *  2. Visitor welcome form with First/Last Name inputs and live welcome message.
- *  3. Rose type selector with radio buttons for 'Bush Rose' and 'Climbing Rose'.
  */
 
 export default {
