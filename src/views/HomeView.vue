@@ -313,7 +313,7 @@ export default {
     inset: 0;
     /* 3. Dark semi-transparent overlay to ensure white text is always readable
           regardless of whether the image or the gradient is currently showing. */
-    background: linear-gradient(to top right, rgba($red-900, 0.9), rgba($pink-200, 0.3));
+    background: linear-gradient(to bottom left, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.6));
   }
 }
 
@@ -322,4 +322,3 @@ export default {
   background: linear-gradient(to top, rgba($black, 0.9) 0%, rgba($black, 0.4) 60%, transparent);
 }
 </style>
-

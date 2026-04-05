@@ -105,17 +105,16 @@ export default {
             rose varieties.
           </p>
           <!-- Social Icons (hover effects clearly visible) -->
-          <div class="d-flex gap-3 mt-4">
-            <a
-              v-for="s in socialLinks"
-              :key="s.id"
-              :href="s.url"
-              target="_blank"
-              class="social-link btn btn-outline-light rounded-circle shadow-sm transition-base d-flex align-items-center justify-content-center"
-              :aria-label="'Follow us on ' + s.label"
+          <div class="d-flex gap-3 text-gray-800">
+            <a href="#" class="text-gray-800 text-decoration-none hover-slide-primary"
+              ><span class="material-symbols-outlined fs-4">share</span></a
             >
-              <i :class="'bi bi-' + s.icon"></i>
-            </a>
+            <a href="#" class="text-gray-800 text-decoration-none hover-slide-primary"
+              ><span class="material-symbols-outlined fs-4">photo_camera</span></a
+            >
+            <a href="#" class="text-gray-800 text-decoration-none hover-slide-primary"
+              ><span class="material-symbols-outlined fs-4">mail</span></a
+            >
           </div>
         </div>
 
