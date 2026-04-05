@@ -205,7 +205,7 @@
     "date": "2026-04-05T14:20:00Z",
     "title": "Snow Cascade",
     "type": "Climbing Rose",
-    "layoutType": "A",
+    "layoutType": "B",
     "color": "Pure White",
     "fragrance": "Light and fresh",
     "bloomingSeason": "All Season",
@@ -226,11 +226,9 @@
     "date": "2026-04-07T10:00:00Z",
     "title": "Essential Rose Planting Guide",
     "type": "Planting Guide",
-    "layoutType": "B",
+    "layoutType": "A",
     "content": "Successfully growing roses begins with proper site selection and planting technique. Roses require at least 6–8 hours of direct sunlight daily. In extremely hot climates, some afternoon shade can prevent flower damage. They thrive in well-drained, fertile soil rich in organic matter (pH 6.0–7.0). Dig a hole twice as wide as the container and at least 18 inches deep. Mix the native soil with compost or well-rotted manure (50/50 mix). Position the rose so the bud union is at the appropriate depth: 1–2 inches below the surface in cold climates, or at soil level in mild climates. Water thoroughly immediately after planting and maintain consistent moisture for the first few weeks.",
-    "images": [
-      "https://images.unsplash.com/photo-1599110906803-0c302d76378c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-    ]
+    "images": []
   },
   {
     "id": "post-112",
@@ -240,10 +238,8 @@
     "date": "2026-04-09T15:30:00Z",
     "title": "Advanced Botanical Tips",
     "type": "Botanical Tips",
-    "layoutType": "C",
+    "layoutType": "A",
     "content": "Understanding the botanical needs of your roses ensures long-term health. Roses prefer deep, infrequent watering over light daily sprinkles. Provide about 1 inch of water per week, always at the base; avoid wetting the foliage to prevent fungal diseases like black spot. Early morning is the best time for hydration. Apply a 2–3 inch layer of organic mulch to retain moisture and suppress weeds, keeping it away from the main stem. Annual pruning in early spring is vital—remove dead, diseased, or crossing canes and open the center of the plant to improve airflow. Make cuts at a 45-degree angle above an outward-facing bud.",
-    "images": [
-      "https://images.unsplash.com/photo-1558236714-d118743a03b5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
-    ]
+    "images": []
   }
 ]

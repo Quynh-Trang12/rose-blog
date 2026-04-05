@@ -140,11 +140,11 @@ export default {
       <div class="container position-relative z-1 pt-5 pb-5">
         <div class="row align-items-center g-5">
           <!-- Hero Text -->
-          <div class="col-12 col-lg-8 animate-fade-up text-white">
-            <h1 class="display-3 fw-bold fst-italic mb-3 font-zilla lh-tight">
-              A Petal for<br /><span class="text-primary">Your Thoughts</span>
+          <div class="col-12 col-lg-8 text-gray-300 animate-fade-up">
+            <h1 class="fs-1 fw-bold text-break fst-italic font-zilla lh-tight">
+              A Petal for<br /><span class="display-3 fw-bold text-secondary">Your Thoughts</span>
             </h1>
-            <p class="fs-5 text-gray-300 mb-4 font-roboto mw-600">
+            <p class="fs-6 mb-4 font-roboto mw-600">
               Welcome to The Rose Blog — a digital collection dedicated to the timeless elegance of
               the world's timeless flower. Discover pruning techniques, botanical updates, and a
               community passionate about every bloom.
@@ -189,7 +189,7 @@ export default {
             </div>
 
             <div
-              class="card img-zoom-hover rounded-4 overflow-hidden shadow-lg position-relative flex-grow-1 d-flex bg-dark"
+              class="card img-zoom-hover rounded-4 overflow-hidden shadow-lg position-relative flex-grow-1 d-flex bg-dark mh-50"
             >
               <img
                 v-lazy-load="featuredProfile.image"
@@ -224,40 +224,45 @@ export default {
             </div>
 
             <div class="d-flex flex-column justify-content-between flex-grow-1 gap-3 h-100">
-              <div
+              <article
                 v-for="item in publications"
                 :key="item.id"
-                class="publication-card frosted-glass border border-2 border-white rounded-5 p-4 shadow-sm d-flex flex-column justify-content-center transition-base card-hover"
+                class="card card-hover frosted-glass bg-transparent h-100 rounded-4 p-4 shadow-sm"
               >
-                <div class="d-flex flex-row align-items-center gap-4">
-                  <div class="flex-grow-1">
-                    <span
-                      class="text-primary text-uppercase fw-bold ls-1 x-small d-block mb-1 font-roboto"
+                <router-link
+                  :to="item.link"
+                  class="text-decoration-none d-block h-100"
+                  :aria-label="'Read article: ' + item.title"
+                >
+                  <div class="row g-0 align-items-center h-100">
+                    <div
+                      v-if="item.image"
+                      class="col-4 col-md-3 col-lg-4 h-100 overflow-hidden rounded-3 shadow-sm"
                     >
-                      {{ item.category }}
-                    </span>
-                    <h4 class="h5 fw-bold fst-italic font-zilla text-dark mb-2">
-                      {{ item.title }}
-                    </h4>
-                    <p class="text-muted small font-roboto mb-3 line-clamp-2">
-                      {{ item.description }}
-                    </p>
-                    <router-link
-                      :to="item.link"
-                      class="btn btn-xs btn-link text-primary text-decoration-none fw-bold p-0"
-                    >
-                      Explore Post →
-                    </router-link>
+                      <img
+                        v-lazy-load="item.image"
+                        :alt="'Thumbnail for ' + item.title"
+                        class="w-100 h-100 object-fit-cover"
+                      />
+                    </div>
+
+                    <div :class="item.image ? 'col-8 col-md-9 col-lg-8 ps-3 ps-md-4' : 'col-12'">
+                      <p
+                        class="fw-bolder mb-1 text-uppercase text-primary ls-wide text-sm font-roboto"
+                        aria-hidden="true"
+                      >
+                        {{ item.category }}
+                      </p>
+                      <h3 class="h5 fw-bold text-dark mb-2 font-zilla fst-italic">
+                        {{ item.title }}
+                      </h3>
+                      <p class="small mb-0 fw-medium text-muted font-roboto">
+                        {{ item.description }}
+                      </p>
+                    </div>
                   </div>
-                  <div class="publication-img rounded-4 overflow-hidden shadow-sm flex-shrink-0">
-                    <img
-                      v-lazy-load="item.image"
-                      class="w-100 h-100 object-fit-cover"
-                      :alt="item.title"
-                    />
-                  </div>
-                </div>
-              </div>
+                </router-link>
+              </article>
             </div>
           </div>
         </div>
@@ -269,7 +274,6 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/mixins';
 
 /* Dynamic height adjustment to subtract the navbar height */
 .full-height-section {
@@ -303,44 +307,5 @@ export default {
 /* Bottom gradient overlay for the featured post image */
 .overlay-gradient {
   background: linear-gradient(to top, rgba($black, 0.9) 0%, rgba($black, 0.4) 60%, transparent);
-}
-
-// /* Minimum height constraint for the featured card */
-// .featured-card {
-//   min-height: 450px;
-// }
-
-.group-hover-scale {
-  transition: transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
-}
-
-.featured-card:hover .group-hover-scale {
-  transform: scale(1.05);
-}
-
-/* Frosted glass effect for latest news cards */
-.publication-card {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-/* Fixed dimensions for the right-side images */
-.publication-img {
-  width: 100px;
-  height: 100px;
-}
-
-.x-small {
-  font-size: 0.75rem;
-}
-
-/* Truncates description text if it exceeds two lines */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 </style>
