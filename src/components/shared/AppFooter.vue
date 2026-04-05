@@ -90,7 +90,7 @@ export default {
 
 <template>
   <!-- Explanation: Footer with gradient background and relative positioning for decorative elements -->
-  <footer class="bg-grad-tright mt-auto py-5 position-relative overflow-hidden">
+  <footer class="grad-pink mt-auto py-5 position-relative overflow-hidden">
     <div class="container position-relative z-1">
       <div class="row g-5">
         <!-- Explanation: Brand information column with logo and description -->

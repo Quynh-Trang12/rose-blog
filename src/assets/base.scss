@@ -91,11 +91,29 @@ $utilities: map-merge(
         100: 100%,
       ),
     ),
-    'min-height': (
-      property: min-height,
-      class: mh,
+    'height': (
+      property: height,
+      class: h,
       values: (
+        25: 25%,
+        50: 50%,
+        75: 75%,
+        100: 100%,
+        auto: auto,
+      ),
+    ),
+    'viewport-height': (
+      property: height,
+      class: vh,
+      values: (
+        60: 60vh,
         50: 50vh,
+      ),
+    ),
+    'min-viewport-height': (
+      property: min-height,
+      class: min-vh,
+      values: (
         100: 100vh,
       ),
     )
@@ -160,7 +178,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .frosted-glass {
-  @include glassmorphism($gray-300);
+  @include glassmorphism($gray-200);
 }
 
 .glassmorphism-pink {
@@ -271,7 +289,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 // --- Decorative Backgrounds ---
-.bg-grad-tright {
+.grad-pink {
   background: linear-gradient(to top right, $red-700, $pink-100);
 }
 

@@ -100,9 +100,9 @@ export default {
             </h1>
             <div class="mx-auto border-bottom border-primary border-4 about-divider mb-4"></div>
             <p class="text-muted lh-xl font-roboto fs-5">
-              Est. 2026 — A digital sanctuary for rose lovers worldwide. 
-              Our mission is to democratize rose care knowledge, providing expert-level 
-              guidance that is accessible to every level of gardener.
+              Est. 2026 — A digital sanctuary for rose lovers worldwide. Our mission is to
+              democratize rose care knowledge, providing expert-level guidance that is accessible to
+              every level of gardener.
             </p>
           </div>
 
@@ -111,19 +111,30 @@ export default {
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Visitor Welcome</h2>
             <div class="row g-3 mb-4">
               <div class="col-12 col-md-6">
-                <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="firstName">First Name</label>
+                <label
+                  class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  for="firstName"
+                  >First Name</label
+                >
                 <input
                   id="firstName"
                   type="text"
                   class="form-control rounded-pill border-2 p-2 px-3"
-                  :class="{ 'is-valid': touched.firstName && firstName.trim(), 'is-invalid': touched.firstName && !firstName.trim() }"
+                  :class="{
+                    'is-valid': touched.firstName && firstName.trim(),
+                    'is-invalid': touched.firstName && !firstName.trim(),
+                  }"
                   v-model="firstName"
                   @blur="touched.firstName = true"
                   placeholder="e.g. John"
                 />
               </div>
               <div class="col-12 col-md-6">
-                <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="lastName">Last Name</label>
+                <label
+                  class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  for="lastName"
+                  >Last Name</label
+                >
                 <input
                   id="lastName"
                   type="text"
@@ -137,10 +148,13 @@ export default {
             </div>
 
             <transition name="fade">
-              <div v-show="welcomeMessage" class="welcome-message text-center p-3 rounded-3 bg-primary bg-opacity-10 mb-2">
-                <h3 class="h5 fw-bold font-zilla fst-italic mb-0 text-primary animate-fade-up">
+              <div
+                v-show="welcomeMessage"
+                class="welcome-message text-center p-3 rounded-3 bg-primary bg-opacity-10 mb-2"
+              >
+                <div class="h5 fw-bold font-zilla fst-italic mb-0 text-primary animate-fade-up">
                   {{ welcomeMessage }}
-                </h3>
+                </div>
               </div>
             </transition>
           </div>
@@ -148,14 +162,16 @@ export default {
           <!-- Section 3: Rose Type Selection (Radio buttons) -->
           <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Find Your Perfect Rose</h2>
-            <p class="text-muted mb-4 font-roboto">Select which rose variety you wish to explore:</p>
+            <p class="text-muted mb-4 font-roboto">
+              Select which rose variety you wish to explore:
+            </p>
 
             <div class="row g-4">
               <!-- Bush Rose Radio Option -->
               <div class="col-12 col-md-6">
                 <label
                   class="rose-selector-card rounded-4 p-3 border h-100 d-flex flex-column align-items-center text-center cursor-pointer transition-base"
-                  :class="{ 'active': selectedRoseType === 'bush' }"
+                  :class="{ active: selectedRoseType === 'bush' }"
                   for="roseTypeBush"
                 >
                   <input
@@ -167,10 +183,18 @@ export default {
                     class="d-none"
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
-                    <img v-lazy-load="'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=600&q=80'" class="w-100 h-100 object-fit-cover" alt="Bush Rose" />
+                    <img
+                      v-lazy-load="
+                        'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=600&q=80'
+                      "
+                      class="w-100 h-100 object-fit-cover"
+                      alt="Bush Rose"
+                    />
                   </div>
                   <h3 class="h5 fw-bold font-zilla fst-italic">Bush Rose</h3>
-                  <p class="small text-muted font-roboto px-2 mb-0">Compact, fragrant, and perfect for containers or borders.</p>
+                  <p class="small text-muted font-roboto px-2 mb-0">
+                    Compact, fragrant, and perfect for containers or borders.
+                  </p>
                 </label>
               </div>
 
@@ -178,7 +202,7 @@ export default {
               <div class="col-12 col-md-6">
                 <label
                   class="rose-selector-card rounded-4 p-3 border h-100 d-flex flex-column align-items-center text-center cursor-pointer transition-base"
-                  :class="{ 'active': selectedRoseType === 'climbing' }"
+                  :class="{ active: selectedRoseType === 'climbing' }"
                   for="roseTypeClimbing"
                 >
                   <input
@@ -190,21 +214,38 @@ export default {
                     class="d-none"
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
-                    <img v-lazy-load="'https://images.unsplash.com/photo-1559564283-0570183b16db?w=600&q=80'" class="w-100 h-100 object-fit-cover" alt="Climbing Rose" />
+                    <img
+                      v-lazy-load="
+                        'https://images.unsplash.com/photo-1559564283-0570183b16db?w=600&q=80'
+                      "
+                      class="w-100 h-100 object-fit-cover"
+                      alt="Climbing Rose"
+                    />
                   </div>
                   <h3 class="h5 fw-bold font-zilla fst-italic">Climbing Rose</h3>
-                  <p class="small text-muted font-roboto px-2 mb-0">Dramatic vertical growth for fences, pergolas, and walls.</p>
+                  <p class="small text-muted font-roboto px-2 mb-0">
+                    Dramatic vertical growth for fences, pergolas, and walls.
+                  </p>
                 </label>
               </div>
             </div>
 
             <!-- Featured Selection Display -->
             <div class="text-center mt-5">
-              <div class="position-relative d-inline-block featured-rose-box rounded- circle overflow-hidden mb-4 shadow-lg">
-                <img :src="selectedRoseImage" class="w-100 h-100 object-fit-cover" alt="Selected Rose" />
+              <div
+                class="position-relative d-inline-block featured-rose-box rounded- circle overflow-hidden mb-4 shadow-lg"
+              >
+                <img
+                  :src="selectedRoseImage"
+                  class="w-100 h-100 object-fit-cover"
+                  alt="Selected Rose"
+                />
               </div>
               <div class="mt-2">
-                <button @click="exploreRoses" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm">
+                <button
+                  @click="exploreRoses"
+                  class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm"
+                >
                   Explore {{ selectedRoseType === 'climbing' ? 'Climbing' : 'Bush' }} Roses →
                 </button>
               </div>
@@ -266,10 +307,12 @@ export default {
   cursor: pointer;
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 </style>

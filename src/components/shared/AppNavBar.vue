@@ -8,11 +8,6 @@
  * toggling with an absolute-positioned mobile overlay (prevents page push),
  * desktop slider animations for hover effects, and orchestrates the
  * authentication modal visibility.
- *
- * Requirements (Issue 2, Bug F):
- *  - Fixed: slider state becomes stale after logout.
- *  - Fixed: navbar brand dims when hamburger menu opens.
- *  - Remove all Admin links and features.
  */
 import { mapGetters, mapActions } from 'vuex'
 import AuthModal from '@/components/auth/AuthModal.vue'
@@ -277,10 +272,7 @@ export default {
     },
   },
 
-  // ==========================================
-  // LIFECYCLE HOOKS
-  // ==========================================
-  created() {
+  mounted() {
     this.syncActiveIndex()
   },
 
@@ -291,47 +283,36 @@ export default {
 </script>
 
 <template>
-  <nav
-    class="navbar navbar-expand-lg bg-white sticky-top py-2 border-bottom shadow-sm"
-    aria-label="Main navigation"
-  >
+  <nav class="navbar navbar-expand-lg bg-white sticky-top py-2 border-bottom shadow-sm">
     <div class="container position-relative">
-      <!-- Navbar Brand (Issue 2 Fix: brand z-index explicit 1050) -->
-      <router-link class="navbar-brand d-flex align-items-center gap-2" to="/home">
+      <router-link
+        class="navbar-brand d-flex align-items-center gap-2 z-3 position-relative"
+        to="/"
+        @click="closeMobileMenu"
+      >
         <div
-          class="logo-box bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center"
+          class="logo-box bg-primary text-white rounded p-1 d-flex align-items-center justify-content-center transition-base hover-scale"
         >
           <span class="material-symbols-outlined fs-5">local_florist</span>
         </div>
         <div class="d-flex flex-column lh-1">
-          <span class="fw-bold text-dark fs-5 brand-text">The Rose Blog</span>
+          <span class="fw-bold text-dark fs-5 brand-text font-zilla">The Rose Blog</span>
         </div>
       </router-link>
 
-      <!-- Hamburger (Issue 2 Fix: z-index higher than overlay) -->
       <button
-        class="navbar-toggler border-0 shadow-none hamburger-animated"
+        class="navbar-toggler border-0 shadow-none hamburger-animated position-relative z-3"
         type="button"
         @click="isMenuOpen = !isMenuOpen"
         :class="{ open: isMenuOpen }"
         aria-label="Toggle navigation"
-        :aria-expanded="isMenuOpen"
       >
         <span class="hamburger-line"></span>
         <span class="hamburger-line"></span>
         <span class="hamburger-line"></span>
       </button>
 
-      <!-- Mobile Backdrop (Issue 2 Fix) -->
-      <div
-        v-if="isMenuOpen"
-        class="navbar-mobile-backdrop"
-        @click="closeMobileMenu"
-        aria-hidden="true"
-      ></div>
-
-      <!-- Navigation links (Issue 2 Fix: absolute positioning for dropdown) -->
-      <div class="collapse navbar-collapse bg-white" :class="{ show: isMenuOpen }" id="mainNav">
+      <div class="navbar-custom-menu bg-white" :class="{ show: isMenuOpen }" id="mainNav">
         <ul
           class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center"
         >
@@ -348,7 +329,7 @@ export default {
             @mouseleave="onItemLeave(index)"
           >
             <router-link
-              class="nav-link nav-link-animated px-3 px-lg-4 d-flex align-items-center justify-content-center gap-1"
+              class="nav-link nav-link-animated px-3 px-lg-4 d-flex align-items-center justify-content-center gap-1 text-lg fw-medium"
               :class="{ 'is-active': activeIndex === index }"
               :to="item.path"
               @click="handleNavClick(index)"
@@ -356,12 +337,9 @@ export default {
               {{ item.label }}
             </router-link>
           </li>
-
-          <!-- Slider (Desktop only) -->
           <li class="nav-slider-primary d-none d-lg-block" :style="sliderStyle"></li>
         </ul>
 
-        <!-- Right Side: Interaction & Auth -->
         <div class="d-flex flex-column flex-lg-row align-items-center gap-4 pb-4 pb-lg-0">
           <router-link
             v-if="isLoggedIn"
@@ -370,11 +348,11 @@ export default {
             @click="closeMobileMenu"
           >
             <div class="position-relative d-flex mt-1 gap-2">
-              <span class="material-symbols-outlined fs-3 text-primary transition-base hover-scale"
+              <span class="material-symbols-outlined fs-3 text-primary transition-all hover-scale"
                 >favorite</span
               >
               <span
-                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary shadow-sm text-xs"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary shadow-sm text-xs ls-1"
               >
                 {{ favoritesCount }}
               </span>
@@ -386,16 +364,13 @@ export default {
             v-if="!isLoggedIn"
             @click="toggleLoginModal"
             class="btn btn-primary btn-sm rounded-pill px-5 px-lg-4 py-2 fw-bolder shadow-sm"
-            type="button"
           >
             Log In
           </button>
-
           <button
             v-else
             @click="handleLogout"
             class="btn btn-outline-primary btn-sm rounded-pill px-5 px-lg-4 py-2 fw-bolder"
-            type="button"
           >
             Log Out
           </button>
@@ -403,7 +378,10 @@ export default {
       </div>
     </div>
 
-    <!-- Auth Modal -->
+    <Teleport to="body">
+      <div v-if="isMenuOpen" class="navbar-mobile-backdrop" @click="closeMobileMenu"></div>
+    </Teleport>
+
     <AuthModal :is-open="isAuthModalOpen" @close="isAuthModalOpen = false" />
   </nav>
 </template>
@@ -414,48 +392,67 @@ export default {
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
 
+/* Navbar wrapper stays at top layer with relative positioning */
+.navbar {
+  position: relative;
+  z-index: 1070 !important;
+}
+
 .logo-box {
   width: 32px;
   height: 32px;
 }
-
 .brand-text {
   letter-spacing: -0.5px;
 }
 
-/* Nav brand and hamburger explicit z-index (Issue 2) */
-.navbar-brand {
-  position: relative;
-  z-index: 1050;
-}
-
-.hamburger-animated {
-  z-index: 1050;
-}
-
-/* Mobile backdrop: position fixed, behind dropdown, above content (Issue 2) */
+/* Backdrop covers screen under the navbar but over the page */
 .navbar-mobile-backdrop {
   position: fixed;
   inset: 0;
-  top: var(--navbar-height, 76px);
-  z-index: 1039;
-  background: rgba(0, 0, 0, 0.25);
+  z-index: 1060;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
   @include media-breakpoint-up(lg) {
     display: none;
   }
 }
 
-/* Mobile dropdown positioning (Issue 2) */
-@include media-breakpoint-down(lg) {
-  .navbar-collapse {
+/* Mobile dropdown absolutely positioned relative to the .navbar to prevent page push */
+.navbar-custom-menu {
+  @include media-breakpoint-down(lg) {
+    display: none;
     position: absolute;
-    top: 100%;
+    top: 100%; /* Positions exactly at bottom border of the navbar */
     left: 0;
     right: 0;
-    z-index: 1040;
-    background: white;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-    padding: 1rem 1.5rem 1.5rem;
+    width: 100%;
+    z-index: 1065;
+    background: #fff;
+    padding: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+    /* Makes sure menu items are scrollable instead of hiding them */
+    max-height: calc(100vh - 75px);
+    overflow-y: auto;
+
+    /* Heal the blurry sub-pixel cut line gap */
+    margin-top: -1px;
+    border-top: 1px solid #fff;
+
+    flex-direction: column;
+
+    &.show {
+      display: flex;
+    }
+  }
+
+  @include media-breakpoint-up(lg) {
+    display: flex !important;
+    align-items: center;
+    flex-basis: auto;
+    flex-grow: 1;
+    background: transparent !important;
   }
 }
 </style>

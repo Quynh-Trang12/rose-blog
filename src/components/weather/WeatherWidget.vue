@@ -235,7 +235,7 @@ export default {
           <!-- Explanation: Loading spinner displayed while data is being fetched -->
           <div
             v-if="locationStatus === 'loading' && !temperature"
-            class="spinner-border text-primary opacity-50"
+            class="spinner-border text-secondary opacity-50"
             role="status"
           >
             <span class="visually-hidden">Loading weather...</span>
