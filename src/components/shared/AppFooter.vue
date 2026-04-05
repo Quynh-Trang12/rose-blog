@@ -177,11 +177,6 @@ export default {
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 
-.footer-logo {
-  width: 32px;
-  height: 32px;
-}
-
 .social-link {
   width: 42px;
   height: 42px;
