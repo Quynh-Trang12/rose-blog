@@ -5,13 +5,8 @@
  * ==========================================
  * Description:
  * A private view for authenticated users to manage their bookmarked
- * news items. Displays saved items in a masonry grid using the 
+ * news items. Displays saved items in a masonry grid using the
  * NewsCard component.
- *
- * Requirements (Bug A):
- *  - Removed dead 'selectedRose' modal logic and teleport blocks.
- *  - Removed the large commented-out rose grid.
- *  - Handled the case when a user is not logged in.
  */
 import { mapGetters, mapState } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
@@ -41,7 +36,7 @@ export default {
     savedNewsItems() {
       if (!this.isLoggedIn) return []
       return this.allNewsItems.filter((item) =>
-        this.mySavedPostIds.some((id) => String(id) === String(item.id))
+        this.mySavedPostIds.some((id) => String(id) === String(item.id)),
       )
     },
   },
@@ -57,8 +52,8 @@ export default {
           My botanical <span class="text-primary">sanctuary</span>
         </h1>
         <p class="text-muted font-roboto fs-5">
-          Curating your personal collection of rose wisdom. 
-          Everything you save is kept here for quick reference.
+          Curating your personal collection of rose wisdom. Everything you save is kept here for
+          quick reference.
         </p>
         <div class="mx-auto border-bottom border-primary border-4 collection-divider"></div>
       </div>
@@ -93,13 +88,18 @@ export default {
         <!-- Empty Collection State -->
         <div v-else class="text-center py-5 animate-fade-up">
           <div class="glassmorphism-pink rounded-5 p-5 border border-white mw-600 mx-auto">
-            <span class="material-symbols-outlined display-1 text-primary-light mb-4">bookmark_border</span>
+            <span class="material-symbols-outlined display-1 text-primary-light mb-4"
+              >bookmark_border</span
+            >
             <h3 class="font-zilla fst-italic h4 mb-3">Your garden is empty... for now.</h3>
             <p class="text-muted font-roboto mb-5">
-              Found an article you love? Click the bookmark icon 
-              in the news feed to save it to your private sanctuary.
+              Found an article you love? Click the bookmark icon in the news feed to save it to your
+              private sanctuary.
             </p>
-            <router-link to="/news" class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-lg">
+            <router-link
+              to="/news"
+              class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-lg"
+            >
               Explore News Feed
             </router-link>
           </div>
