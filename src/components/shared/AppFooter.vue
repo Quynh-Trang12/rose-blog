@@ -94,14 +94,15 @@ export default {
     <div class="container position-relative z-1">
       <div class="row g-5">
         <!-- Explanation: Brand information column with logo and description -->
-        <div class="col-12 col-lg-4 pe-lg-5">
+        <div class="col-12 col-lg-9">
           <div class="d-flex align-items-center gap-2 mb-3">
             <span class="material-symbols-outlined text-secondary fs-3">local_florist</span>
-            <div class="fs-4 text-gray-300 fw-bold font-zilla fst-italic mb-0">The Rose Blog</div>
+            <div class="fs-4 text-gray-800 fw-bold font-zilla fst-italic mb-0">The Rose Blog</div>
           </div>
-          <p class="text-gray-300 lh-xl mb-4 text-md font-roboto mw-480">
-            Curating the finest petals of wisdom for the modern gardener. Join our global community
-            of botanical enthusiasts.
+          <p class="text-gray-800 lh-xl mb-4 text-md font-roboto mw-600">
+            A personal collection for botanical enthusiasts. Written with love to share expert
+            planting guides, seasonal care tips, and a beautifully curated showcase of exquisite
+            rose varieties.
           </p>
           <!-- Social Icons (hover effects clearly visible) -->
           <div class="d-flex gap-3 mt-4">
@@ -118,52 +119,46 @@ export default {
           </div>
         </div>
 
-        <!-- 2. Newsletter Section (Requirement 1: checkForm) -->
-        <div class="col-12 col-md-6 col-lg-3 offset-lg-1">
-          <h3 class="h6 fw-bold text-uppercase ls-1 mb-4 font-zilla text-primary">
-            Join the Sanctuary
-          </h3>
-          <p class="text-gray-300 small mb-3">Receive weekly botanical tips and bloom alerts.</p>
-
-          <form v-if="!isSubscribed" @submit="checkForm" novalidate>
-            <div class="input-group">
-              <input
-                v-model="email"
-                type="email"
-                class="form-control border-primary text-white rounded-start-5 p-3 px-4 shadow-none"
-                :class="{ 'is-invalid': error }"
-                placeholder="Enter your email"
-                aria-label="Newsletter email"
-                @input="error = ''"
-              />
-              <button
-                class="btn btn-primary border-primary rounded-end-5 px-4 fw-bold shadow-sm"
-                type="submit"
+        <!-- Explanation: Quick links column with navigation shortcuts -->
+        <div class="col-12 col-lg-3">
+          <div class="fs-5 fw-bold text-gray-800 mb-4">Explore</div>
+          <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
+            <li>
+              <router-link
+                to="/"
+                class="text-gray-800 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
+                ><span class="material-symbols-outlined fs-6">chevron_right</span> Home</router-link
               >
-                Join
-              </button>
-            </div>
-            <div v-show="error" class="text-secondary small mt-2 ms-3 animate-fade-up">
-              {{ error }}
-            </div>
-          </form>
-
-          <div
-            v-else
-            class="text-primary fw-bold p-3 rounded-3 bg-white bg-opacity-10 animate-fade-up"
-          >
-            <div class="d-flex align-items-center gap-2">
-              <span class="material-symbols-outlined">mark_email_read</span>
-              <span>Welcome to the community! Check your inbox.</span>
-            </div>
-          </div>
+            </li>
+            <li>
+              <router-link
+                to="/collection"
+                class="text-gray-800 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
+                ><span class="material-symbols-outlined fs-6">chevron_right</span> The Collection
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/news"
+                class="text-gray-800 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
+                ><span class="material-symbols-outlined fs-6">chevron_right</span> Latest News
+              </router-link>
+            </li>
+            <li>
+              <router-link
+                to="/about"
+                class="text-gray-800 text-decoration-none hover-slide-primary d-inline-flex align-items-center gap-2"
+                ><span class="material-symbols-outlined fs-6">chevron_right</span> About
+              </router-link>
+            </li>
+          </ul>
         </div>
       </div>
 
       <!-- Explanation: Footer bottom row with copyright and attribution -->
-      <div class="row mt-5 pt-4 border-top border-gray-300 border-opacity-25">
+      <div class="row mt-5 pt-4 border-top border-gray-900">
         <div
-          class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-gray-300 mb-0 small"
+          class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-gray-800 mb-0 small"
         >
           <p>&copy; {{ currentYear }} The Rose Blog. All rights reserved.</p>
           <p>Designed for botanical inspiration.</p>

@@ -84,8 +84,9 @@ $utilities: map-merge(
       property: max-width,
       class: mw,
       values: (
+        300: 335px,
         480: 480px,
-        600: 600px,
+        600: 660px,
         none: none,
         100: 100%,
       ),
