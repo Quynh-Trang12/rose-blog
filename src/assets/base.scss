@@ -340,6 +340,39 @@ input:-webkit-autofill:active {
 }
 
 // ==========================================
+// BROWSER SCROLLBAR RESET
+// ==========================================
+// Explanation: Hides visual scrollbars across all browsers while
+// preserving scroll functionality. Especially useful for clean
+// mobile interfaces on iOS Chrome/Safari.
+
+html,
+body {
+  scrollbar-width: none; // Firefox
+  -ms-overflow-style: none; // IE/Edge
+}
+
+// Global WebKit scrollbar removal (Chrome, Safari, Opera, iOS)
+::-webkit-scrollbar {
+  display: none;
+}
+
+// Webkit-specific fix for the main viewport
+body::-webkit-scrollbar {
+  display: none;
+}
+
+// Utility class for specific scrollable containers
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// ==========================================
 // NAVIGATION & INTERACTION
 // ==========================================
 
