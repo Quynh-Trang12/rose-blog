@@ -21,15 +21,15 @@ export default {
   // ==========================================
   data() {
     return {
-      // Explanation: Dynamically calculate the current year for the copyright notice.
+      // Dynamically calculate the current year for the copyright notice.
       currentYear: new Date().getFullYear(),
-      // Explanation: Two-way bound field for the newsletter email.
+      // Two-way bound field for the newsletter email.
       email: '',
-      // Explanation: Provides validation error feedback to the user.
+      // Provides validation error feedback to the user.
       error: '',
-      // Explanation: Controls success message visibility.
+      // Controls success message visibility.
       isSubscribed: false,
-      // Explanation: Brief message shown when link is copied.
+      // Brief message shown when link is copied.
       shareMsg: '',
     }
   },
@@ -39,76 +39,48 @@ export default {
   // ==========================================
   methods: {
     /**
-     * Requirement (Issue 1): Copies the current page URL to clipboard.
+     * Copies the current page URL to clipboard.
      */
-    shareApp() {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        this.shareMsg = 'Link copied!'
-        setTimeout(() => {
-          this.shareMsg = ''
-        }, 2000)
-      })
+    async shareApp() {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'The Rose Blog',
+            text: 'Discover the world of roses with expert guides and inspirations.',
+            url: window.location.origin,
+          })
+        } catch (err) {
+          console.error('Share failed', err)
+        }
+      } else {
+        navigator.clipboard.writeText(window.location.origin)
+        alert('Blog link copied to clipboard!')
+      }
     },
 
     /**
-     * Requirement (Issue 1): Redirects to the news section.
+     * Redirects to the news section.
      */
     goToNews() {
       this.$router.push('/news')
     },
 
     /**
-     * Requirement (Issue 1): checkForm validation pattern.
-     * Validates the email format before allowing subscription.
-     * @param {Event} e - Submit event
+     * Opens the default mail client with a pre-filled subject.
      */
-    checkForm(e) {
-      e.preventDefault()
-      this.error = ''
-
-      if (!this.email) {
-        this.error = 'Email is required to join our sanctuary.'
-        return false
-      }
-      if (!this.isValidEmail(this.email)) {
-        this.error = 'Please enter a valid botanical update address.'
-        return false
-      }
-
-      this.subscribe()
-      return true
-    },
-
-    /**
-     * Regex check for valid email format.
-     */
-    isValidEmail(email) {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      return re.test(email)
-    },
-
-    /**
-     * Simulates a subscription API call.
-     */
-    subscribe() {
-      // Mock API delay
-      setTimeout(() => {
-        this.isSubscribed = true
-        this.email = ''
-        // Reset success message after 5 seconds
-        setTimeout(() => (this.isSubscribed = false), 5000)
-      }, 500)
+    contactEmail() {
+      window.location.href = 'mailto:105028463@student.swin.edu.au?subject=Inquiry from Rose Blog'
     },
   },
 }
 </script>
 
 <template>
-  <!-- Explanation: Footer with gradient background and relative positioning for decorative elements -->
+  <!-- Footer with gradient background and relative positioning for decorative elements -->
   <footer class="grad-pink mt-auto py-5 position-relative overflow-hidden">
     <div class="container position-relative z-1">
       <div class="row g-5">
-        <!-- Explanation: Brand information column with logo and description -->
+        <!-- Brand information column with logo and description -->
         <div class="col-12 col-lg-9">
           <div class="d-flex align-items-center gap-2 mb-3">
             <span class="material-symbols-outlined text-secondary fs-3">local_florist</span>
@@ -138,10 +110,11 @@ export default {
               <span class="material-symbols-outlined fs-4">photo_camera</span>
             </button>
             <a
-              href="mailto:contact@theroseblog.com"
+              type="button"
               class="text-gray-800 text-decoration-none hover-slide-primary d-flex align-items-center justify-content-center"
               aria-label="Contact via email"
               rel="noopener noreferrer"
+              @click="contactEmail"
             >
               <span class="material-symbols-outlined fs-4">mail</span>
             </a>
@@ -151,7 +124,7 @@ export default {
           </div>
         </div>
 
-        <!-- Explanation: Quick links column with navigation shortcuts -->
+        <!-- Quick links column with navigation shortcuts -->
         <div class="col-12 col-lg-3">
           <div class="fs-5 fw-bold text-gray-800 mb-4">Explore</div>
           <ul class="list-unstyled d-flex flex-column gap-3 mb-0">
@@ -187,7 +160,7 @@ export default {
         </div>
       </div>
 
-      <!-- Explanation: Footer bottom row with copyright and attribution -->
+      <!-- Footer bottom row with copyright and attribution -->
       <div class="row mt-5 pt-4 border-top border-gray-900">
         <div
           class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 text-gray-800 mb-0 small"

@@ -27,34 +27,34 @@ export default {
   // ==========================================
   data() {
     return {
-      // Explanation: Controls whether the mobile hamburger menu is expanded.
+      // Controls whether the mobile hamburger menu is expanded.
       isMenuOpen: false,
-      // Explanation: Controls the visibility of the AuthModal login/signup dialog.
+      // Controls the visibility of the AuthModal login/signup dialog.
       isAuthModalOpen: false,
-      // Explanation: Static navigation items rendered in the nav bar.
+      // Static navigation items rendered in the nav bar.
       // Admin link is removed per user requirements.
       navItems: [
         { label: 'Home', path: '/' },
         { label: 'News', path: '/news' },
         { label: 'About', path: '/about' },
       ],
-      // Explanation: Index of the currently active navigation link.
+      // Index of the currently active navigation link.
       activeIndex: 0,
-      // Explanation: Array of DOM element references for each nav item (for slider calc).
+      // Array of DOM element references for each nav item (for slider calc).
       itemRefs: [],
-      // Explanation: Tracks the last hovered nav item index for slider animation continuity.
+      // Tracks the last hovered nav item index for slider animation continuity.
       lastHoveredIndex: -1,
-      // Explanation: Timeout reference for debouncing mouse leave events.
+      // Timeout reference for debouncing mouse leave events.
       leaveTimeout: null,
-      // Explanation: CSS left position of the hover slider element (in pixels).
+      // CSS left position of the hover slider element (in pixels).
       sliderLeft: 0,
-      // Explanation: CSS width of the hover slider element (in pixels).
+      // CSS width of the hover slider element (in pixels).
       sliderWidth: 0,
-      // Explanation: CSS opacity of the hover slider (0 = hidden, 1 = visible).
+      // CSS opacity of the hover slider (0 = hidden, 1 = visible).
       sliderOpacity: 0,
-      // Explanation: CSS transition string applied to the slider for smooth animation.
+      // CSS transition string applied to the slider for smooth animation.
       sliderTransition: '',
-      // Explanation: Duration (ms) for slider animation timing.
+      // Duration (ms) for slider animation timing.
       SLIDER_TIMING: 300,
     }
   },
@@ -100,7 +100,7 @@ export default {
     },
 
     /**
-     * Requirement: Fix Bug F — reset slider when the nav items change (e.g. logout).
+     * Reset slider when the nav items change (e.g. logout).
      */
     navItemsLength() {
       this.syncActiveIndex()

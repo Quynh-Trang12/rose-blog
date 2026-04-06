@@ -10,7 +10,6 @@ $pink: #ffcff2;
 $primary: $red;
 $secondary: $pink;
 
-
 $transition-fast: all 0.2s ease-in-out;
 
 // ==========================================
@@ -140,7 +139,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   --color-accent: #e90052;
   --custom-timing: #{$custom-timing-function};
 
-  // Explanation: Defines the sticky navbar height so sections can
+  // Defines the sticky navbar height so sections can
   // calculate full-height layouts without hiding behind it.
   --navbar-height: 76px;
 }
@@ -151,7 +150,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 /// @param {Length} $blur [28px] - The backdrop blur radius
 /// @param {Number} $opacity [0.3] - The alpha value for the background
 @mixin glassmorphism($color, $blur: 28px, $opacity: 0.3) {
-  // Explanation: Solid colour fallback for browsers that do not support
+  // Solid colour fallback for browsers that do not support
   // backdrop-filter, ensuring readable text contrast.
   background-color: $color;
 
@@ -161,7 +160,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur($blur);
   }
 
-  // Explanation: Accessibility — removes transparency for users who
+  // Accessibility — removes transparency for users who
   // have requested reduced transparency in their OS settings.
   @media (prefers-reduced-transparency: reduce) {
     background-color: $color;
@@ -233,11 +232,9 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.69rem;
 }
 
-
 .ls-1 {
   letter-spacing: 1.2px;
 }
-
 
 .ls-wide {
   letter-spacing: 1.5px;
@@ -248,7 +245,6 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 .font-zilla {
   font-family: 'Zilla Slab', serif;
 }
-
 
 .font-roboto {
   font-family: 'Roboto Condensed', sans-serif;
@@ -363,7 +359,6 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(to top right, $red-700, $pink-100);
 }
 
-
 .backdrop-blur {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -398,7 +393,7 @@ input.bg-opacity-10:active {
   background-color: rgba($white, 0.1) !important;
 }
 
-// Explanation: FIX BROWSER AUTOFILL STYLING
+// BROWSER AUTOFILL STYLING
 // Targets WebKit (Chrome, Safari, Edge) autofill states.
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
@@ -412,7 +407,6 @@ input:-webkit-autofill:active {
 // ==========================================
 // BROWSER SCROLLBAR RESET
 // ==========================================
-
 
 html,
 body {
@@ -565,7 +559,6 @@ body::-webkit-scrollbar {
       top: 20px;
     }
   }
-
 
   &.open {
     .hamburger-line {

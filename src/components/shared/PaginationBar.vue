@@ -35,7 +35,7 @@ export default {
   computed: {
     /**
      * Calculates the sequence of page numbers to display.
-     * Explanation: Ensures a maximum of 5 buttons are shown, providing
+     * Ensures a maximum of 5 buttons are shown, providing
      * ellipses where necessary for large page counts.
      * @returns {(number|string)[]} Array of page numbers or '...'
      */
@@ -78,7 +78,7 @@ export default {
 </script>
 
 <template>
-  <!-- Explanation: Semantic nav element for accessibility -->
+  <!-- Semantic nav element for accessibility -->
   <nav aria-label="Pagination" class="d-flex justify-content-center mt-5 mb-4 animate-fade-up">
     <div class="pagination-wrapper d-flex align-items-center gap-2">
       <!-- Previous Button -->
@@ -122,7 +122,7 @@ export default {
 </template>
 
 <style scoped>
-/* Explanation: Fixed width/height for circular pagination buttons */
+/* Fixed width/height for circular pagination buttons */
 .pagination-btn {
   width: 40px;
   height: 40px;

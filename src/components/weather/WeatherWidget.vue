@@ -37,7 +37,7 @@ export default {
   methods: {
     /**
      * Determines which icon and gardening advice to display based on weather data.
-     * Explanation: Uses WMO weather interpretation codes and temperature thresholds
+     * Uses WMO weather interpretation codes and temperature thresholds
      * to select appropriate visual feedback and advisory text.
      * @param {number} code - WMO Weather interpretation code
      * @param {number} temp - Temperature in Celsius
@@ -85,10 +85,10 @@ export default {
         try {
           const parsed = JSON.parse(cachedData)
           if (Date.now() - parsed.timestamp < TTL) {
-            // Explanation: Restore all component state from the cached data.
+            // Restore all component state from the cached data.
             this.temperature = parsed.temp
             this.locationDisplay = parsed.city
-            // Explanation: Restore locationStatus from cache to maintain correct UI state.
+            // Restore locationStatus from cache to maintain correct UI state.
             this.locationStatus = 'resolved'
             this.updateUIFeedback(parsed.code, parsed.temp)
             // NOTE: Continuing to Phase 2 in the background (no return early)
@@ -110,7 +110,7 @@ export default {
       try {
         const position = await new Promise((resolve, reject) => {
           if (!('geolocation' in navigator)) return reject()
-          // Explanation: Set an 8-second timeout for geolocation to prevent
+          // Set an 8-second timeout for geolocation to prevent
           // indefinite waiting if the user ignores the permission prompt.
           const timeout = setTimeout(() => reject(), 8000)
 
@@ -127,11 +127,11 @@ export default {
           )
         })
 
-        // Explanation: Geolocation succeeded — use the real coordinates.
+        // Geolocation succeeded — use the real coordinates.
         lat = position.coords.latitude
         lon = position.coords.longitude
 
-        // Explanation: Attempt to reverse-geocode the coordinates to a city name.
+        // Attempt to reverse-geocode the coordinates to a city name.
         this.locationDisplay = await fetchCityName(lat, lon)
       } catch {
         // Geolocation was denied, timed out, or is unsupported.
@@ -176,14 +176,14 @@ export default {
   // LIFECYCLE HOOKS
   // ==========================================
   mounted() {
-    // Explanation: Trigger weather lookup immediately when the component mounts.
+    // Trigger weather lookup immediately when the component mounts.
     this.fetchWeather()
   },
 }
 </script>
 
 <template>
-  <!-- Explanation: Main weather card with glassmorphism styling and live region for accessibility -->
+  <!-- Main weather card with glassmorphism styling and live region for accessibility -->
   <div
     class="card border-1 shadow-lg rounded-4 w-100 frosted-glass animate-fade-up weather-card"
     aria-live="polite"
@@ -191,7 +191,7 @@ export default {
   >
     <div class="container-fluid m-0 p-0">
       <div class="d-flex flex-nowrap align-items-center justify-content-between gap-2 gap-lg-3">
-        <!-- Explanation: Text content area — location, status, and advisory -->
+        <!-- Text content area — location, status, and advisory -->
         <div
           class="text-start flex-grow-1 flex-wrap flex-column align-items-end justify-content-around"
         >
@@ -222,17 +222,17 @@ export default {
             </span>
           </template>
 
-          <!-- Explanation: Gardening advisory text — shows loading or condition-specific advice -->
+          <!-- Gardening advisory text — shows loading or condition-specific advice -->
           <div class="text-gray-300 w-100 text-sm fw-semibold lh-lg mt-1">
             {{ locationStatus === 'loading' && !temperature ? 'Analyzing data...' : advisoryQuote }}
           </div>
         </div>
 
-        <!-- Explanation: Visual feedback area — weather icon and temperature -->
+        <!-- Visual feedback area — weather icon and temperature -->
         <div
           class="text-end flex-shrink-0 flex-wrap flex-column align-items-start justify-content-center"
         >
-          <!-- Explanation: Loading spinner displayed while data is being fetched -->
+          <!-- Loading spinner displayed while data is being fetched -->
           <div
             v-if="locationStatus === 'loading' && !temperature"
             class="spinner-border text-secondary opacity-50"
@@ -241,7 +241,7 @@ export default {
             <span class="visually-hidden">Loading weather...</span>
           </div>
 
-          <!-- Explanation: Weather icon and temperature display once data is loaded -->
+          <!-- Weather icon and temperature display once data is loaded -->
           <div v-else class="d-flex flex-column">
             <span
               class="material-symbols-outlined icon-solid top-0 weather-icon"
@@ -264,17 +264,17 @@ export default {
 </template>
 
 <style scoped lang="scss">
-/* Explanation: Consistent padding for the weather card */
+/* Consistent padding for the weather card */
 .weather-card {
   padding: 1.2rem 1.6rem;
 }
 
-/* Explanation: Weather icon size */
+/* Weather icon size */
 .weather-icon {
   font-size: 2.4rem;
 }
 
-/* Explanation: AAA-Compliant gradients applied to the Material Icon text */
+/* AAA-Compliant gradients applied to the Material Icon text */
 .icon-solid {
   font-variation-settings:
     'FILL' 1,

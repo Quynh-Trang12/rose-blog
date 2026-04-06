@@ -16,7 +16,7 @@ import router from './router'
 // ==========================================
 // STYLING
 // ==========================================
-// Explanation: Import the compiled SCSS base file which includes
+// Import the compiled SCSS base file which includes
 // Bootstrap 5 SCSS source with custom overrides, mixins, and utilities.
 import './assets/base.scss'
 import 'bootstrap-icons/font/bootstrap-icons.css'
@@ -28,20 +28,20 @@ import { lazyLoad } from './directives/lazyLoad.js'
 
 const app = createApp(App)
 
-// Explanation: v-click-outside directive detects clicks outside the
+// v-click-outside directive detects clicks outside the
 // bound element and invokes the provided callback. A deferred event
 // listener attachment (setTimeout 0) prevents the opening click event
 // from immediately triggering the handler via event bubbling.
 app.directive('click-outside', {
   mounted(el, binding) {
     el.__clickOutside__ = (e) => {
-      // Explanation: If the click target is not the element or any of its
+      // If the click target is not the element or any of its
       // descendants, execute the bound handler function.
       if (!el.contains(e.target)) {
         binding.value(e)
       }
     }
-    // Explanation: Defer to the next microtask so the opening click
+    // Defer to the next microtask so the opening click
     // (which triggered this mount) does not immediately fire the handler.
     setTimeout(() => {
       document.addEventListener('click', el.__clickOutside__)
@@ -52,7 +52,7 @@ app.directive('click-outside', {
   },
 })
 
-// Explanation: v-lazy-load directive implements IntersectionObserver-based
+// v-lazy-load directive implements IntersectionObserver-based
 // lazy loading for images — sets a placeholder SVG and swaps to the real
 // src when the element enters the viewport.
 app.directive('lazy-load', lazyLoad)
@@ -60,10 +60,10 @@ app.directive('lazy-load', lazyLoad)
 // ==========================================
 // REGISTER PLUGINS & MOUNT
 // ==========================================
-// Explanation: Register the root Vuex store instance.
+// Register the root Vuex store instance.
 app.use(store)
-// Explanation: Register Vue Router for client-side navigation.
+// Register Vue Router for client-side navigation.
 app.use(router)
 
-// Explanation: Mount the application to the DOM element with id="app".
+// Mount the application to the DOM element with id="app".
 app.mount('#app')

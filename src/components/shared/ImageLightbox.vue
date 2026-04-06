@@ -38,9 +38,9 @@ export default {
 
   data() {
     return {
-      // Explanation: The current image index being viewed.
+      // The current image index being viewed.
       currentIndex: this.initialIndex,
-      // Explanation: Controls the zoom state of the image.
+      // Controls the zoom state of the image.
       isZoomed: false,
     }
   },
@@ -144,12 +144,15 @@ export default {
         </button>
 
         <!-- Main Image Display -->
-        <div class="position-content position-relative animate-fade-up d-flex align-items-center justify-content-center p-3" :class="{'overflow-auto': isZoomed}">
+        <div
+          class="position-content position-relative animate-fade-up d-flex align-items-center justify-content-center p-3"
+          :class="{ 'overflow-auto': isZoomed }"
+        >
           <img
             :src="images[currentIndex]"
             alt="Rose Gallery Item"
             class="img-fluid rounded-3 shadow-lg lightbox-image cursor-zoom-in"
-            :class="{'zoomed': isZoomed}"
+            :class="{ zoomed: isZoomed }"
             @click="toggleZoom"
           />
 
@@ -173,7 +176,10 @@ export default {
         </div>
 
         <!-- Image counter -->
-        <div v-if="!isZoomed" class="position-absolute bottom-0 mb-4 bg-dark bg-opacity-75 text-white px-3 py-1 rounded-pill text-sm">
+        <div
+          v-if="!isZoomed"
+          class="position-absolute bottom-0 mb-4 bg-dark bg-opacity-75 text-white px-3 py-1 rounded-pill text-sm"
+        >
           {{ currentIndex + 1 }} / {{ images.length }}
         </div>
       </div>
@@ -182,7 +188,7 @@ export default {
 </template>
 
 <style scoped>
-/* Explanation: High z-index (1070) overlay backdrop covering the whole viewport */
+/* High z-index (1070) overlay backdrop covering the whole viewport */
 .lightbox-overlay {
   position: fixed;
   inset: 0;
@@ -204,12 +210,22 @@ export default {
   cursor: zoom-out;
 }
 
-.cursor-zoom-in { cursor: zoom-in; }
-.cursor-zoom-out { cursor: zoom-out; }
+.cursor-zoom-in {
+  cursor: zoom-in;
+}
+.cursor-zoom-out {
+  cursor: zoom-out;
+}
 
 /* Fade Transition */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 
 /* Close button positioning */
 .close-btn {
@@ -256,13 +272,23 @@ export default {
 
 /* Desktop only: move buttons inside on smaller screens or adjust their offset */
 @media (max-width: 1200px) {
-  .nav-btn-left { left: 1rem; }
-  .nav-btn-right { right: 1rem; }
+  .nav-btn-left {
+    left: 1rem;
+  }
+  .nav-btn-right {
+    right: 1rem;
+  }
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fade-up {

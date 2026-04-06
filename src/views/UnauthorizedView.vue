@@ -36,7 +36,7 @@ export default {
 <template>
   <div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
     <div class="text-center animate-fade-up px-4 unauth-content">
-      <!-- Explanation: Lock icon providing visual feedback for restricted access -->
+      <!-- Lock icon providing visual feedback for restricted access -->
       <span class="material-symbols-outlined text-primary mb-3 d-block unauth-icon">lock</span>
 
       <h1 class="display-6 fw-bold fst-italic mb-2 font-zilla text-dark">Members Only</h1>
@@ -46,7 +46,7 @@ export default {
         your botanical journey.
       </p>
 
-      <!-- Explanation: Navigation actions — semantic button elements for programmatic navigation -->
+      <!-- Navigation actions — semantic button elements for programmatic navigation -->
       <div class="d-flex gap-3 justify-content-center flex-wrap">
         <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm" @click="goHome">
           Go Home
@@ -60,12 +60,12 @@ export default {
 </template>
 
 <style scoped>
-/* Explanation: Replaces inline style="max-width: 480px" */
+/* Replaces inline style="max-width: 480px" */
 .unauth-content {
   max-width: 480px;
 }
 
-/* Explanation: Replaces inline style="font-size: 4rem" */
+/* Replaces inline style="font-size: 4rem" */
 .unauth-icon {
   font-size: 4rem;
 }

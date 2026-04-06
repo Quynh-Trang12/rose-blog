@@ -44,7 +44,7 @@ const router = createRouter({
 
   /**
    * Controls scroll behaviour when navigating between routes.
-   * Explanation: Fixed scrollBehavior (Issue 6) with a delay to allow
+   * Fixed scrollBehavior (Issue 6) with a delay to allow
    * components to render before attempting to scroll to a hash element.
    * @param {Object} to - The target route object
    * @param {Object} _from - The previous route object
@@ -69,7 +69,7 @@ const router = createRouter({
 // NAVIGATION GUARD
 // ==========================================
 /**
- * Explanation: The beforeEach guard runs before every route transition.
+ * The beforeEach guard runs before every route transition.
  * Uses Vuex 4 auth module's isLoggedIn getter to control protected access.
  */
 router.beforeEach((to, _from, next) => {

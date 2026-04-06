@@ -6,10 +6,6 @@
  * Efficiently loads images using IntersectionObserver. Replaces the
  * src with a placeholder while out of viewport, then swaps it for
  * the real image once visible.
- *
- * Requirements (Bug L):
- *  - Fixed: 'updated' hook reset logic ensures re-evaluation when src
- *    changes (e.g., in sliders or dynamic galleries).
  */
 
 export const lazyLoad = {
@@ -22,8 +18,8 @@ export const lazyLoad = {
 
     // If no source provided, set placeholder and exit
     if (!realSrc) {
-       el.src = placeholder
-       return
+      el.src = placeholder
+      return
     }
 
     // Set initial loading state
@@ -45,7 +41,7 @@ export const lazyLoad = {
           }
         })
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     )
 
     el._lazyObserver = observer
@@ -53,23 +49,23 @@ export const lazyLoad = {
   },
 
   /**
-   * Requirement (Bug L): Updated cleanup/reset logic.
+   * Updated cleanup/reset logic.
    * If the binding value (realSrc) changes, we need to re-observe the element.
    */
   updated(el, binding) {
     if (binding.value !== binding.oldValue) {
-       // Cleanup previous observer
-       if (el._lazyObserver) {
-          el._lazyObserver.unobserve(el)
-       }
-       // Reset to loading state
-       el.src = 'https://placehold.co/800x600?text=Rose+Blog...'
-       el.classList.remove('lazy-loaded')
-       el.classList.add('lazy-loading')
-       // Re-trigger observer
-       if (el._lazyObserver) {
-          el._lazyObserver.observe(el)
-       }
+      // Cleanup previous observer
+      if (el._lazyObserver) {
+        el._lazyObserver.unobserve(el)
+      }
+      // Reset to loading state
+      el.src = 'https://placehold.co/800x600?text=Rose+Blog...'
+      el.classList.remove('lazy-loaded')
+      el.classList.add('lazy-loading')
+      // Re-trigger observer
+      if (el._lazyObserver) {
+        el._lazyObserver.observe(el)
+      }
     }
   },
 

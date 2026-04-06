@@ -16,7 +16,7 @@ import { createStore } from 'vuex'
 import auth from './modules/auth.js'
 import news from './modules/news.js'
 
-// Explanation: createStore() initialises the Vuex 4 store with two
+// createStore() initialises the Vuex 4 store with two
 // namespaced modules. Components access state and dispatch actions
 // via this.$store using prefixed paths (e.g., 'auth/login', 'news/addNewsItem').
 export default createStore({
