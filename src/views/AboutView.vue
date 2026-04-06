@@ -1,18 +1,20 @@
 <script>
+import bushRoseImg from '@/assets/images/image5.jpg'
+import climbingRoseImg from '@/assets/images/image10.jpg'
+
 // ==========================================
 // COMPONENT EXPORT
 // ==========================================
-
-
 export default {
   name: 'AboutView',
-
 
   // ==========================================
   // DATA
   // ==========================================
   data() {
     return {
+      bushRoseImg,
+      climbingRoseImg,
 
       firstName: '',
       lastName: '',
@@ -49,8 +51,8 @@ export default {
      */
     selectedRoseImage() {
       return this.selectedRoseType === 'climbing'
-        ? '/src/assets/images/image10.jpg'
-        : '/src/assets/images/image5.jpg'
+        ? this.climbingRoseImg
+        : this.bushRoseImg
     },
   },
 
@@ -175,9 +177,9 @@ export default {
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
                     <img
-                      v-lazy-load="'/src/assets/images/image5.jpg'"
+                      v-lazy-load="bushRoseImg"
                       class="w-100 h-100 object-fit-cover"
-                      :alt="'Image for ' + selectedRoseType + 'rose type'"
+                      :alt="'Image for ' + selectedRoseType + ' rose type'"
                     />
                   </div>
                   <h3 class="h5 fw-bold font-zilla fst-italic">Bush Rose</h3>
@@ -205,7 +207,7 @@ export default {
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
                     <img
-                      v-lazy-load="'/src/assets/images/image10.jpg'"
+                      v-lazy-load="climbingRoseImg"
                       class="w-100 h-100 object-fit-cover"
                       alt="Image for climbing rose type"
                     />
