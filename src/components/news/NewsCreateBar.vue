@@ -66,7 +66,6 @@ export default {
     ...mapState('auth', ['currentUser']),
     ...mapGetters('auth', ['isLoggedIn']),
 
-
     safeAvatar() {
       if (this.currentUser?.avatar) return this.currentUser.avatar
       return `https://i.pravatar.cc/150?u=${this.currentUser?.username || 'anonymous'}`
@@ -79,7 +78,6 @@ export default {
   methods: {
     ...mapActions('news', ['addNewsItem']),
 
-
     handleFileSelect(event) {
       const file = event.target.files[0]
       if (!file) return
@@ -87,7 +85,6 @@ export default {
       this.objectUrl = URL.createObjectURL(file)
       this.imageUrl = this.objectUrl
     },
-
 
     handleSubmit() {
       this.error = ''
@@ -163,7 +160,6 @@ export default {
     }"
     style="background: white"
   >
-
     <div
       v-if="!isExpanded"
       class="p-3 d-flex align-items-center gap-3 cursor-pointer"
@@ -185,7 +181,7 @@ export default {
         </div>
       </div>
       <button
-        class="btn btn-primary d-flex align-items-center justify-content-center p-0 rounded-circle shadow-sm"
+        class="btn btn-primary d-flex align-items-center justify-content-center p-0 rounded-circle shadow-sm flex-shrink-0"
         style="width: 48px; height: 48px"
         aria-label="Create post"
       >
@@ -225,14 +221,15 @@ export default {
             />
           </div>
 
-
           <div class="mb-3">
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
               >Content</label
             >
             <RichTextEditor
               v-model="content"
-              :placeholder="'Share your botanical wisdom, ' + (currentUser?.displayName || 'Guest') + '...'"
+              :placeholder="
+                'Share your botanical wisdom, ' + (currentUser?.displayName || 'Guest') + '...'
+              "
             />
           </div>
 
@@ -279,7 +276,6 @@ export default {
                   placeholder="e.g. Summer"
                 />
               </div>
-
 
               <div class="col-6 col-md-4" style="position: relative; z-index: 130">
                 <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
@@ -395,7 +391,6 @@ export default {
 
         <!-- Right column -->
         <div class="col-12 col-lg-4">
-
           <div class="mb-4">
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-3"
               >Select Type</label
@@ -418,7 +413,6 @@ export default {
               </button>
             </div>
           </div>
-
 
           <div class="mb-4">
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-2 d-block"
@@ -553,23 +547,19 @@ export default {
   letter-spacing: 0.15rem;
 }
 
-
 .create-bar__type-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-
 .create-bar__visibility-toggle .btn-white {
   background: white;
 }
 
-
 .rotate-180 {
   transform: rotate(180deg);
 }
-
 
 .fade-enter-active,
 .fade-leave-active {

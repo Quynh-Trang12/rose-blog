@@ -325,7 +325,7 @@ export default {
           class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center gap-4 gap-lg-0"
         >
           <li
-            class="nav-item m-0 p-lg-0 py-lg-2"
+            class="nav-item m-0 p-lg-0 py-2"
             v-for="(item, index) in navItems"
             :key="item.path"
             :ref="
