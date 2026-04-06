@@ -23,7 +23,13 @@ $transition-fast: all 0.2s ease-in-out;
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/variables-dark';
 // Explanation: Merge into theme-colors BEFORE loading maps
-$theme-colors: map-merge($theme-colors, ());
+$theme-colors: map-merge(
+  $theme-colors,
+  (
+    'primary': $primary,
+    'secondary': $secondary,
+  )
+);
 
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';

@@ -1040,40 +1040,20 @@ export default {
 
           <!-- Share options -->
           <div class="row g-2 mb-3">
-            <div class="col-6">
+            <div class="col-12">
               <button
-                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 bg-white shadow-sm fw-bold text-sm font-roboto"
-                @click="handleShare('facebook')"
-              >
-                <i class="bi bi-facebook text-primary fs-5"></i> Facebook
-              </button>
-            </div>
-            <div class="col-6">
-              <button
-                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 bg-white shadow-sm fw-bold text-sm font-roboto"
+                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 btn btn-outline-primary shadow-sm fw-bold text-sm font-roboto"
                 @click="handleShare('twitter')"
               >
-                <i class="bi bi-twitter-x text-dark fs-5"></i> Twitter / X
+                <i class="bi bi-twitter-x fs-5"></i> Twitter / X
               </button>
             </div>
-            <div class="col-6">
+            <div class="col-12">
               <button
-                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 bg-white shadow-sm fw-bold text-sm font-roboto"
+                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 btn btn-outline-primary shadow-sm fw-bold text-sm font-roboto"
                 @click="handleShare('whatsapp')"
               >
-                <i class="bi bi-whatsapp text-success fs-5"></i> WhatsApp
-              </button>
-            </div>
-            <div class="col-6">
-              <button
-                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 shadow-sm fw-bold text-sm font-roboto"
-                :class="shareCopied ? 'bg-primary text-white' : 'bg-white'"
-                @click="handleShare('copy')"
-              >
-                <span class="material-symbols-outlined fs-5">{{
-                  shareCopied ? 'check_circle' : 'link'
-                }}</span>
-                {{ shareCopied ? 'Copied!' : 'Copy Link' }}
+                <i class="bi bi-whatsapp fs-5"></i> WhatsApp
               </button>
             </div>
           </div>
@@ -1084,7 +1064,7 @@ export default {
               getShareUrl()
             }}</span>
             <button
-              class="btn btn-sm btn-primary rounded-pill px-3 fw-bold text-xs"
+              class="btn btn-sm btn-secondary rounded-pill border-2 px-3 fw-medium text-sm"
               @click="handleShare('copy')"
             >
               Copy
