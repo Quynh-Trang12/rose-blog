@@ -23,12 +23,12 @@ import ImageLightbox from '@/components/shared/ImageLightbox.vue'
 
 // Reaction set replicating Facebook's picker
 const REACTIONS = [
-  { key: 'like', emoji: '👍', label: 'Like' },
-  { key: 'love', emoji: '❤️', label: 'Love' },
-  { key: 'haha', emoji: '😂', label: 'Haha' },
-  { key: 'wow', emoji: '😮', label: 'Wow' },
-  { key: 'sad', emoji: '😢', label: 'Sad' },
-  { key: 'angry', emoji: '😡', label: 'Angry' },
+  { key: 'like', emoji: '👍' },
+  { key: 'love', emoji: '❤️' },
+  { key: 'haha', emoji: '😂' },
+  { key: 'wow', emoji: '😮' },
+  { key: 'sad', emoji: '😢' },
+  { key: 'angry', emoji: '😡' },
 ]
 
 export default {
@@ -60,7 +60,6 @@ export default {
       showReactionPicker: false,
       reactionHoverTimer: null,
       reactionLeaveTimer: null,
-      userReaction: null, // { key, emoji, label } or null
       // Toast notification
       toastMessage: '',
       toastTimer: null,
@@ -150,14 +149,17 @@ export default {
       return this.item.reactions || 0
     },
 
-    /** Label shown on the reaction button. */
-    reactionLabel() {
-      return this.userReaction ? this.userReaction.label : 'Like'
-    },
-
     /** Emoji shown on the reaction button. */
     reactionEmoji() {
       return this.userReaction ? this.userReaction.emoji : '👍'
+    },
+
+    /** Persistent user reaction from auth state. */
+    userReaction() {
+      if (!this.isAuthed || !this.$store.state.auth.currentUser.reactions) return null
+      const key = this.$store.state.auth.currentUser.reactions[this.item.id]
+      if (!key) return null
+      return REACTIONS.find((r) => r.key === key) || null
     },
 
     extraPhotoCount() {
@@ -247,34 +249,47 @@ export default {
       }, 300)
     },
 
-    selectReaction(reaction) {
+    /**
+     * core method to toggle or change a reaction.
+     * calculates the counter diff (+1, -1, 0) for the news store.
+     */
+    applyReaction(reactionKey) {
       if (!this.isAuthed) {
         this.showToast('Please log in to react.')
         return
       }
-      if (this.userReaction && this.userReaction.key === reaction.key) {
-        // Toggle off
-        this.userReaction = null
-      } else {
-        this.userReaction = reaction
-        this.reactToNewsItem(this.item.id)
-        this.$emit('react', { id: this.item.id, reaction: reaction.key })
+
+      const postID = this.item.id
+      const currentReactionKey = this.userReaction ? this.userReaction.key : null
+
+      let diff = 0
+      if (!currentReactionKey) {
+        diff = 1
+      } else if (currentReactionKey === reactionKey) {
+        diff = -1
       }
+
+      // 1. Update user state (persists via auth module)
+      this.$store.dispatch('auth/toggleReaction', {
+        postId: postID,
+        reactionKey: reactionKey,
+      })
+
+      // 2. Update global total count (in-memory total)
+      this.reactToNewsItem({ id: postID, diff })
+
+      // 3. Optional: let parent know
+      this.$emit('react', { id: postID, reaction: reactionKey })
+    },
+
+    selectReaction(reaction) {
+      this.applyReaction(reaction.key)
       this.showReactionPicker = false
     },
 
     handleReactClick() {
-      if (!this.isAuthed) {
-        this.showToast('Please log in to react.')
-        return
-      }
-      if (this.userReaction) {
-        this.userReaction = null
-      } else {
-        this.userReaction = REACTIONS[0]
-        this.reactToNewsItem(this.item.id)
-        this.$emit('react', { id: this.item.id, reaction: 'like' })
-      }
+      // Default to "like" if none selected, or toggle the current one off.
+      this.applyReaction(this.userReaction ? this.userReaction.key : 'like')
     },
 
     // ==========================================
@@ -886,8 +901,6 @@ export default {
             :key="r.key"
             class="reaction-emoji-btn"
             :class="{ 'is-selected': userReaction && userReaction.key === r.key }"
-            :title="r.label"
-            :aria-label="r.label"
             @click="selectReaction(r)"
           >
             {{ r.emoji }}
@@ -902,17 +915,11 @@ export default {
         @mouseenter="onReactionButtonEnter"
         @mouseleave="onReactionButtonLeave"
         @click="handleReactClick"
-        :aria-label="reactionLabel"
+        aria-label="React to post"
         :aria-pressed="!!userReaction"
       >
         <span class="reaction-current">{{ reactionEmoji }}</span>
         <span class="fw-bold text-xs">{{ totalReactions }}</span>
-        <span
-          class="text-xs d-none d-sm-inline reaction-label"
-          :class="{ 'text-primary': !!userReaction }"
-        >
-          {{ reactionLabel }}
-        </span>
       </button>
 
       <!-- Comments toggle -->
@@ -955,7 +962,7 @@ export default {
             </div>
           </div>
         </div>
-        <div v-if="isAuthed" class="d-flex gap-2">
+        <div v-if="isAuthed" class="d-flex gap-2 align-items-center">
           <textarea
             class="form-control rounded-3 text-sm"
             rows="2"

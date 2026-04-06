@@ -30,6 +30,7 @@ export default {
         role: 'user',
         displayName: 'Rose Garden',
         savedPosts: ['post-101', 'post-108'],
+        reactions: {},
       },
       {
         id: 2,
@@ -39,6 +40,7 @@ export default {
         displayName: 'Petal Pusher',
         role: 'user',
         savedPosts: ['post-109'],
+        reactions: {},
       },
       {
         id: 3,
@@ -48,6 +50,7 @@ export default {
         displayName: 'Novice Planter',
         role: 'user',
         savedPosts: [],
+        reactions: {},
       },
     ]
 
@@ -102,6 +105,34 @@ export default {
       }
     },
 
+    TOGGLE_REACTION(state, { postId, reactionKey }) {
+      if (!state.currentUser) return
+
+      const user = state.users.find((u) => u.id === state.currentUser.id)
+      if (user) {
+        if (!user.reactions) user.reactions = {}
+
+        // If same reaction is clicked, remove it. Otherwise set/replace it.
+        if (user.reactions[postId] === reactionKey) {
+          delete user.reactions[postId]
+        } else {
+          user.reactions[postId] = reactionKey
+        }
+
+        // Re-set currentUser for reactivity
+        state.currentUser = { ...user }
+        localStorage.setItem('currentUser', JSON.stringify(state.currentUser))
+
+        // Sync to registeredUsers
+        const registered = JSON.parse(localStorage.getItem('registeredUsers')) || []
+        const regIndex = registered.findIndex((u) => u.id === user.id)
+        if (regIndex !== -1) {
+          registered[regIndex].reactions = user.reactions
+          localStorage.setItem('registeredUsers', JSON.stringify(registered))
+        }
+      }
+    },
+
 
 
     PUSH_REGISTERED_USER(state, user) {
@@ -144,6 +175,7 @@ export default {
         displayName,
         role: 'user',
         savedPosts: [],
+        reactions: {},
       }
 
       commit('PUSH_REGISTERED_USER', newUser)
@@ -158,6 +190,11 @@ export default {
     toggleSavePost({ commit, state }, postId) {
       if (!state.currentUser) return
       commit('TOGGLE_SAVE_POST', postId)
+    },
+
+    toggleReaction({ commit, state }, payload) {
+      if (!state.currentUser) return
+      commit('TOGGLE_REACTION', payload)
     },
   },
 

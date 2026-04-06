@@ -2,13 +2,6 @@
  * ==========================================
  * FILE: store/modules/news.js
  * ==========================================
- * Description:
- * Vuex 4 namespaced module managing the collection of news items.
- * Handles filtering (keyword, type, date, botanical attributes),
- * pagination, and social interactions (reactions, comments, shares).
- *
- * Fix B2: itemsFilter now passes currentUser so private posts
- * are visible only to their author.
  */
 
 import newsData from '@/data/news.json'
@@ -16,46 +9,82 @@ import newsData from '@/data/news.json'
 export default {
   namespaced: true,
 
-  // ==========================================
-  // STATE
-  // ==========================================
-  state: () => ({
-    newsItems: newsData,
+  state: () => {
+    // Attempt to hydrate newsItems from localStorage, otherwise use imported JSON data.
+    const saved = localStorage.getItem('roseBlog_newsItems')
+    return {
+      newsItems: saved ? JSON.parse(saved) : newsData,
 
-    newsFilters: {
-      keyword: '', category: 'all', date: 'all',
-      color: 'all', fragrance: 'all', bloomingSeason: 'all',
-      strength: 'all', thornLevel: 'all', idealFor: 'all',
-    },
-    collectionFilters: {
-      keyword: '', category: 'all', date: 'all',
-      color: 'all', fragrance: 'all', bloomingSeason: 'all',
-      strength: 'all', thornLevel: 'all', idealFor: 'all',
-    },
-    newsPage: 1,
-    collectionPage: 1,
-    itemsPerPage: 6,
-  }),
+      newsFilters: {
+        keyword: '', category: 'all', date: 'all',
+        color: 'all', fragrance: 'all', bloomingSeason: 'all',
+        strength: 'all', thornLevel: 'all', idealFor: 'all',
+      },
+      collectionFilters: {
+        keyword: '', category: 'all', date: 'all',
+        color: 'all', fragrance: 'all', bloomingSeason: 'all',
+        strength: 'all', thornLevel: 'all', idealFor: 'all',
+      },
+      newsPage: 1,
+      collectionPage: 1,
+      itemsPerPage: 6,
+    }
+  },
 
-  // ==========================================
-  // MUTATIONS
-  // ==========================================
   mutations: {
+    SAVE_NEWS_STATE(state) {
+      localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
+    },
+
     ADD_NEWS_ITEM(state, item) {
       state.newsItems.unshift(item)
+      localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
     },
 
     UPDATE_NEWS_ITEM(state, updatedItem) {
       const index = state.newsItems.findIndex((a) => a.id === updatedItem.id)
       if (index !== -1) {
         state.newsItems[index] = { ...state.newsItems[index], ...updatedItem }
+        localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
       }
     },
 
     DELETE_NEWS_ITEM(state, id) {
       state.newsItems = state.newsItems.filter((item) => item.id !== id)
+      localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
       const totalPages = Math.ceil(state.newsItems.length / state.itemsPerPage) || 1
       if (state.newsPage > totalPages) state.newsPage = totalPages
+    },
+
+    REACT_TO_NEWS_ITEM(state, { id, diff }) {
+      const item = state.newsItems.find((a) => a.id === id)
+      if (item) {
+        item.reactions = Math.max(0, (item.reactions || 0) + diff)
+        localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
+      }
+    },
+
+    ADD_COMMENT(state, { id, comment }) {
+      const newsItem = state.newsItems.find((n) => n.id === id)
+      if (newsItem) {
+        if (!newsItem.comments) newsItem.comments = []
+        newsItem.comments.push({
+          id: Date.now(),
+          text: comment.text,
+          authorName: comment.author?.displayName || 'Guest',
+          authorAvatar: comment.author?.avatar || 'https://i.pravatar.cc/40',
+          date: new Date().toISOString(),
+        })
+        localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
+      }
+    },
+
+    INCREMENT_SHARE(state, id) {
+      const item = state.newsItems.find((a) => a.id === id)
+      if (item) {
+        item.shares = (item.shares || 0) + 1
+        localStorage.setItem('roseBlog_newsItems', JSON.stringify(state.newsItems))
+      }
     },
 
     SET_SEARCH_QUERY(state, { query, target = 'news' }) {
@@ -97,35 +126,8 @@ export default {
       if (target === 'news') state.newsPage = page
       else state.collectionPage = page
     },
-
-    REACT_TO_NEWS_ITEM(state, id) {
-      const item = state.newsItems.find((a) => a.id === id)
-      if (item) item.reactions = (item.reactions || 0) + 1
-    },
-
-    ADD_COMMENT(state, { id, comment }) {
-      const newsItem = state.newsItems.find((n) => n.id === id)
-      if (newsItem) {
-        if (!newsItem.comments) newsItem.comments = []
-        newsItem.comments.push({
-          id: Date.now(),
-          text: comment.text,
-          authorName: comment.author?.displayName || 'Guest',
-          authorAvatar: comment.author?.avatar || 'https://i.pravatar.cc/40',
-          date: new Date().toISOString(),
-        })
-      }
-    },
-
-    INCREMENT_SHARE(state, id) {
-      const item = state.newsItems.find((a) => a.id === id)
-      if (item) item.shares = (item.shares || 0) + 1
-    },
   },
 
-  // ==========================================
-  // ACTIONS
-  // ==========================================
   actions: {
     addNewsItem({ commit }, itemData) {
       const newItem = {
@@ -135,7 +137,6 @@ export default {
         reactions: 0,
         shares: 0,
         comments: [],
-        // Preserve isPublic flag from payload; default to true if not set.
         isPublic: itemData.isPublic !== false,
       }
       commit('ADD_NEWS_ITEM', newItem)
@@ -150,8 +151,8 @@ export default {
     },
 
     setSearchQuery({ commit }, payload) {
-      if (typeof payload === 'string') commit('SET_SEARCH_QUERY', { query: payload, target: 'news' })
-      else commit('SET_SEARCH_QUERY', payload)
+      const p = typeof payload === 'string' ? { query: payload, target: 'news' } : payload
+      commit('SET_SEARCH_QUERY', p)
     },
 
     applyFilters({ commit }, payload) {
@@ -169,41 +170,24 @@ export default {
       if (page >= 1 && page <= total) commit('SET_PAGE', { page, target })
     },
 
-    reactToNewsItem({ commit }, id)         { commit('REACT_TO_NEWS_ITEM', id)  },
-    addComment({ commit }, payload)          { commit('ADD_COMMENT', payload)     },
-    incrementShare({ commit }, id)           { commit('INCREMENT_SHARE', id)      },
+    reactToNewsItem({ commit }, payload) { commit('REACT_TO_NEWS_ITEM', payload) },
+    addComment({ commit }, payload)       { commit('ADD_COMMENT', payload) },
+    incrementShare({ commit }, id)        { commit('INCREMENT_SHARE', id) },
   },
 
-  // ==========================================
-  // GETTERS
-  // ==========================================
   getters: {
     allNewsItems: (state) => state.newsItems,
 
-    /**
-     * Core filter pipeline.
-     * Fix B2: receives currentUserId so private posts are visible
-     * only to their author; all other users see only public posts.
-     *
-     * @param {Array}  items
-     * @param {Object} filters
-     * @param {number|string|null} currentUserId
-     * @returns {Array}
-     */
     itemsFilter: () => (items, filters, currentUserId = null) => {
       let result = items.filter((a) => {
-        // Blocked moderation status — always hidden.
         if (a.moderation?.status === 'blocked') return false
         if (a.moderation && a.moderation.status !== 'approved' && a.moderation.status !== 'pending') return false
-
-        // B2: Private post visibility — only the author can see their own private posts.
         if (a.isPublic === false) {
           return currentUserId !== null && String(a.authorID) === String(currentUserId)
         }
         return true
       })
 
-      // Keyword search
       const query = (filters.keyword || '').toLowerCase().trim()
       if (query) {
         result = result.filter((a) => {
@@ -221,26 +205,23 @@ export default {
         })
       }
 
-      // Category filter
       if (filters.category && filters.category !== 'all') {
         result = result.filter((a) => (a.category || a.type) === filters.category)
       }
 
-      // Attribute filters
-      if (filters.color        && filters.color        !== 'all') result = result.filter((a) => a.color         === filters.color)
-      if (filters.fragrance    && filters.fragrance    !== 'all') result = result.filter((a) => a.fragrance     === filters.fragrance)
+      if (filters.color && filters.color !== 'all') result = result.filter((a) => a.color === filters.color)
+      if (filters.fragrance && filters.fragrance !== 'all') result = result.filter((a) => a.fragrance === filters.fragrance)
       if (filters.bloomingSeason && filters.bloomingSeason !== 'all') result = result.filter((a) => a.bloomingSeason === filters.bloomingSeason)
-      if (filters.strength     && filters.strength     !== 'all') result = result.filter((a) => String(a.strength) === String(filters.strength))
-      if (filters.thornLevel   && filters.thornLevel   !== 'all') result = result.filter((a) => a.thornLevel    === filters.thornLevel)
-      if (filters.idealFor     && filters.idealFor     !== 'all') result = result.filter((a) => a.idealFor      === filters.idealFor)
+      if (filters.strength && filters.strength !== 'all') result = result.filter((a) => String(a.strength) === String(filters.strength))
+      if (filters.thornLevel && filters.thornLevel !== 'all') result = result.filter((a) => a.thornLevel === filters.thornLevel)
+      if (filters.idealFor && filters.idealFor !== 'all') result = result.filter((a) => a.idealFor === filters.idealFor)
 
-      // Date filter
       if (filters.date && filters.date !== 'all') {
         const now = new Date()
         result = result.filter((a) => {
           const postDate = new Date(a.date)
           if (filters.date === 'today') return postDate.toDateString() === now.toDateString()
-          if (filters.date === 'week')  return (now - postDate) / 86400000 <= 7
+          if (filters.date === 'week') return (now - postDate) / 86400000 <= 7
           if (filters.date === 'month') return (now - postDate) / 86400000 <= 31
           return true
         })
@@ -255,18 +236,18 @@ export default {
     },
 
     filteredCollectionItems: (state, getters, rootState, rootGetters) => {
-      const savedIds   = rootGetters['auth/mySavedPostIds'] || []
-      const uid        = rootState.auth?.currentUser?.id ?? null
+      const savedIds = rootGetters['auth/mySavedPostIds'] || []
+      const uid = rootState.auth?.currentUser?.id ?? null
       const savedItems = state.newsItems.filter((i) =>
         savedIds.some((id) => String(id) === String(i.id)),
       )
       return getters.itemsFilter(savedItems, state.collectionFilters, uid)
     },
 
-    totalNewsItems:       (state, getters) => getters.filteredNewsItems.length,
+    totalNewsItems: (state, getters) => getters.filteredNewsItems.length,
     totalCollectionItems: (state, getters) => getters.filteredCollectionItems.length,
 
-    newsTotalPages:       (state, getters) => Math.ceil(getters.totalNewsItems       / state.itemsPerPage) || 1,
+    newsTotalPages: (state, getters) => Math.ceil(getters.totalNewsItems / state.itemsPerPage) || 1,
     collectionTotalPages: (state, getters) => Math.ceil(getters.totalCollectionItems / state.itemsPerPage) || 1,
 
     paginatedNewsItems: (state, getters) => {
