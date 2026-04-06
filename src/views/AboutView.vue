@@ -1,34 +1,31 @@
 <script>
-/**
- * ==========================================
- * COMPONENT: AboutView.vue
- * ==========================================
- * Description:
- * The static About page for The Rose Blog. Shares the vision, history,
- * and mission. Includes interactive visitor welcome form and rose type
- * selection (COS30043 Stage 1 requirements).
- */
+// ==========================================
+// COMPONENT EXPORT
+// ==========================================
+
 
 export default {
   name: 'AboutView',
+
 
   // ==========================================
   // DATA
   // ==========================================
   data() {
     return {
-      // Explanation: Two-way bound fields for the visitor welcome form.
+
       firstName: '',
       lastName: '',
-      // Explanation: Track touched state for input validation feedback.
+
       touched: {
         firstName: false,
         lastName: false,
       },
-      // Explanation: Currently selected rose type (COS30043 radio button requirement).
+
       selectedRoseType: 'bush',
     }
   },
+
 
   // ==========================================
   // COMPUTED
@@ -36,8 +33,7 @@ export default {
   computed: {
     /**
      * Constructs a dynamic welcome message based on visitor input.
-     * Explanation: Fulfills the "greeting based on user name input" requirement.
-     * @returns {string} The formatted welcome message or empty string.
+     * @returns {string}
      */
     welcomeMessage() {
       const fn = this.firstName.trim()
@@ -58,13 +54,13 @@ export default {
     },
   },
 
+
   // ==========================================
   // METHODS
   // ==========================================
   methods: {
     /**
      * Navigates to the news feed with a pre-applied category filter.
-     * Explanation: Triggers both a store dispatch and router navigation.
      */
     exploreRoses() {
       const categoryMap = {
@@ -72,7 +68,7 @@ export default {
         climbing: 'Climbing Rose',
       }
       const cat = categoryMap[this.selectedRoseType]
-      // Requirement (Issue reset): Correct store dispatch signature
+
       this.$store.dispatch('news/applyFilters', { filters: { category: cat }, target: 'news' })
       this.$router.push({ path: '/news', query: { category: cat } })
     },
@@ -81,11 +77,12 @@ export default {
 </script>
 
 <template>
+  <!-- ABOUT PAGE CONTENT -->
   <div class="about-view min-vh-100 py-5 position-relative overflow-hidden">
     <div class="container position-relative z-1 pt-5">
       <div class="row justify-content-center">
         <div class="col-12 col-lg-8 animate-fade-up">
-          <!-- Section 1: Vision & History -->
+                    <!-- VISION & HISTORY -->
           <div class="text-center mb-5">
             <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-dark">
               Our Botanical Story
@@ -98,7 +95,7 @@ export default {
             </p>
           </div>
 
-          <!-- Section 2: Visitor Welcome Form -->
+                    <!-- VISITOR WELCOME FORM -->
           <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Visitor Welcome</h2>
             <div class="row g-3 mb-4">
@@ -151,7 +148,7 @@ export default {
             </transition>
           </div>
 
-          <!-- Section 3: Rose Type Selection (Radio buttons) -->
+                    <!-- ROSE VARIETY SELECTION -->
           <fieldset class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5 border-0">
             <legend class="visually-hidden">Find Your Perfect Rose Variety</legend>
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Find Your Perfect Rose</h2>
@@ -250,6 +247,9 @@ export default {
 </template>
 
 <style scoped lang="scss">
+/* ==========================================
+   COMPONENT STYLES
+   ========================================== */
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 

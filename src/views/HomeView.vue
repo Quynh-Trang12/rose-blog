@@ -1,19 +1,15 @@
 <script>
-/**
- * ==========================================
- * COMPONENT: HomeView.vue
- * ==========================================
- * Description:
- * This file combines the best features from both versions:
- * - Full-screen background image with dynamic height calculation (ResizeObserver).
- * - 66% / 33% layout split in the hero section with two action buttons.
- * - Featured post and Latest posts with external titles and blue horizontal dividers.
- * - Frosted glass design for latest news, with text on the left and a square image on the right.
- */
+// ==========================================
+// COMPONENT IMPORTS
+// ==========================================
+
 import { mapGetters } from 'vuex'
 import WeatherWidget from '@/components/weather/WeatherWidget.vue'
 import heroImage22 from '@/assets/images/image22.jpg'
 
+// ==========================================
+// COMPONENT EXPORT
+// ==========================================
 export default {
   name: 'HomeView',
 
@@ -21,19 +17,23 @@ export default {
     WeatherWidget,
   },
 
+  // ==========================================
+  // DATA
+  // ==========================================
   data() {
     return {
-      // Reference for the ResizeObserver to clean up on unmount
-      resizeObserver: null,
-      // Static data for the hero section
+
       heroData: {
         image: heroImage22,
       },
     }
   },
 
+  // ==========================================
+  // COMPUTED
+  // ==========================================
   computed: {
-    // Vuex helpers for cleaner state access
+
     ...mapGetters('news', ['allNewsItems']),
     ...mapGetters('auth', ['blockedUserIds']),
 
@@ -96,11 +96,11 @@ export default {
     },
   },
 
+  // ==========================================
+  // METHODS
+  // ==========================================
   methods: {
-    /**
-     * Calculates the sticky navbar height and sets a CSS variable
-     * to ensure the hero section fits exactly 100% of the viewport.
-     */
+
     updateNavbarHeight() {
       const navbar = document.querySelector('.navbar.sticky-top')
       if (navbar && this.$refs.homeRef) {
@@ -110,8 +110,11 @@ export default {
     },
   },
 
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
   mounted() {
-    // Initialize ResizeObserver when the component mounts
+
     const navbar = document.querySelector('.navbar.sticky-top')
     if (navbar) {
       this.resizeObserver = new ResizeObserver(() => {
@@ -123,7 +126,7 @@ export default {
   },
 
   unmounted() {
-    // Clean up observer to prevent memory leaks
+
     if (this.resizeObserver) {
       this.resizeObserver.disconnect()
     }
@@ -132,6 +135,7 @@ export default {
 </script>
 
 <template>
+  <!-- HOME PAGE CONTENT -->
   <div ref="homeRef">
     <!-- HERO SECTION -->
     <section
@@ -175,7 +179,7 @@ export default {
       </div>
     </section>
 
-    <!-- CONTENT SECTION (Rose of the Month & Latest Posts) -->
+    <!-- EDITORIAL CONTENT SECTION -->
     <section
       class="bg-white full-height-section d-flex flex-column justify-content-center py-5 py-xl-0"
       aria-label="Editorial Content"
@@ -273,21 +277,17 @@ export default {
 </template>
 
 <style scoped lang="scss">
+/* ==========================================
+   COMPONENT STYLES
+   ========================================== */
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 
-/* Dynamic height adjustment to subtract the navbar height.
-   Uses 100svh (small viewport height) which represents the SMALLEST possible
-   viewport on mobile browsers (with URL bar visible). This guarantees the hero
-   section NEVER shows the content below it, regardless of URL bar state.
-   The --nav-h variable is dynamically set via ResizeObserver in mounted(). */
+
 .full-height-section {
   /* Fallback for older browsers */
   min-height: calc(100vh - var(--nav-h, 0px));
-  /* svh = small viewport height: the viewport height when the mobile browser
-     chrome (URL bar, bottom bar) is FULLY VISIBLE. This is always <= 100vh.
-     Using svh means we size to the smallest possible viewport, so the hero
-     never underflows and exposes the white section below. */
+
   min-height: calc(100svh - var(--nav-h, 0px));
 }
 
@@ -311,8 +311,7 @@ export default {
     content: '';
     position: absolute;
     inset: 0;
-    /* 3. Dark semi-transparent overlay to ensure white text is always readable
-          regardless of whether the image or the gradient is currently showing. */
+
     background: linear-gradient(to bottom left, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.6));
   }
 }

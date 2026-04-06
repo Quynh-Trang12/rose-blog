@@ -1,25 +1,16 @@
 <script>
-/**
- * ==========================================
- * COMPONENT: NewsSearchBar.vue
- * ==========================================
- * Description:
- * A full-screen modal overlay for searching and filtering news items.
- * Supports keyword search with debounce, category selection, date range,
- * thorn level, ideal-for location, and fragrance strength filters.
- * Teleports to <body> to avoid z-index stacking issues.
- *
- * Props:
- *   modelValue (Boolean) - Controls modal visibility via v-model.
- *   target (String)      - Which filter context to modify: 'news' | 'collection'.
- *
- * Emits:
- *   update:modelValue - Emitted to close the modal from inside.
- */
+// ==========================================
+// COMPONENT IMPORTS
+// ==========================================
+
 import { mapState, mapActions } from 'vuex'
 
+// ==========================================
+// COMPONENT EXPORT
+// ==========================================
 export default {
   name: 'NewsSearchBar',
+
 
   // ==========================================
   // PROPS
@@ -35,22 +26,23 @@ export default {
     },
   },
 
+
   // ==========================================
   // EMITS
   // ==========================================
   emits: ['update:modelValue'],
+
 
   // ==========================================
   // DATA
   // ==========================================
   data() {
     return {
-      // Explanation: Local keyword buffer to handle debounce without
-      // triggering a Vuex commit on every keystroke.
+
       localKeyword: '',
-      // Explanation: Holds the debounce timer reference for cleanup.
+
       debounceTimer: null,
-      // Explanation: Available category filter options.
+
       categoryOptions: [
         { label: 'All Roses', value: 'all' },
         { label: 'Bush Rose', value: 'Bush Rose' },
@@ -58,7 +50,7 @@ export default {
         { label: 'Planting Guide', value: 'Planting Guide' },
         { label: 'Botanical Tips', value: 'Botanical Tips' },
       ],
-      // Explanation: Available date range options for the date filter select.
+
       dateOptions: [
         { label: 'All Time', value: 'all' },
         { label: 'Today', value: 'today' },
@@ -87,6 +79,7 @@ export default {
     }
   },
 
+
   // ==========================================
   // COMPUTED
   // ==========================================
@@ -101,6 +94,7 @@ export default {
       return this.target === 'news' ? this.newsFilters : this.collectionFilters
     },
   },
+
 
   // ==========================================
   // WATCH
@@ -130,6 +124,7 @@ export default {
       },
     },
   },
+
 
   // ==========================================
   // METHODS
@@ -189,14 +184,15 @@ export default {
     },
   },
 
+
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
   mounted() {
-    // Explanation: Sync the local keyword buffer from the store on first mount.
+
     this.localKeyword = this.filters.keyword || ''
 
-    // Explanation: Allows closing the modal with the Escape key.
+
     this._escapeHandler = (e) => {
       if (e.key === 'Escape' && this.modelValue) this.close()
     }
@@ -211,8 +207,8 @@ export default {
 </script>
 
 <template>
-  <!-- Explanation: Teleported to <body> so the overlay renders above all page content
-       regardless of the stacking context of its parent component. -->
+  <!-- SEARCH MODAL OVERLAY -->
+
   <teleport to="body">
     <transition name="search-fade">
       <div
@@ -487,6 +483,9 @@ export default {
 </template>
 
 <style scoped lang="scss">
+/* ==========================================
+   COMPONENT STYLES
+   ========================================== */
 @import '@/assets/base.scss';
 
 // ==========================================
@@ -553,7 +552,7 @@ export default {
     border: 2px solid $primary !important;
   }
 
-  // Explanation: Synchronize the focus state across the entire group
+
   &:focus-within {
     box-shadow: 0 0 0 5px rgba($primary, 0.18) !important;
 
@@ -576,7 +575,7 @@ export default {
   width: 26px;
   height: 26px;
   object-fit: contain;
-  // Explanation: Invert the coloured icon to white so it reads on the primary button.
+
   filter: brightness(0) invert(1);
 }
 

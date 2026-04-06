@@ -1,6 +1,4 @@
-// ==========================================
 // 1. BOOTSTRAP CORE FUNCTIONS
-// ==========================================
 @import 'bootstrap/scss/functions';
 
 // ==========================================
@@ -12,9 +10,7 @@ $pink: #ffcff2;
 $primary: $red;
 $secondary: $pink;
 
-// Explanation: A single reusable transition variable used across
-// all hover effects and animations. Replaces every hard-coded
-// "transition: all 0.2s ease-in-out" declaration in the project.
+
 $transition-fast: all 0.2s ease-in-out;
 
 // ==========================================
@@ -22,7 +18,7 @@ $transition-fast: all 0.2s ease-in-out;
 // ==========================================
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/variables-dark';
-// Explanation: Merge into theme-colors BEFORE loading maps
+
 $theme-colors: map-merge(
   $theme-colors,
   (
@@ -129,9 +125,7 @@ $utilities: map-merge(
 // ==========================================
 // 5. LOAD BOOTSTRAP & GENERATE UTILITIES
 // ==========================================
-// Explanation: The full Bootstrap import is safe here — all customisations
-// above use Sass's !default guard, so the re-import of variables/maps/utilities
-// inside bootstrap.scss does NOT overwrite merged values.
+
 @import 'bootstrap/scss/bootstrap';
 
 // ==========================================
@@ -151,12 +145,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   --navbar-height: 76px;
 }
 
-// ==========================================
-// GLASSMORPHISM MIXIN (Requirement 3)
-// ==========================================
-// Explanation: A single reusable mixin replacing the duplicated
-// .frosted-glass and .glassmorphism-pink rule sets. Accepts any
-// base color, blur radius, and opacity as parameters.
+// GLASSMORPHISM MIXIN
 
 /// @param {Color} $color - The base colour for the glass effect
 /// @param {Length} $blur [28px] - The backdrop blur radius
@@ -191,12 +180,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   @include glassmorphism($pink, 28px, 0.38);
 }
 
-// ==========================================
-// HOVER BASE PLACEHOLDER (Requirement 3)
-// ==========================================
-// Explanation: Shared base styles for hover-interactive inline elements.
-// Both .hover-slide-primary and .hover-scale extend this placeholder
-// to avoid repeating `transition` and `display: inline-block`.
+// HOVER BASE PLACEHOLDER
 %hover-base {
   transition: $transition-fast;
   display: inline-block;
@@ -205,7 +189,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 // ==========================================
 // BUTTON RESET PLACEHOLDER
 // ==========================================
-// Explanation: Strips all native button styling for custom text-link buttons.
+
 %btn-reset {
   border: 0;
   background: none;
@@ -213,11 +197,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
-// ==========================================
-// NAV UNDERLINE MIXIN (Requirement 3)
-// ==========================================
-// Explanation: Extracts the repeated CSS pseudo-element underline pattern
-// used in desktop and mobile nav link animations.
+// NAV UNDERLINE MIXIN
 
 /// @param {Percentage} $width - Width of the underline relative to the element
 /// @param {Length} $height - Height (thickness) of the underline
@@ -239,7 +219,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 // ==========================================
 
 // --- Typography ---
-// Explanation: Precise font-size classes where Bootstrap only provides .fs-1 to .fs-6.
+
 .text-lg {
   font-size: 1.12rem;
 }
@@ -253,35 +233,35 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 0.69rem;
 }
 
-// Explanation: Letter-spacing utility class for headings and badges.
+
 .ls-1 {
   letter-spacing: 1.2px;
 }
 
-// Explanation: Wide letter spacing variant.
+
 .ls-wide {
   letter-spacing: 1.5px;
 }
 
 // --- Font Family Utilities (Requirement 4) ---
-// Explanation: Replaces inline style="font-family: 'Zilla Slab'" with a class.
+
 .font-zilla {
   font-family: 'Zilla Slab', serif;
 }
 
-// Explanation: Replaces inline style="font-family: 'Roboto Condensed'" with a class.
+
 .font-roboto {
   font-family: 'Roboto Condensed', sans-serif;
 }
 
 // --- Min Height Utility (Requirement 4) ---
-// Explanation: Replaces inline style="min-height: 50vh" with a utility class.
+
 .min-vh-50 {
   min-height: 50vh;
 }
 
 // --- Z-Index Utilities (Requirement 4) ---
-// Explanation: Named z-index classes for consistent layering.
+
 .z-index-modal {
   z-index: 1055;
 }
@@ -383,7 +363,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(to top right, $red-700, $pink-100);
 }
 
-// Explanation: Blurred backdrop effect for custom glassmorphism contexts.
+
 .backdrop-blur {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -432,9 +412,7 @@ input:-webkit-autofill:active {
 // ==========================================
 // BROWSER SCROLLBAR RESET
 // ==========================================
-// Explanation: Hides visual scrollbars across all browsers while
-// preserving scroll functionality. Especially useful for clean
-// mobile interfaces on iOS Chrome/Safari.
+
 
 html,
 body {
@@ -467,7 +445,7 @@ body::-webkit-scrollbar {
 // ==========================================
 
 // --- Slide Right + Turn $primary on Hover Effect ---
-// Explanation: Slides the element 4px right and changes colour to $primary on hover.
+
 .hover-slide-primary {
   @extend %hover-base;
 
@@ -478,7 +456,7 @@ body::-webkit-scrollbar {
 }
 
 // --- Generic Hover Scale Effect ---
-// Explanation: Scales the element up on hover for interactive feedback.
+
 .hover-scale {
   @extend %hover-base;
 
@@ -588,7 +566,7 @@ body::-webkit-scrollbar {
     }
   }
 
-  // Explanation: When the menu is open, animate the hamburger lines into an "X" shape.
+
   &.open {
     .hamburger-line {
       background: $gray-600;
@@ -663,7 +641,7 @@ body::-webkit-scrollbar {
 }
 
 // --- Transition Base Utility ---
-// Explanation: A class version of $transition-fast for template use.
+
 .transition-base {
   transition: $transition-fast;
 }
@@ -688,11 +666,7 @@ body::-webkit-scrollbar {
   box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12) !important;
 }
 
-// ==========================================
-// ACCESSIBILITY: REDUCED MOTION (Requirement 12)
-// ==========================================
-// Explanation: Disables all animations and transitions for users who
-// have enabled "Reduce motion" in their OS accessibility settings.
+// ACCESSIBILITY: REDUCED MOTION
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

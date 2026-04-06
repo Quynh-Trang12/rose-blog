@@ -1,24 +1,19 @@
 <script>
-/**
- * ==========================================
- * COMPONENT: CollectionView.vue
- * ==========================================
- * Description:
- * A private view for authenticated users to manage their bookmarked news items.
- * Displays saved items in a responsive masonry grid using the NewsCard component.
- * Includes filtering via NewsSearchBar and pagination via PaginationBar.
- *
- * Fix applied: The search bubble button now uses the same corrected pattern
- * as NewsView — a plain <button> with an explicit `openFilterModal` handler
- * and pointer-events: none on the inner <img> so click events are never blocked.
- */
+// ==========================================
+// COMPONENT IMPORTS
+// ==========================================
+
 import { mapGetters, mapState, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
 import NewsSearchBar from '@/components/news/NewsSearchBar.vue'
 import PaginationBar from '@/components/shared/PaginationBar.vue'
 
+// ==========================================
+// COMPONENT EXPORT
+// ==========================================
 export default {
   name: 'CollectionView',
+
 
   // ==========================================
   // COMPONENTS
@@ -29,15 +24,17 @@ export default {
     PaginationBar,
   },
 
+
   // ==========================================
   // DATA
   // ==========================================
   data() {
     return {
-      // Explanation: Controls whether the NewsSearchBar overlay is visible.
+
       showFilterModal: false,
     }
   },
+
 
   // ==========================================
   // COMPUTED
@@ -45,7 +42,7 @@ export default {
   computed: {
     ...mapState('auth', ['currentUser']),
     ...mapState('news', {
-      // Explanation: Map collectionPage from the news module as currentPage.
+
       currentPage: (state) => state.collectionPage,
     }),
     ...mapGetters('auth', ['isLoggedIn', 'mySavedPostIds']),
@@ -55,6 +52,7 @@ export default {
       totalItems: 'totalCollectionItems',
     }),
   },
+
 
   // ==========================================
   // METHODS
@@ -86,24 +84,22 @@ export default {
     },
   },
 
+
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
   mounted() {
-    // Explanation: Clear any stale collection filters when entering the view.
+
     this.clearFilters('collection')
   },
 }
 </script>
 
 <template>
+  <!-- COLLECTION VIEW CONTENT -->
   <div class="collection-view min-vh-100 py-5 bg-light-soft position-relative">
 
-    <!-- ==========================================
-         FLOATING SEARCH BUBBLE
-         Explanation: Same corrected pattern as NewsView — explicit click handler
-         on the <button>, pointer-events: none on the <img> child via SCSS.
-         ========================================== -->
+
     <button
       type="button"
       class="collection-view__search-bubble border-0 bg-transparent p-0 position-fixed d-flex align-items-center justify-content-center animate-fade-up"
@@ -126,6 +122,7 @@ export default {
       target="collection"
     />
 
+    <!-- MAIN CONTAINER -->
     <div class="container pt-5">
 
       <!-- Page Header -->
@@ -140,7 +137,7 @@ export default {
         <div class="collection-view__divider mx-auto border-bottom border-primary border-4"></div>
       </div>
 
-      <!-- Unauthenticated Guard State -->
+            <!-- AUTH/EMPTY STATES -->
       <div v-if="!isLoggedIn" class="text-center py-5 animate-fade-up">
         <div class="glassmorphism-pink rounded-5 p-5 border border-white collection-view__auth-card mx-auto">
           <span class="material-symbols-outlined display-1 collection-view__empty-icon mb-4">lock</span>
@@ -157,7 +154,7 @@ export default {
         </div>
       </div>
 
-      <!-- Authenticated Content -->
+            <!-- SAVED CONTENT GRID -->
       <template v-else>
 
         <!-- Saved Items Masonry Grid -->
@@ -207,7 +204,7 @@ export default {
           </div>
         </div>
 
-        <!-- Pagination -->
+              <!-- PAGINATION -->
         <PaginationBar
           v-if="totalPages > 1"
           :current-page="currentPage"
@@ -221,6 +218,9 @@ export default {
 </template>
 
 <style scoped lang="scss">
+/* ==========================================
+   COMPONENT STYLES
+   ========================================== */
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/maps';
@@ -249,7 +249,7 @@ export default {
 .collection-view__search-bubble {
   bottom: 2rem;
   right: 2rem;
-  // Explanation: Must sit above standard page content but below modals.
+
   z-index: 1050;
   cursor: pointer;
   transition: transform 0.2s ease-in-out;
@@ -279,7 +279,7 @@ export default {
   height: 62px;
   border-radius: 50%;
   object-fit: cover;
-  // Explanation: pointer-events: none ensures clicks pass through to the <button>.
+
   pointer-events: none;
   filter: drop-shadow(0 4px 16px rgba($pink, 0.35));
   transition: filter 0.2s ease-in-out;

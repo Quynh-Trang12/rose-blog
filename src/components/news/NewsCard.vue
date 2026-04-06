@@ -1,27 +1,12 @@
 <script>
-/**
- * ==========================================
- * COMPONENT: NewsCard.vue
- * ==========================================
- * Description:
- * A versatile news display card supporting multiple layouts (A, B, C).
- * Handles social interactions (reactions with hover emoji picker, comments,
- * shares via centered modal), inline editing for post owners, image lightbox,
- * category badges, and custom toast notifications.
- *
- * Fixes applied:
- * A1. Redesigned +N photos badge for better visibility and interaction.
- * A2. Category badge top-right of each card.
- * A3. Ellipsis tooltip positions directly below its trigger button.
- * A4. Share modal centered on screen; Facebook share opens new post composer.
- * A5. Facebook-style reaction picker on hover with animated emoji set.
- * A6. Gradient overlay fixed so images are clearly visible.
- * C1. Custom dropdown z-index fixed so dropdowns are never clipped.
- */
+// ==========================================
+// COMPONENT IMPORTS
+// ==========================================
+
 import { mapGetters, mapActions } from 'vuex'
 import ImageLightbox from '@/components/shared/ImageLightbox.vue'
 
-// Reaction set replicating Facebook's picker
+
 const REACTIONS = [
   { key: 'like', emoji: '👍' },
   { key: 'love', emoji: '❤️' },
@@ -31,6 +16,9 @@ const REACTIONS = [
   { key: 'angry', emoji: '😡' },
 ]
 
+// ==========================================
+// COMPONENT EXPORT
+// ==========================================
 export default {
   name: 'NewsCard',
 
@@ -44,26 +32,20 @@ export default {
 
   emits: ['react', 'comment', 'share', 'edit', 'delete'],
 
+  // ==========================================
+  // DATA
+  // ==========================================
   data() {
     return {
       isExpanded: false,
-      // Ellipsis menu
-      showEllipsisMenu: false,
-      ellipsisAnchorEl: null,
-      // Comments
+
       showComments: false,
       commentText: '',
-      // Share modal
-      showShareModal: false,
-      shareCopied: false,
-      // Reactions
+
       showReactionPicker: false,
       reactionHoverTimer: null,
       reactionLeaveTimer: null,
-      // Toast notification
-      toastMessage: '',
-      toastTimer: null,
-      // Edit mode
+
       isEditing: false,
       editTitle: '',
       editContent: '',
@@ -106,6 +88,9 @@ export default {
     }
   },
 
+  // ==========================================
+  // COMPUTED
+  // ==========================================
   computed: {
     ...mapGetters('auth', ['mySavedPostIds']),
 
@@ -144,17 +129,17 @@ export default {
       return this.categoryBadgeMap[type] || null
     },
 
-    /** Reaction count including the user's own reaction. */
+
     totalReactions() {
       return this.item.reactions || 0
     },
 
-    /** Emoji shown on the reaction button. */
+
     reactionEmoji() {
       return this.userReaction ? this.userReaction.emoji : '👍'
     },
 
-    /** Persistent user reaction from auth state. */
+
     userReaction() {
       if (!this.isAuthed || !this.$store.state.auth.currentUser.reactions) return null
       const key = this.$store.state.auth.currentUser.reactions[this.item.id]
@@ -168,13 +153,14 @@ export default {
     },
   },
 
+  // ==========================================
+  // METHODS
+  // ==========================================
   methods: {
     ...mapActions('auth', ['toggleSavePost']),
     ...mapActions('news', ['reactToNewsItem', 'addComment', 'incrementShare']),
 
-    // ==========================================
-    // TOAST NOTIFICATIONS
-    // ==========================================
+    // --- TOAST NOTIFICATIONS ---
     showToast(message) {
       clearTimeout(this.toastTimer)
       this.toastMessage = message
@@ -183,9 +169,7 @@ export default {
       }, 3000)
     },
 
-    // ==========================================
-    // SAVE / BOOKMARK
-    // ==========================================
+    // --- SAVE / BOOKMARK ---
     handleToggleSave() {
       if (!this.isAuthed) {
         this.showToast('Please log in to save posts.')
@@ -196,9 +180,7 @@ export default {
       this.showToast(this.isSaved ? 'Post unsaved.' : 'Post saved to your collection!')
     },
 
-    // ==========================================
-    // ELLIPSIS MENU — positioned directly below button
-    // ==========================================
+    // --- ELLIPSIS MENU ---
     toggleEllipsis(event) {
       this.showEllipsisMenu = !this.showEllipsisMenu
       this.ellipsisAnchorEl = event.currentTarget
@@ -209,7 +191,7 @@ export default {
       this.showEllipsisMenu = false
     },
 
-    /** Compute teleported menu position directly below the trigger. */
+
     ellipsisStyle() {
       if (!this.ellipsisAnchorEl) return {}
       const rect = this.ellipsisAnchorEl.getBoundingClientRect()
@@ -221,9 +203,7 @@ export default {
       }
     },
 
-    // ==========================================
-    // REACTIONS — Facebook-style hover picker
-    // ==========================================
+    // --- REACTIONS ---
     onReactionButtonEnter() {
       clearTimeout(this.reactionLeaveTimer)
       if (!this.isAuthed) return
@@ -249,10 +229,7 @@ export default {
       }, 300)
     },
 
-    /**
-     * core method to toggle or change a reaction.
-     * calculates the counter diff (+1, -1, 0) for the news store.
-     */
+
     applyReaction(reactionKey) {
       if (!this.isAuthed) {
         this.showToast('Please log in to react.')
@@ -292,9 +269,7 @@ export default {
       this.applyReaction(this.userReaction ? this.userReaction.key : 'like')
     },
 
-    // ==========================================
-    // SHARE MODAL — centered on screen
-    // ==========================================
+    // --- SHARE MODAL ---
     openShareModal() {
       this.showShareModal = true
       this.showEllipsisMenu = false
@@ -314,7 +289,7 @@ export default {
       const title = encodeURIComponent(this.item.title || 'The Rose Blog')
 
       if (platform === 'facebook') {
-        // Opens Facebook's "Create Post" composer — user pastes the link themselves.
+
         window.open(
           `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
           '_blank',
@@ -346,9 +321,7 @@ export default {
       this.$emit('share', { id: this.item.id, platform })
     },
 
-    // ==========================================
-    // LIGHTBOX
-    // ==========================================
+    // --- LIGHTBOX ---
     showLightbox(index) {
       this.lightboxIndex = index || 0
       this.lightboxVisible = true
@@ -358,9 +331,7 @@ export default {
       this.lightboxVisible = false
     },
 
-    // ==========================================
-    // EDITING
-    // ==========================================
+    // --- EDITING ---
     initiateEdit() {
       this.showEllipsisMenu = false
       if (!this.isOwner) return
@@ -412,9 +383,7 @@ export default {
       this.activeDropdown = this.activeDropdown === id ? null : id
     },
 
-    // ==========================================
-    // COMMENTS
-    // ==========================================
+    // --- COMMENTS ---
     submitComment() {
       if (!this.commentText.trim() || !this.isAuthed) return
       const commentData = {
@@ -440,7 +409,7 @@ export default {
 </script>
 
 <template>
-  <!-- Toast Notification -->
+  <!-- TOAST NOTIFICATION -->
   <teleport to="body">
     <transition name="toast-fade">
       <div
@@ -468,7 +437,7 @@ export default {
     role="article"
     :aria-labelledby="'post-title-' + item.id"
   >
-    <!-- ── Header ── -->
+    <!-- HEADER SECTION -->
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex align-items-center gap-2">
         <img
@@ -484,7 +453,7 @@ export default {
         </div>
       </div>
 
-      <!-- A2: Category badge -->
+
       <div class="d-flex align-items-center gap-2">
         <span
           v-if="categoryMeta"
@@ -497,7 +466,7 @@ export default {
           {{ item.type || item.category }}
         </span>
 
-        <!-- Ellipsis -->
+
         <button
           class="btn btn-sm btn-light rounded-circle shadow-none p-1 d-flex align-items-center justify-content-center ellipsis-btn"
           @click.stop="toggleEllipsis"
@@ -510,7 +479,7 @@ export default {
       </div>
     </div>
 
-    <!-- A3: Ellipsis menu — teleported and positioned directly below its button -->
+    <!-- ELLIPSIS MENU -->
     <teleport to="body">
       <div
         v-if="showEllipsisMenu"
@@ -548,7 +517,7 @@ export default {
       </div>
     </teleport>
 
-    <!-- ── Edit form ── -->
+    <!-- EDIT FORM -->
     <div
       v-if="isEditing"
       class="edit-form bg-white rounded-4 p-3 d-flex flex-column gap-2"
@@ -579,7 +548,7 @@ export default {
         style="min-height: 120px; resize: vertical; width: 100%; box-sizing: border-box"
       ></textarea>
 
-      <!-- Botanical Attributes — C1: dropdown z-index fixed via inline position:relative + high z-index -->
+
       <div
         class="rounded-4 border bg-light p-3 mt-2"
         style="position: relative; z-index: 300; overflow: visible"
@@ -754,7 +723,7 @@ export default {
       </div>
     </div>
 
-    <!-- ── Layout rendering ── -->
+    <!-- CONTENT LAYOUTS -->
     <div class="card-content-area" v-else>
       <!-- Layout B -->
       <div
@@ -769,7 +738,7 @@ export default {
           />
         </div>
 
-        <!-- A1: Redesigned photo count badge — top-right, high contrast -->
+
         <button
           v-if="extraPhotoCount > 0"
           class="photo-count-badge position-absolute d-flex align-items-center gap-1"
@@ -780,7 +749,7 @@ export default {
           +{{ extraPhotoCount }}
         </button>
 
-        <!-- A6: Gradient only on bottom third, not covering entire image -->
+
         <div class="layout-b__overlay position-absolute bottom-0 start-0 w-100 p-3 p-md-4">
           <h2
             :id="'post-title-' + item.id"
@@ -882,11 +851,11 @@ export default {
       </div>
     </div>
 
-    <!-- ── A5: Social row with Facebook-style reaction picker ── -->
+    <!-- SOCIAL INTERACTIONS -->
     <div
       class="social-row d-flex align-items-center gap-3 pt-2 border-top border-light mt-auto position-relative"
     >
-      <!-- Reaction picker popup -->
+
       <transition name="reaction-pop">
         <div
           v-if="showReactionPicker && isAuthed"
@@ -909,7 +878,7 @@ export default {
         </div>
       </transition>
 
-      <!-- Reaction button -->
+
       <button
         class="interaction-btn d-flex align-items-center gap-1 px-2 py-1 rounded-pill transition-base border-0 bg-transparent"
         :class="{ active: !!userReaction }"
@@ -923,7 +892,7 @@ export default {
         <span class="fw-bold text-xs">{{ totalReactions }}</span>
       </button>
 
-      <!-- Comments toggle -->
+
       <button
         class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base border-0 bg-transparent"
         @click="showComments = !showComments"
@@ -934,7 +903,7 @@ export default {
         <span class="fw-bold text-xs">{{ (item.comments || []).length }}</span>
       </button>
 
-      <!-- Share button -->
+
       <button
         class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base ms-auto border-0 bg-transparent"
         @click="openShareModal"
@@ -945,7 +914,7 @@ export default {
       </button>
     </div>
 
-    <!-- ── Comments ── -->
+    <!-- COMMENTS SECTION -->
     <transition name="fade">
       <div v-show="showComments" class="pt-3 border-top border-light mt-1 w-100">
         <div class="d-flex flex-column gap-3 mb-3">
@@ -1000,7 +969,7 @@ export default {
     />
   </article>
 
-  <!-- ── A4: Share Modal — centered on screen ── -->
+  <!-- SHARE MODAL -->
   <teleport to="body">
     <transition name="modal-fade">
       <div
@@ -1080,13 +1049,16 @@ export default {
 </template>
 
 <style scoped lang="scss">
+/* ==========================================
+   COMPONENT STYLES
+   ========================================== */
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
 @import '@/assets/base.scss';
 
-// ── Sizing ──────────────────────────────────────────
+
 .avatar-sm {
   width: 40px;
   height: 40px;
@@ -1096,6 +1068,7 @@ export default {
 }
 
 // ── A2: Category badges ──────────────────────────────
+/* CATEGORY BADGES */
 .category-badge {
   font-family: 'Roboto Condensed', sans-serif;
   font-size: 0.69rem;
@@ -1233,7 +1206,7 @@ export default {
   }
 }
 
-// ── A6: Layout B — gradient on bottom third only ────
+/* LAYOUT OVERLAYS */
 .layout-b {
   .img-wrapper img {
     display: block;
@@ -1254,7 +1227,7 @@ export default {
   }
 }
 
-// ── Layout A image height ────────────────────────────
+
 .layout-a__img {
   max-height: 220px;
   width: 100%;
@@ -1332,7 +1305,7 @@ export default {
   }
 }
 
-// ── Toast ────────────────────────────────────────────
+/* TOAST NOTIFICATIONS */
 .news-card__toast {
   bottom: 5rem;
   left: 50%;

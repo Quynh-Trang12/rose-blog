@@ -1,25 +1,22 @@
 <script>
-/**
- * ==========================================
- * COMPONENT: NewsCreateBar.vue
- * ==========================================
- * Description:
- * Authenticated-only post creation form. Expands inline on click.
- *
- * Fixes applied:
- * B1. Select Type buttons render in a strict 2-column grid on all viewports.
- * B2. Private post toggle with isPublic flag; private posts hidden from other users.
- * B3. Rich text editor (TipTap via RichTextEditor component) replaces plain textarea.
- * C1. Custom dropdown z-index fixed so dropdowns are never clipped by siblings.
- */
+// ==========================================
+// COMPONENT IMPORTS
+// ==========================================
+
 import { mapGetters, mapActions, mapState } from 'vuex'
 import RichTextEditor from '@/components/news/RichTextEditor.vue'
 
+// ==========================================
+// COMPONENT EXPORT
+// ==========================================
 export default {
   name: 'NewsCreateBar',
 
   components: { RichTextEditor },
 
+  // ==========================================
+  // DATA
+  // ==========================================
   data() {
     return {
       isExpanded: false,
@@ -29,7 +26,7 @@ export default {
       imageUrl: '',
       imageMode: 'url',
       objectUrl: null,
-      // B2: Private post toggle
+
       isPrivate: false,
       availableCategories: ['Bush Rose', 'Climbing Rose', 'Planting Guide', 'Botanical Tips'],
       // Botanical attributes
@@ -62,21 +59,27 @@ export default {
     }
   },
 
+  // ==========================================
+  // COMPUTED
+  // ==========================================
   computed: {
     ...mapState('auth', ['currentUser']),
     ...mapGetters('auth', ['isLoggedIn']),
 
-    /** Avatar with stable pravatar fallback. */
+
     safeAvatar() {
       if (this.currentUser?.avatar) return this.currentUser.avatar
       return `https://i.pravatar.cc/150?u=${this.currentUser?.username || 'anonymous'}`
     },
   },
 
+  // ==========================================
+  // METHODS
+  // ==========================================
   methods: {
     ...mapActions('news', ['addNewsItem']),
 
-    /** Handle local file upload. */
+
     handleFileSelect(event) {
       const file = event.target.files[0]
       if (!file) return
@@ -85,7 +88,7 @@ export default {
       this.imageUrl = this.objectUrl
     },
 
-    /** Validate and dispatch new post. */
+
     handleSubmit() {
       this.error = ''
       if (!this.title.trim()) {
@@ -106,7 +109,7 @@ export default {
         authorID: this.currentUser.id,
         authorName: this.currentUser.displayName,
         authorAvatar: this.safeAvatar,
-        // B2: propagate privacy flag
+
         isPublic: !this.isPrivate,
         color: this.color || 'Unknown',
         fragrance: this.fragrance || 'Classic',
@@ -150,6 +153,7 @@ export default {
 </script>
 
 <template>
+  <!-- POST CREATION BAR -->
   <div
     class="news-create-bar rounded-4 shadow-sm border border-light transition-base animate-fade-up"
     :class="{
@@ -159,7 +163,7 @@ export default {
     }"
     style="background: white"
   >
-    <!-- ── Folded trigger ── -->
+
     <div
       v-if="!isExpanded"
       class="p-3 d-flex align-items-center gap-3 cursor-pointer"
@@ -189,7 +193,7 @@ export default {
       </button>
     </div>
 
-    <!-- ── Expanded form ── -->
+    <!-- EXPANDED FORM -->
     <div v-else class="p-4 p-md-5 position-relative animate-fade-up" style="overflow: visible">
       <button
         class="btn-close position-absolute top-0 end-0 m-4 shadow-none"
@@ -221,7 +225,7 @@ export default {
             />
           </div>
 
-          <!-- B3: Rich Text Editor replaces plain textarea -->
+
           <div class="mb-3">
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
               >Content</label
@@ -276,7 +280,7 @@ export default {
                 />
               </div>
 
-              <!-- C1: Each dropdown col has an explicit z-index so it layers above siblings -->
+
               <div class="col-6 col-md-4" style="position: relative; z-index: 130">
                 <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
                   >Strength</label
@@ -391,12 +395,12 @@ export default {
 
         <!-- Right column -->
         <div class="col-12 col-lg-4">
-          <!-- B1: Select Type — strict 2-column grid on all viewports -->
+
           <div class="mb-4">
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-3"
               >Select Type</label
             >
-            <!-- Use CSS grid for guaranteed 2 columns regardless of viewport -->
+
             <div class="create-bar__type-grid">
               <button
                 v-for="cat in availableCategories"
@@ -415,7 +419,7 @@ export default {
             </div>
           </div>
 
-          <!-- B2: Private / Public toggle -->
+
           <div class="mb-4">
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-2 d-block"
               >Post Visibility</label
@@ -529,6 +533,9 @@ export default {
 </template>
 
 <style scoped lang="scss">
+/* ==========================================
+   COMPONENT STYLES
+   ========================================== */
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
 @import 'bootstrap/scss/maps';
@@ -546,25 +553,24 @@ export default {
   letter-spacing: 0.15rem;
 }
 
-// ── B1: Strict 2-column type grid ────────────────────
-// CSS grid guarantees exactly 2 columns on every viewport.
+
 .create-bar__type-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
 
-// ── B2: Visibility toggle ────────────────────────────
+
 .create-bar__visibility-toggle .btn-white {
   background: white;
 }
 
-// ── Rotate chevron in dropdowns ──────────────────────
+
 .rotate-180 {
   transform: rotate(180deg);
 }
 
-// ── Fade transition ──────────────────────────────────
+
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
