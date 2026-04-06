@@ -131,11 +131,18 @@ export default {
   <div class="news-view min-vh-100 py-5 bg-light-soft position-relative">
     <!-- Search Bubble Trigger -->
     <button
-      class="search-bubble-btn shadow-lg rounded-circle position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
-      @click.stop="showFilterModal = true"
-      aria-label="Open search and filters"
+      type="button"
+      class="search-bubble-btn news-view__search-bubble border-0 bg-transparent p-0 position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
+      @click="showFilterModal = true"
+      aria-label="Open search and filter panel"
+      :aria-expanded="showFilterModal"
     >
-      <img src="@/assets/images/search-icon.png" style="width: 32px; height: 32px; filter: brightness(0) invert(1);" alt="Search" />
+      <img
+        src="@/assets/images/search-icon.png"
+        alt="Search and filter"
+        class="news-view__search-icon"
+        style="pointer-events: none;"
+      />
     </button>
 
     <!-- Filter Modal (Overlay) -->
@@ -195,22 +202,9 @@ export default {
 
 /* Floating Search Bubble Styling */
 .search-bubble-btn {
-  width: 64px;
-  height: 64px;
   bottom: 2rem;
   right: 2rem;
-  background-color: $primary;
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 12px 24px rgba($primary, 0.3);
-
-  &:hover {
-    transform: scale(1.1) rotate(5deg);
-    background-color: darken($primary, 5%);
-    box-shadow: 0 16px 32px rgba($primary, 0.4);
-  }
+  // border: none;
 
   @include media-breakpoint-down(md) {
     width: 56px;
@@ -245,5 +239,33 @@ export default {
 
 .text-primary-light {
   color: rgba($primary, 0.2);
+}
+
+.news-view {
+  &__search-bubble {
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+
+    &:hover {
+      transform: scale(1.08);
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__search-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    filter: drop-shadow(0 4px 16px rgba($pink, 0.3));
+    transition: filter 0.2s ease-in-out;
+
+    &:hover {
+      filter: drop-shadow(0 8px 32px rgba($pink, 0.45));
+    }
+  }
 }
 </style>

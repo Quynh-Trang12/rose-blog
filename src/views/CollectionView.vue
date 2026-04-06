@@ -79,11 +79,18 @@ export default {
   <div class="collection-view min-vh-100 py-5 bg-light-soft position-relative">
     <!-- Search Bubble Trigger -->
     <button
-      class="search-bubble-btn shadow-lg rounded-circle position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
-      @click.stop="showFilterModal = true"
+      type="button"
+      class="search-bubble-btn collection-view__search-bubble border-0 bg-transparent p-0 position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
+      @click="showFilterModal = true"
       aria-label="Open collection filters"
+      :aria-expanded="showFilterModal"
     >
-      <img src="@/assets/images/search-icon.png" style="width: 32px; height: 32px; filter: brightness(0) invert(1);" alt="Search" />
+      <img
+        src="@/assets/images/search-icon.png"
+        alt="Search and filter"
+        class="collection-view__search-icon"
+        style="pointer-events: none;"
+      />
     </button>
 
     <!-- Filter Modal (Overlay) -->
@@ -236,5 +243,45 @@ export default {
 
 .text-primary-light {
   color: rgba($primary, 0.2);
+}
+/* Floating Search Bubble Styling */
+.search-bubble-btn {
+  bottom: 2rem;
+  right: 2rem;
+
+  @include media-breakpoint-down(md) {
+    width: 56px;
+    height: 56px;
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+.collection-view {
+  &__search-bubble {
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+
+    &:hover {
+      transform: scale(1.08);
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  &__search-icon {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    object-fit: cover;
+    filter: drop-shadow(0 4px 16px rgba($pink, 0.3));
+    transition: filter 0.2s ease-in-out;
+
+    &:hover {
+      filter: drop-shadow(0 8px 32px rgba($pink, 0.45));
+    }
+  }
 }
 </style>
