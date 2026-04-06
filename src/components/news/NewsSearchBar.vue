@@ -193,8 +193,9 @@ export default {
         aria-label="Search and Filter"
         @click.self="close"
       >
-        <div class="search-modal-container frosted-glass rounded-5 shadow-2xl p-4 p-md-5 position-relative animate-fade-up">
-
+        <div
+          class="search-modal-container frosted-glass rounded-5 shadow-2xl p-4 p-md-5 position-relative animate-fade-up"
+        >
           <!-- Close Button -->
           <button
             class="search-modal__close btn btn-link text-dark p-2 position-absolute top-0 end-0 m-3"
@@ -221,25 +222,22 @@ export default {
               @keyup.enter="handleSearchSubmit"
             />
             <button
-              class="btn btn-primary rounded-end-pill px-4 shadow-sm border-2 d-flex align-items-center justify-content-center"
+              class="btn btn-primary rounded-end-pill px-4 shadow-sm border-2 d-flex align-items-center justify-content-center fs-4 font-zilla fw-medium"
               @click="handleSearchSubmit"
               aria-label="Submit search"
             >
-              <img
-                src="@/assets/images/search-icon.png"
-                class="search-modal__icon-img"
-                alt="Search"
-              />
+              Search
             </button>
           </div>
 
           <!-- Filter Columns -->
           <div class="row g-4">
-
             <!-- Left: Categories and Attribute Selects -->
             <div class="col-lg-7">
               <div class="mb-4">
-                <h3 class="search-modal__section-title h6 fw-bold text-uppercase ls-1 mb-3 text-primary">
+                <h3
+                  class="search-modal__section-title h6 fw-bold text-uppercase ls-1 mb-3 text-primary"
+                >
                   Botanical Categories
                 </h3>
                 <div class="d-flex flex-wrap gap-2">
@@ -247,7 +245,9 @@ export default {
                     v-for="cat in categoryOptions"
                     :key="cat.value"
                     class="btn btn-sm rounded-pill px-3 py-2 fw-bold transition-base border"
-                    :class="filters.category === cat.value ? 'btn-primary' : 'btn-outline-secondary'"
+                    :class="
+                      filters.category === cat.value ? 'btn-primary' : 'btn-outline-secondary'
+                    "
                     @click="handleCategorySelect(cat.value)"
                   >
                     {{ cat.label }}
@@ -263,7 +263,9 @@ export default {
                   <select
                     class="form-select rounded-pill border-2"
                     :value="filters.thornLevel"
-                    @change="e => applyFilters({ filters: { thornLevel: e.target.value }, target })"
+                    @change="
+                      (e) => applyFilters({ filters: { thornLevel: e.target.value }, target })
+                    "
                   >
                     <option value="all">All levels</option>
                     <option value="none">Thornless</option>
@@ -278,7 +280,7 @@ export default {
                   <select
                     class="form-select rounded-pill border-2"
                     :value="filters.idealFor"
-                    @change="e => applyFilters({ filters: { idealFor: e.target.value }, target })"
+                    @change="(e) => applyFilters({ filters: { idealFor: e.target.value }, target })"
                   >
                     <option value="all">All locations</option>
                     <option value="pot">Pots / Containers</option>
@@ -292,7 +294,9 @@ export default {
             <!-- Right: Date and Strength Selects -->
             <div class="col-lg-5">
               <div class="mb-4">
-                <h3 class="search-modal__section-title h6 fw-bold text-uppercase ls-1 mb-3 text-primary">
+                <h3
+                  class="search-modal__section-title h6 fw-bold text-uppercase ls-1 mb-3 text-primary"
+                >
                   Blooming &amp; Care
                 </h3>
 
@@ -305,11 +309,7 @@ export default {
                     :value="filters.date"
                     @change="handleDateSelect"
                   >
-                    <option
-                      v-for="d in dateOptions"
-                      :key="d.value"
-                      :value="d.value"
-                    >
+                    <option v-for="d in dateOptions" :key="d.value" :value="d.value">
                       {{ d.label }}
                     </option>
                   </select>
@@ -322,7 +322,7 @@ export default {
                   <select
                     class="form-select rounded-pill border-2"
                     :value="filters.strength"
-                    @change="e => applyFilters({ filters: { strength: e.target.value }, target })"
+                    @change="(e) => applyFilters({ filters: { strength: e.target.value }, target })"
                   >
                     <option value="all">Any strength</option>
                     <option value="3">Mild (3+)</option>
@@ -341,7 +341,6 @@ export default {
                 Reset Filters
               </button>
             </div>
-
           </div>
         </div>
       </div>
@@ -362,6 +361,7 @@ export default {
 .search-overlay {
   position: fixed;
   inset: 0;
+  z-index: 1500;
   background: rgba($white, 0.88);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

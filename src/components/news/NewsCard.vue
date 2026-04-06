@@ -462,7 +462,9 @@ export default {
       </div>
 
       <!-- Basic Fields -->
-      <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-0 opacity-75">Title</label>
+      <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-0 opacity-75"
+        >Title</label
+      >
       <input
         v-model="editTitle"
         type="text"
@@ -470,7 +472,9 @@ export default {
         placeholder="Title"
       />
 
-      <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-0 opacity-75">Content</label>
+      <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-0 opacity-75"
+        >Content</label
+      >
       <textarea
         v-model="editContent"
         class="form-control form-control-sm font-roboto edit-textarea border-2"
@@ -481,19 +485,39 @@ export default {
       <!-- Detailed Botanical Fields (Issue 3) -->
       <div class="row g-2 mt-1">
         <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75">Color</label>
-          <input v-model="editColor" type="text" class="form-control form-control-sm rounded-pill border-2" />
+          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+            >Color</label
+          >
+          <input
+            v-model="editColor"
+            type="text"
+            class="form-control form-control-sm rounded-pill border-2"
+          />
         </div>
         <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75">Fragrance</label>
-          <input v-model="editFragrance" type="text" class="form-control form-control-sm rounded-pill border-2" />
+          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+            >Fragrance</label
+          >
+          <input
+            v-model="editFragrance"
+            type="text"
+            class="form-control form-control-sm rounded-pill border-2"
+          />
         </div>
         <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75">Blooming</label>
-          <input v-model="editBloomingSeason" type="text" class="form-control form-control-sm rounded-pill border-2" />
+          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+            >Blooming</label
+          >
+          <input
+            v-model="editBloomingSeason"
+            type="text"
+            class="form-control form-control-sm rounded-pill border-2"
+          />
         </div>
         <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75">Strength</label>
+          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+            >Strength</label
+          >
           <select v-model="editStrength" class="form-select form-select-sm rounded-pill border-2">
             <option :value="3">3 (Mild)</option>
             <option :value="4">4 (Strong)</option>
@@ -501,7 +525,9 @@ export default {
           </select>
         </div>
         <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75">Thorns</label>
+          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+            >Thorns</label
+          >
           <select v-model="editThornLevel" class="form-select form-select-sm rounded-pill border-2">
             <option value="none">None</option>
             <option value="few">Few</option>
@@ -509,7 +535,9 @@ export default {
           </select>
         </div>
         <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75">Ideal For</label>
+          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+            >Ideal For</label
+          >
           <select v-model="editIdealFor" class="form-select form-select-sm rounded-pill border-2">
             <option value="garden">Garden</option>
             <option value="pot">Pots</option>
