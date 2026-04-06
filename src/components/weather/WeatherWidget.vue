@@ -91,7 +91,7 @@ export default {
             // Restore locationStatus from cache to maintain correct UI state.
             this.locationStatus = 'resolved'
             this.updateUIFeedback(parsed.code, parsed.temp)
-            // NOTE: Continuing to Phase 2 in the background (no return early)
+            // Continuing to Phase 2 in the background (no return early)
           }
         } catch (e) {
           console.error('Cache parse error', e)
@@ -134,8 +134,7 @@ export default {
         // Attempt to reverse-geocode the coordinates to a city name.
         this.locationDisplay = await fetchCityName(lat, lon)
       } catch {
-        // Geolocation was denied, timed out, or is unsupported.
-        // Set status to 'blocked'
+        // If geolocation was denied, timed out, or is unsupported, set status to 'blocked'
         status = 'blocked'
         this.locationDisplay = this.FALLBACK_CITY
       }

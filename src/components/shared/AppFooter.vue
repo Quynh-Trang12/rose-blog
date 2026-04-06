@@ -6,11 +6,6 @@
  * Description:
  * The application footer. Includes a newsletter subscription form
  * with email validation, social media links, and copyright info.
- *
- * Requirements (Issue 1):
- *  - Implement checkForm email validation pattern.
- *  - Fixed: footer background covers social link hover effects.
- *  - Removed decorative flower absolute elements that obstructed clicks.
  */
 
 export default {

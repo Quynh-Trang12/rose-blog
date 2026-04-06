@@ -1,15 +1,3 @@
-/**
- * ==========================================
- * FILE: router/index.js
- * ==========================================
- * Description:
- * Main router configuration for the application using Vue Router 4.
- * Defines all view routes, applies navigation guards for authentication,
- * and provides smooth scrolling with hash-based anchor support.
- *
- * Routes: / (Home), /news, /collection (auth required), /about,
- *         /unauthorized, catch-all redirect to /.
- */
 import { createRouter, createWebHistory } from 'vue-router'
 import store from '@/store/index.js'
 
@@ -44,8 +32,6 @@ const router = createRouter({
 
   /**
    * Controls scroll behaviour when navigating between routes.
-   * Fixed scrollBehavior (Issue 6) with a delay to allow
-   * components to render before attempting to scroll to a hash element.
    * @param {Object} to - The target route object
    * @param {Object} _from - The previous route object
    * @param {Object} savedPosition - The previous scroll position
