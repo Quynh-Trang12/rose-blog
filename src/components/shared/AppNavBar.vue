@@ -316,13 +316,9 @@ export default {
         <span class="hamburger-line"></span>
       </button>
 
-      <div
-        class="navbar-custom-menu bg-white gap-4 gap-lg-0"
-        :class="{ show: isMenuOpen }"
-        id="mainNav"
-      >
+      <div class="navbar-custom-menu bg-white" :class="{ show: isMenuOpen }" id="mainNav">
         <ul
-          class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center gap-4 gap-lg-0"
+          class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center"
         >
           <li
             class="nav-item m-0 p-lg-0 py-2"
@@ -348,7 +344,7 @@ export default {
           <li class="nav-slider-primary d-none d-lg-block" :style="sliderStyle"></li>
         </ul>
 
-        <div class="d-flex flex-column flex-lg-row align-items-center gap-4 pb-4 pb-lg-0">
+        <div class="d-flex flex-column flex-lg-row align-items-center gap-5 pb-4 pt-3 pb-lg-0">
           <router-link
             v-if="isLoggedIn"
             to="/collection"
