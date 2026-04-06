@@ -28,7 +28,6 @@ export default {
     }
   },
 
-
   // ==========================================
   // COMPUTED
   // ==========================================
@@ -50,12 +49,9 @@ export default {
      * @returns {string}
      */
     selectedRoseImage() {
-      return this.selectedRoseType === 'climbing'
-        ? this.climbingRoseImg
-        : this.bushRoseImg
+      return this.selectedRoseType === 'climbing' ? this.climbingRoseImg : this.bushRoseImg
     },
   },
-
 
   // ==========================================
   // METHODS
@@ -84,20 +80,20 @@ export default {
     <div class="container position-relative z-1 pt-5">
       <div class="row justify-content-center">
         <div class="col-12 col-lg-8 animate-fade-up">
-                    <!-- VISION & HISTORY -->
+          <!-- VISION & HISTORY -->
           <div class="text-center mb-5">
-            <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-dark">
+            <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-gray-300">
               Our Botanical Story
             </h1>
-            <div class="mx-auto border-bottom border-primary border-4 about-divider mb-4"></div>
-            <p class="text-muted lh-xl font-roboto fs-5">
+            <div class="mx-auto border-bottom border-secondary border-4 about-divider mb-4"></div>
+            <p class="text-gray-300 lh-xl font-roboto fs-5">
               Est. 2026 — A digital sanctuary for rose lovers worldwide. Our mission is to
               democratize rose care knowledge, providing expert-level guidance that is accessible to
               every level of gardener.
             </p>
           </div>
 
-                    <!-- VISITOR WELCOME FORM -->
+          <!-- VISITOR WELCOME FORM -->
           <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Visitor Welcome</h2>
             <div class="row g-3 mb-4">
@@ -150,7 +146,7 @@ export default {
             </transition>
           </div>
 
-                    <!-- ROSE VARIETY SELECTION -->
+          <!-- ROSE VARIETY SELECTION -->
           <fieldset class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5 border-0">
             <legend class="visually-hidden">Find Your Perfect Rose Variety</legend>
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Find Your Perfect Rose</h2>
@@ -252,11 +248,10 @@ export default {
 /* ==========================================
    COMPONENT STYLES
    ========================================== */
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
+@import '@/assets/base.scss';
 
 .about-view {
-  background: linear-gradient(135deg, $red-500 0%, $pink-100 100%);
+  background: linear-gradient(to top, $pink-400 0%, $red-600 100%);
 }
 
 .about-divider {

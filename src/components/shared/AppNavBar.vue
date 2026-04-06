@@ -316,12 +316,16 @@ export default {
         <span class="hamburger-line"></span>
       </button>
 
-      <div class="navbar-custom-menu bg-white" :class="{ show: isMenuOpen }" id="mainNav">
+      <div
+        class="navbar-custom-menu bg-white gap-4 gap-lg-0"
+        :class="{ show: isMenuOpen }"
+        id="mainNav"
+      >
         <ul
-          class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center"
+          class="navbar-nav mx-auto text-lg fw-medium text-center text-lg-start my-0 py-0 position-relative align-items-center gap-4 gap-lg-0"
         >
           <li
-            class="nav-item m-0 p-lg-0 py-2"
+            class="nav-item m-0 p-lg-0 py-lg-2"
             v-for="(item, index) in navItems"
             :key="item.path"
             :ref="
@@ -433,7 +437,7 @@ export default {
     width: 100%;
     z-index: 1065;
     background: #fff;
-    padding: 1.5rem;
+    padding-bottom: 1.5rem;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 
     /* Makes sure menu items are scrollable instead of hiding them */
