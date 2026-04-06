@@ -53,8 +53,8 @@ export default {
      */
     selectedRoseImage() {
       return this.selectedRoseType === 'climbing'
-        ? 'https://images.unsplash.com/photo-1559564283-0570183b16db?w=600&q=80'
-        : 'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=600&q=80'
+        ? '/src/assets/images/image10.jpg'
+        : '/src/assets/images/image5.jpg'
     },
   },
 
@@ -82,10 +82,6 @@ export default {
 
 <template>
   <div class="about-view min-vh-100 py-5 position-relative overflow-hidden">
-    <!-- Decorative background blobs -->
-    <div class="bg-blob position-absolute top-0 end-0 opacity-10" aria-hidden="true"></div>
-    <div class="bg-blob position-absolute bottom-0 start-0 opacity-10" aria-hidden="true"></div>
-
     <div class="container position-relative z-1 pt-5">
       <div class="row justify-content-center">
         <div class="col-12 col-lg-8 animate-fade-up">
@@ -180,9 +176,7 @@ export default {
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
                     <img
-                      v-lazy-load="
-                        'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=600&q=80'
-                      "
+                      v-lazy-load="'/src/assets/images/image5.jpg'"
                       class="w-100 h-100 object-fit-cover"
                       alt="Bush Rose"
                     />
@@ -211,9 +205,7 @@ export default {
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
                     <img
-                      v-lazy-load="
-                        'https://images.unsplash.com/photo-1559564283-0570183b16db?w=600&q=80'
-                      "
+                      v-lazy-load="'/src/assets/images/image10.jpg'"
                       class="w-100 h-100 object-fit-cover"
                       alt="Climbing Rose"
                     />
@@ -254,16 +246,11 @@ export default {
 </template>
 
 <style scoped lang="scss">
-.about-view {
-  background: linear-gradient(135deg, #fff5f8 0%, #fef9c3 100%);
-}
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
 
-.bg-blob {
-  width: 400px;
-  height: 400px;
-  background-color: var(--bs-primary);
-  border-radius: 50%;
-  filter: blur(120px);
+.about-view {
+  background: linear-gradient(135deg, $red-500 0%, $pink-100 100%);
 }
 
 .about-divider {
