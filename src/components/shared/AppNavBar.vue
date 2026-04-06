@@ -274,6 +274,9 @@ export default {
 
   mounted() {
     this.syncActiveIndex()
+    window.addEventListener('openAuthModal', () => {
+      this.isAuthModalOpen = true
+    })
   },
 
   beforeUpdate() {

@@ -7,9 +7,9 @@
  * via localStorage, and a collection of registered users.
  *
  * State: currentUser (Object|null), users (Array of user objects).
- * Getters: isLoggedIn, isAdmin, mySavedPostIds, favoritesCount, blockedUserIds.
- * Mutations: SET_CURRENT_USER, TOGGLE_SAVE_POST, TOGGLE_BLOCK_USER.
- * Actions: login, register, logout, toggleSavePost, toggleBlockUser.
+ * Getters: isLoggedIn, mySavedPostIds, favoritesCount.
+ * Mutations: SET_CURRENT_USER, TOGGLE_SAVE_POST, PUSH_REGISTERED_USER.
+ * Actions: login, register, logout, toggleSavePost.
  */
 
 import { hashPassword } from '@/utils/crypto.js'
@@ -27,10 +27,9 @@ export default {
         username: 'rosegarden',
         // SHA-256 hash of 'rose123'
         password: '513ff9665fc7a9253f3ded3d71f0f96efc1ec96a12a3e3de559d06c698c1a52c',
+        role: 'user',
         displayName: 'Rose Garden',
-        role: 'admin',
         savedPosts: ['post-101', 'post-108'],
-        isBlocked: false,
       },
       {
         id: 2,
@@ -40,7 +39,6 @@ export default {
         displayName: 'Petal Pusher',
         role: 'user',
         savedPosts: ['post-109'],
-        isBlocked: false,
       },
       {
         id: 3,
@@ -50,7 +48,6 @@ export default {
         displayName: 'Novice Planter',
         role: 'user',
         savedPosts: [],
-        isBlocked: false,
       },
     ]
 
@@ -81,8 +78,8 @@ export default {
 
     TOGGLE_SAVE_POST(state, postId) {
       if (!state.currentUser) return
-      
-      const user = state.users.find(u => u.id === state.currentUser.id)
+
+      const user = state.users.find((u) => u.id === state.currentUser.id)
       if (user) {
         if (!user.savedPosts) user.savedPosts = []
         const index = user.savedPosts.indexOf(postId)
@@ -94,7 +91,7 @@ export default {
         // Re-set currentUser to trigger reactivity
         state.currentUser = { ...user }
         localStorage.setItem('currentUser', JSON.stringify(state.currentUser))
-        
+
         // Sync to registeredUsers if applicable
         const registered = JSON.parse(localStorage.getItem('registeredUsers')) || []
         const regIndex = registered.findIndex((u) => u.id === user.id)
@@ -105,19 +102,7 @@ export default {
       }
     },
 
-    TOGGLE_BLOCK_USER(state, userId) {
-      const user = state.users.find((u) => u.id === userId)
-      if (user && user.role !== 'admin') {
-        user.isBlocked = !user.isBlocked
-        // If this was a registered user, sync to localStorage
-        const registered = JSON.parse(localStorage.getItem('registeredUsers')) || []
-        const regIndex = registered.findIndex((u) => u.id === userId)
-        if (regIndex !== -1) {
-          registered[regIndex].isBlocked = user.isBlocked
-          localStorage.setItem('registeredUsers', JSON.stringify(registered))
-        }
-      }
-    },
+
 
     PUSH_REGISTERED_USER(state, user) {
       state.users.push(user)
@@ -133,14 +118,9 @@ export default {
   actions: {
     async login({ state, commit }, { username, password }) {
       const hash = await hashPassword(password)
-      const user = state.users.find(
-        (u) => u.username === username && u.password === hash
-      )
+      const user = state.users.find((u) => u.username === username && u.password === hash)
 
       if (user) {
-        if (user.isBlocked) {
-          return { success: false, error: 'Your account has been blocked.' }
-        }
         commit('SET_CURRENT_USER', user)
         return { success: true }
       }
@@ -164,7 +144,6 @@ export default {
         displayName,
         role: 'user',
         savedPosts: [],
-        isBlocked: false,
       }
 
       commit('PUSH_REGISTERED_USER', newUser)
@@ -180,11 +159,6 @@ export default {
       if (!state.currentUser) return
       commit('TOGGLE_SAVE_POST', postId)
     },
-
-    toggleBlockUser({ commit, getters }, userId) {
-      if (!getters.isAdmin) return
-      commit('TOGGLE_BLOCK_USER', userId)
-    },
   },
 
   // ==========================================
@@ -192,10 +166,7 @@ export default {
   // ==========================================
   getters: {
     isLoggedIn: (state) => !!state.currentUser,
-    isAdmin: (state) => state.currentUser?.role === 'admin',
     mySavedPostIds: (state) => state.currentUser?.savedPosts || [],
     favoritesCount: (state) => (state.currentUser?.savedPosts || []).length,
-    blockedUserIds: (state) =>
-      state.users.filter((u) => u.isBlocked).map((u) => u.id),
   },
 }

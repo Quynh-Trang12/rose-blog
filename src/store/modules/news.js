@@ -27,9 +27,11 @@ export default {
   // ==========================================
   state: () => ({
     newsItems: newsData,
-    searchQuery: '',
-    filters: { date: 'all', category: 'all', keyword: '' },
-    currentPage: 1,
+
+    newsFilters: { keyword: '', category: 'all', date: 'all', color: 'all', fragrance: 'all', bloomingSeason: 'all', strength: 'all', thornLevel: 'all', idealFor: 'all' },
+    collectionFilters: { keyword: '', category: 'all', date: 'all', color: 'all', fragrance: 'all', bloomingSeason: 'all', strength: 'all', thornLevel: 'all', idealFor: 'all' },
+    newsPage: 1,
+    collectionPage: 1,
     itemsPerPage: 6,
   }),
 
@@ -56,24 +58,47 @@ export default {
       }
     },
 
-    SET_SEARCH_QUERY(state, query) {
-      state.searchQuery = query
-      state.currentPage = 1
+    SET_SEARCH_QUERY(state, { query, target = 'news' }) {
+      if (target === 'news') {
+        state.newsFilters.keyword = query
+        state.newsPage = 1
+      } else {
+        state.collectionFilters.keyword = query
+        state.collectionPage = 1
+      }
     },
 
-    APPLY_FILTERS(state, filters) {
-      state.filters = { ...state.filters, ...filters }
-      state.currentPage = 1
+    APPLY_FILTERS(state, { filters, target = 'news' }) {
+      if (target === 'news') {
+        state.newsFilters = { ...state.newsFilters, ...filters }
+        state.newsPage = 1
+      } else {
+        state.collectionFilters = { ...state.collectionFilters, ...filters }
+        state.collectionPage = 1
+      }
     },
 
-    CLEAR_FILTERS(state) {
-      state.searchQuery = ''
-      state.filters = { date: 'all', category: 'all', keyword: '' }
-      state.currentPage = 1
+    CLEAR_FILTERS(state, target = 'news') {
+      const emptyFilters = { 
+        keyword: '', category: 'all', date: 'all', color: 'all', 
+        fragrance: 'all', bloomingSeason: 'all', strength: 'all', 
+        thornLevel: 'all', idealFor: 'all' 
+      }
+      if (target === 'news') {
+        state.newsFilters = { ...emptyFilters }
+        state.newsPage = 1
+      } else {
+        state.collectionFilters = { ...emptyFilters }
+        state.collectionPage = 1
+      }
     },
 
-    SET_PAGE(state, page) {
-      state.currentPage = page
+    SET_PAGE(state, { page, target = 'news' }) {
+      if (target === 'news') {
+        state.newsPage = page
+      } else {
+        state.collectionPage = page
+      }
     },
 
     REACT_TO_NEWS_ITEM(state, id) {
@@ -122,29 +147,33 @@ export default {
       commit('ADD_NEWS_ITEM', newItem)
     },
 
-    updateNewsItem({ commit }, updatedItem) {
+    updateArticle({ commit }, updatedItem) {
       commit('UPDATE_NEWS_ITEM', updatedItem)
     },
 
-    deleteNewsItem({ commit }, id) {
+    deleteArticle({ commit }, id) {
       commit('DELETE_NEWS_ITEM', id)
     },
 
-    setSearchQuery({ commit }, query) {
-      commit('SET_SEARCH_QUERY', query)
+    setSearchQuery({ commit }, payload) {
+      if (typeof payload === 'string') commit('SET_SEARCH_QUERY', { query: payload, target: 'news' })
+      else commit('SET_SEARCH_QUERY', payload)
     },
 
-    applyFilters({ commit }, newFilters) {
-      commit('APPLY_FILTERS', newFilters)
+    applyFilters({ commit }, payload) {
+      commit('APPLY_FILTERS', payload)
     },
 
-    clearFilters({ commit }) {
-      commit('CLEAR_FILTERS')
+    clearFilters({ commit }, target = 'news') {
+      commit('CLEAR_FILTERS', target)
     },
 
-    setPage({ getters, commit }, page) {
-      if (page >= 1 && page <= getters.totalPages) {
-        commit('SET_PAGE', page)
+    setPage({ getters, commit }, payload) {
+      const page = typeof payload === 'number' ? payload : payload.page
+      const target = typeof payload === 'number' ? 'news' : payload.target
+      const total = target === 'news' ? getters.newsTotalPages : getters.collectionTotalPages
+      if (page >= 1 && page <= total) {
+        commit('SET_PAGE', { page, target })
       }
     },
 
@@ -167,71 +196,85 @@ export default {
   getters: {
     allNewsItems: (state) => state.newsItems,
 
-    filteredNewsItems(state, getters, rootState, rootGetters) {
-      const blockedIds = rootGetters['auth/blockedUserIds'] || []
-      let result = state.newsItems.filter((a) => {
-        // Exclude private posts
-        if (a.isPublic === false) return false
+    /**
+     * Common filter logic for news and collection.
+     */
+    itemsFilter: (_state, _getters, _rootState, _rootGetters) => (items, filters) => {
+       let result = items.filter((a) => {
+         if (a.isPublic === false) return false
+         if (a.moderation?.status === 'blocked') return false
+         if (a.moderation && a.moderation.status !== 'approved' && a.moderation.status !== 'pending') return false
+         return true
+       })
 
-        // Exclude posts with a blocked moderation status
-        if (a.moderation?.status === 'blocked') return false
+       // Keyword search
+       const query = (filters.keyword || '').toLowerCase().trim()
+       if (query) {
+         result = result.filter((a) => {
+           const content = a.content || a.description || ''
+           return a.title.toLowerCase().includes(query) || 
+                  content.toLowerCase().includes(query) ||
+                  a.color?.toLowerCase().includes(query) ||
+                  a.fragrance?.toLowerCase().includes(query) ||
+                  a.bloomingSeason?.toLowerCase().includes(query) ||
+                  String(a.strength || '').toLowerCase().includes(query) ||
+                  a.thornLevel?.toLowerCase().includes(query) ||
+                  a.idealFor?.toLowerCase().includes(query)
+         })
+       }
 
-        // Exclude posts authored by blocked users
-        // Note: Field in JSON is authorID (capital ID)
-        if (blockedIds.includes(a.authorID)) return false
+       // Category filter
+       if (filters.category && filters.category !== 'all') {
+         result = result.filter((a) => (a.category || a.type) === filters.category)
+       }
 
-        // Approved or pending are okay
-        if (a.moderation && a.moderation.status !== 'approved' && a.moderation.status !== 'pending') {
-            return false
-        }
+       // Detailed attributes filters
+       if (filters.color && filters.color !== 'all') result = result.filter((a) => a.color === filters.color)
+       if (filters.fragrance && filters.fragrance !== 'all') result = result.filter((a) => a.fragrance === filters.fragrance)
+       if (filters.bloomingSeason && filters.bloomingSeason !== 'all') result = result.filter((a) => a.bloomingSeason === filters.bloomingSeason)
+       if (filters.strength && filters.strength !== 'all') result = result.filter((a) => String(a.strength) === String(filters.strength))
+       if (filters.thornLevel && filters.thornLevel !== 'all') result = result.filter((a) => a.thornLevel === filters.thornLevel)
+       if (filters.idealFor && filters.idealFor !== 'all') result = result.filter((a) => a.idealFor === filters.idealFor)
 
-        return true
-      })
+       // Date filter
+       if (filters.date && filters.date !== 'all') {
+         const now = new Date()
+         result = result.filter((a) => {
+           const postDate = new Date(a.date)
+           if (filters.date === 'today') return postDate.toDateString() === now.toDateString()
+           if (filters.date === 'week') return (now - postDate) / (1000 * 60 * 60 * 24) <= 7
+           if (filters.date === 'month') return (now - postDate) / (1000 * 60 * 60 * 24) <= 31
+           return true
+         })
+       }
 
-      // Keyword search
-      const query = (state.searchQuery || state.filters.keyword || '').toLowerCase().trim()
-      if (query) {
-        result = result.filter((a) => {
-          const content = a.content || a.description || ''
-          return a.title.toLowerCase().includes(query) || content.toLowerCase().includes(query)
-        })
-      }
-
-      // Category filter
-      if (state.filters.category && state.filters.category !== 'all') {
-        result = result.filter((a) => (a.category || a.type) === state.filters.category)
-      }
-
-      // Date filter
-      if (state.filters.date && state.filters.date !== 'all') {
-        const now = new Date()
-        result = result.filter((a) => {
-          const postDate = new Date(a.date)
-          if (state.filters.date === 'today') {
-            return postDate.toDateString() === now.toDateString()
-          }
-          if (state.filters.date === 'week') {
-            return (now - postDate) / (1000 * 60 * 60 * 24) <= 7
-          }
-          if (state.filters.date === 'month') {
-            return (now - postDate) / (1000 * 60 * 60 * 24) <= 31
-          }
-          return true
-        })
-      }
-
-      return result
+       return result
     },
 
-    totalNewsItems: (_state, getters) => getters.filteredNewsItems.length,
+    filteredNewsItems: (state, getters) => {
+      return getters.itemsFilter(state.newsItems, state.newsFilters)
+    },
 
-    totalPages: (state, getters) =>
-      Math.ceil(getters.filteredNewsItems.length / state.itemsPerPage) || 1,
+    filteredCollectionItems: (state, getters, rootState, rootGetters) => {
+      const savedIds = rootGetters['auth/mySavedPostIds'] || []
+      const savedItems = state.newsItems.filter(i => savedIds.some(id => String(id) === String(i.id)))
+      return getters.itemsFilter(savedItems, state.collectionFilters)
+    },
+
+    totalNewsItems: (state, getters) => getters.filteredNewsItems.length,
+    totalCollectionItems: (state, getters) => getters.filteredCollectionItems.length,
+
+    newsTotalPages: (state, getters) => Math.ceil(getters.totalNewsItems / state.itemsPerPage) || 1,
+    collectionTotalPages: (state, getters) => Math.ceil(getters.totalCollectionItems / state.itemsPerPage) || 1,
 
     paginatedNewsItems: (state, getters) => {
-      const startIndex = (state.currentPage - 1) * state.itemsPerPage
-      const endIndex = startIndex + state.itemsPerPage
-      return getters.filteredNewsItems.slice(startIndex, endIndex)
+      const start = (state.newsPage - 1) * state.itemsPerPage
+      return getters.filteredNewsItems.slice(start, start + state.itemsPerPage)
+    },
+    
+    paginatedCollectionItems: (state, getters) => {
+      const start = (state.collectionPage - 1) * state.itemsPerPage
+      return getters.filteredCollectionItems.slice(start, start + state.itemsPerPage)
     },
   },
 }

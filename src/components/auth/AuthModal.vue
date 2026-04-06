@@ -175,7 +175,7 @@ export default {
     <transition name="fade">
       <div
         v-if="isOpen"
-        class="auth-overlay position-fixed inset-0 d-flex align-items-center justify-content-center z-index-modal"
+        class="auth-overlay position-fixed inset-0 z-index-modal"
         @click.self="close"
         role="dialog"
         aria-modal="true"
@@ -243,13 +243,25 @@ export default {
 
 <style scoped lang="scss">
 .auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  z-index: 2000;
+  padding: 2rem 0;
 }
 
 .auth-modal {
   background-color: white;
   width: 100%;
+  margin: 0 auto;
 }
 
 .inset-0 { top: 0; left: 0; right: 0; bottom: 0; }

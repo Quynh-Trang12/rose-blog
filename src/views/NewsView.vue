@@ -46,20 +46,22 @@ export default {
   // COMPUTED
   // ==========================================
   computed: {
-    ...mapState('news', ['currentPage']),
-    ...mapGetters('auth', ['isLoggedIn', 'currentUser']),
-    ...mapGetters('news', ['paginatedNewsItems', 'totalPages', 'totalNewsItems']),
+    ...mapState('news', {
+      currentPage: (state) => state.newsPage,
+    }),
+    ...mapState('auth', ['currentUser']),
+    ...mapGetters('auth', ['isLoggedIn']),
+    ...mapGetters('news', {
+      paginatedNewsItems: 'paginatedNewsItems',
+      totalPages: 'newsTotalPages',
+      totalNewsItems: 'totalNewsItems',
+    }),
 
     /**
-     * Checks if the currently logged-in user owns a specific news item.
-     * @param {Object} item - The news item to check
-     * @returns {boolean} True if the currentUser is the author
+     * Requirement (Issue 12): Manageable items count.
      */
-    isPostOwner() {
-      return (item) => {
-        if (!this.isLoggedIn || !this.currentUser) return false
-        return String(this.currentUser.id) === String(item.authorID)
-      }
+    totalItems() {
+      return this.totalNewsItems
     },
   },
 
@@ -74,7 +76,7 @@ export default {
      * @param {number} page - The target page number
      */
     handlePageChange(page) {
-      this.setPage(page)
+      this.setPage({ page, target: 'news' })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     },
 
@@ -94,13 +96,27 @@ export default {
   },
 
   // ==========================================
-  // LIFECYCLE HOOKS
+  // WATCH
   // ==========================================
+  watch: {
+    /**
+     * Requirement (Issue reset): Reset filters when navigating back to news
+     * without a specific query.
+     */
+    '$route.query'(newVal) {
+      if (!newVal.category) {
+        this.clearFilters('news')
+      }
+    },
+  },
+
   mounted() {
     // 1. Initial category filter check (Requirement 9)
     const category = this.$route.query.category
     if (category) {
-      this.applyFilters({ category })
+      this.applyFilters({ filters: { category }, target: 'news' })
+    } else {
+      this.clearFilters('news')
     }
 
     // 2. Initial hash scroll check (Requirement 11)
@@ -119,14 +135,11 @@ export default {
       @click.stop="showFilterModal = true"
       aria-label="Open search and filters"
     >
-      <span class="material-symbols-outlined fs-2">search</span>
+      <img src="@/assets/images/search-icon.png" style="width: 32px; height: 32px; filter: brightness(0) invert(1);" alt="Search" />
     </button>
 
     <!-- Filter Modal (Overlay) -->
-    <NewsSearchBar
-      :model-value="showFilterModal"
-      @update:model-value="showFilterModal = $event"
-    />
+    <NewsSearchBar :model-value="showFilterModal" @update:model-value="showFilterModal = $event" />
 
     <div class="container pt-5">
       <!-- Create Post Bar (Authenticated only) -->
@@ -138,7 +151,9 @@ export default {
           <NewsCard
             :item="item"
             :is-authed="isLoggedIn"
-            :is-owner="isPostOwner(item)"
+            :is-owner="currentUser && String(currentUser.id) === String(item.authorID)"
+            @edit="$store.dispatch('news/updateArticle', $event)"
+            @delete="$store.dispatch('news/deleteArticle', $event)"
           />
         </div>
       </div>
@@ -148,7 +163,9 @@ export default {
         v-else
         class="empty-state text-center py-5 glassmorphism-pink rounded-5 border border-white mw-600 mx-auto animate-fade-up"
       >
-        <span class="material-symbols-outlined display-1 text-primary-light mb-4">nest_eco_leaf</span>
+        <span class="material-symbols-outlined display-1 text-primary-light mb-4"
+          >nest_eco_leaf</span
+        >
         <h3 class="font-zilla fst-italic h4 mb-3">The petals are still falling...</h3>
         <p class="text-muted font-roboto">No news items matched your current filters.</p>
         <button class="btn btn-primary rounded-pill px-4 mt-3 fw-bold" @click="clearFilters">

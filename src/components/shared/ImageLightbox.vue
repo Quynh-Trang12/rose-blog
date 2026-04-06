@@ -40,6 +40,8 @@ export default {
     return {
       // Explanation: The current image index being viewed.
       currentIndex: this.initialIndex,
+      // Explanation: Controls the zoom state of the image.
+      isZoomed: false,
     }
   },
 
@@ -50,6 +52,7 @@ export default {
     isOpen(newVal) {
       if (newVal) {
         this.currentIndex = this.initialIndex
+        this.isZoomed = false
         // Add keyboard listeners
         window.addEventListener('keydown', this.handleKeyDown)
         // Prevent body scrolling
@@ -89,6 +92,7 @@ export default {
      * Shows the previous image in the array.
      */
     prev() {
+      this.isZoomed = false
       this.currentIndex = (this.currentIndex - 1 + this.images.length) % this.images.length
     },
 
@@ -96,13 +100,22 @@ export default {
      * Shows the next image in the array.
      */
     next() {
+      this.isZoomed = false
       this.currentIndex = (this.currentIndex + 1) % this.images.length
+    },
+
+    /**
+     * Toggles the zoom state.
+     */
+    toggleZoom() {
+      this.isZoomed = !this.isZoomed
     },
 
     /**
      * Emits the close event to the parent.
      */
     close() {
+      this.isZoomed = false
       this.$emit('close')
     },
   },
@@ -112,56 +125,59 @@ export default {
 <template>
   <teleport to="body">
     <!-- Overlay Backdrop -->
-    <div
-      v-if="isOpen"
-      class="lightbox-overlay d-flex align-items-center justify-content-center"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="'Image ' + (currentIndex + 1) + ' of ' + images.length"
-      @click.self="close"
-    >
-      <!-- Close Button -->
-      <button
-        class="close-btn btn btn-dark rounded-circle p-2 shadow-lg"
-        @click="close"
-        aria-label="Close lightbox"
+    <transition name="fade">
+      <div
+        v-if="isOpen"
+        class="lightbox-overlay d-flex align-items-center justify-content-center"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="'Image ' + (currentIndex + 1) + ' of ' + images.length"
+        @click.self="close"
       >
-        <span class="material-symbols-outlined fs-3">close</span>
-      </button>
+        <!-- Close Button -->
+        <button
+          class="close-btn btn btn-dark rounded-circle p-2 shadow-lg"
+          @click="close"
+          aria-label="Close lightbox"
+        >
+          <span class="material-symbols-outlined fs-3">close</span>
+        </button>
 
-      <!-- Main Image Display -->
-      <div class="position-content position-relative animate-fade-up d-flex align-items-center justify-content-center p-3">
-        <img
-          v-lazy-load="images[currentIndex]"
-          :src="'https://placehold.co/800x600?text=Loading...'"
-          alt="Rose Gallery Item"
-          class="img-fluid rounded-3 shadow-lg lightbox-image"
-        />
+        <!-- Main Image Display -->
+        <div class="position-content position-relative animate-fade-up d-flex align-items-center justify-content-center p-3" :class="{'overflow-auto': isZoomed}">
+          <img
+            :src="images[currentIndex]"
+            alt="Rose Gallery Item"
+            class="img-fluid rounded-3 shadow-lg lightbox-image cursor-zoom-in"
+            :class="{'zoomed': isZoomed}"
+            @click="toggleZoom"
+          />
 
-        <!-- Navigation Buttons -->
-        <template v-if="images.length > 1">
-          <button
-            class="nav-btn nav-btn-left btn btn-dark rounded-circle shadow-lg"
-            @click="prev"
-            aria-label="Previous image"
-          >
-            <span class="material-symbols-outlined">chevron_left</span>
-          </button>
-          <button
-            class="nav-btn nav-btn-right btn btn-dark rounded-circle shadow-lg"
-            @click="next"
-            aria-label="Next image"
-          >
-            <span class="material-symbols-outlined">chevron_right</span>
-          </button>
-        </template>
+          <!-- Navigation Buttons -->
+          <template v-if="images.length > 1 && !isZoomed">
+            <button
+              class="nav-btn nav-btn-left btn btn-dark rounded-circle shadow-lg"
+              @click="prev"
+              aria-label="Previous image"
+            >
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button
+              class="nav-btn nav-btn-right btn btn-dark rounded-circle shadow-lg"
+              @click="next"
+              aria-label="Next image"
+            >
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </template>
+        </div>
+
+        <!-- Image counter -->
+        <div v-if="!isZoomed" class="position-absolute bottom-0 mb-4 bg-dark bg-opacity-75 text-white px-3 py-1 rounded-pill text-sm">
+          {{ currentIndex + 1 }} / {{ images.length }}
+        </div>
       </div>
-
-      <!-- Image counter -->
-      <div class="position-absolute bottom-0 mb-4 bg-dark bg-opacity-75 text-white px-3 py-1 rounded-pill text-sm">
-        {{ currentIndex + 1 }} / {{ images.length }}
-      </div>
-    </div>
+    </transition>
   </teleport>
 </template>
 
@@ -179,8 +195,21 @@ export default {
   max-width: min(90vw, 960px);
   max-height: 90vh;
   object-fit: contain;
-  transition: opacity 0.3s ease;
+  transition: all 0.3s ease;
 }
+
+.lightbox-image.zoomed {
+  max-width: 150vw;
+  max-height: 150vh;
+  cursor: zoom-out;
+}
+
+.cursor-zoom-in { cursor: zoom-in; }
+.cursor-zoom-out { cursor: zoom-out; }
+
+/* Fade Transition */
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 /* Close button positioning */
 .close-btn {

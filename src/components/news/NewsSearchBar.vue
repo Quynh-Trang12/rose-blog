@@ -20,10 +20,15 @@ export default {
   // PROPS
   // ==========================================
   props: {
-    // Controls the visibility of the absolute-positioned modal.
+    // Controls visibility
     modelValue: {
       type: Boolean,
       required: true,
+    },
+    // Controls which view's filters to modify ('news' or 'collection')
+    target: {
+      type: String,
+      default: 'news',
     },
   },
 
@@ -63,7 +68,10 @@ export default {
   // COMPUTED
   // ==========================================
   computed: {
-    ...mapState('news', ['filters']),
+    ...mapState('news', ['newsFilters', 'collectionFilters']),
+    filters() {
+      return this.target === 'news' ? this.newsFilters : this.collectionFilters
+    }
   },
 
   // ==========================================
@@ -76,18 +84,21 @@ export default {
     localKeyword(newVal) {
       clearTimeout(this.debounceTimer)
       this.debounceTimer = setTimeout(() => {
-        this.setSearchQuery(newVal)
+        this.setSearchQuery({ query: newVal, target: this.target })
       }, 500)
     },
 
     /**
      * Sync local keyword with store on mount or reset.
      */
-    'filters.keyword'(newVal) {
-      if (this.localKeyword !== newVal) {
-         this.localKeyword = newVal
+    filters: {
+      deep: true,
+      handler(newVal) {
+        if (this.localKeyword !== newVal.keyword) {
+           this.localKeyword = newVal.keyword || ''
+        }
       }
-    },
+    }
   },
 
   // ==========================================
@@ -107,14 +118,14 @@ export default {
      * Selects a category and closes the modal.
      */
     handleCategorySelect(category) {
-      this.applyFilters({ category })
+      this.applyFilters({ filters: { category }, target: this.target })
     },
 
     /**
      * Selects a date range and closes the modal.
      */
     handleDateSelect(e) {
-      this.applyFilters({ date: e.target.value })
+      this.applyFilters({ filters: { date: e.target.value }, target: this.target })
     },
 
     /**
@@ -122,7 +133,7 @@ export default {
      */
     handleReset() {
       this.localKeyword = ''
-      this.clearFilters()
+      this.clearFilters(this.target)
     },
   },
 
@@ -162,51 +173,88 @@ export default {
              <p class="text-muted small text-uppercase ls-wide">Find the perfect bloom</p>
           </header>
 
-          <!-- keyword search input (Requirement Bug G) -->
-          <div class="search-input-wrapper position-relative mb-5 mw-600 mx-auto">
-             <span class="material-symbols-outlined position-absolute top-50 start-0 translate-middle-y ms-4 text-primary fs-3">search</span>
+          <!-- keyword search input (Requirement Issue 3) -->
+          <div class="search-input-wrapper position-relative mb-5 mw-600 mx-auto d-flex align-items-center">
              <input
                v-model="localKeyword"
                type="text"
-               class="form-control form-control-lg rounded-pill border-2 p-4 ps-5 fs-5 shadow-sm font-roboto"
+               class="form-control form-control-lg rounded-pill-start border-2 p-4 ps-4 fs-5 shadow-sm font-roboto border-end-0 flex-grow-1"
                placeholder="Search by rose name or guide content..."
                aria-label="Search keywords"
              />
+             <button 
+               class="btn btn-primary rounded-pill-end p-3 px-4 shadow-sm h-100 border-2 border-start-0 d-flex align-items-center justify-content-center" 
+               style="min-height: 70px;"
+               @click="setSearchQuery({ query: localKeyword, target: target })"
+             >
+                <img src="@/assets/images/search-icon.png" style="width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1);" alt="Search" />
+             </button>
           </div>
 
-          <div class="row g-5">
-            <!-- Category Chips -->
-            <div class="col-lg-8">
-              <h3 class="h6 fw-bold text-uppercase ls-1 mb-4 text-primary">Botanical Categories</h3>
-              <div class="d-flex flex-wrap gap-2">
-                <button
-                  v-for="cat in categoryOptions"
-                  :key="cat.value"
-                  class="btn rounded-pill px-4 py-2 fw-bold transition-base border"
-                  :class="[filters.category === cat.value ? 'btn-primary' : 'btn-outline-secondary border-light-subtle']"
-                  @click="handleCategorySelect(cat.value)"
-                  aria-label="'Filter by ' + cat.label"
-                >
-                  {{ cat.label }}
-                </button>
-              </div>
+          <div class="row g-4">
+            <!-- Left Side: Basic Categories & Attributes -->
+            <div class="col-lg-7">
+               <div class="mb-4">
+                  <h3 class="h6 fw-bold text-uppercase ls-1 mb-3 text-primary">Botanical Categories</h3>
+                  <div class="d-flex flex-wrap gap-2">
+                    <button
+                      v-for="cat in categoryOptions"
+                      :key="cat.value"
+                      class="btn btn-sm rounded-pill px-3 py-2 fw-bold transition-base border"
+                      :class="[filters.category === cat.value ? 'btn-primary' : 'btn-outline-secondary border-light-subtle']"
+                      @click="handleCategorySelect(cat.value)"
+                    >
+                      {{ cat.label }}
+                    </button>
+                  </div>
+               </div>
+
+               <div class="row g-3">
+                  <div class="col-md-6">
+                     <label class="small fw-bold text-muted text-uppercase mb-2">Thorn Level</label>
+                     <select class="form-select rounded-pill border-2" :value="filters.thornLevel" @change="e => applyFilters({ filters: { thornLevel: e.target.value }, target: target })">
+                        <option value="all">All levels</option>
+                        <option value="none">Thornless</option>
+                        <option value="few">Few thorns</option>
+                        <option value="many">Many thorns</option>
+                     </select>
+                  </div>
+                  <div class="col-md-6">
+                     <label class="small fw-bold text-muted text-uppercase mb-2">Ideal For</label>
+                     <select class="form-select rounded-pill border-2" :value="filters.idealFor" @change="e => applyFilters({ filters: { idealFor: e.target.value }, target: target })">
+                        <option value="all">All locations</option>
+                        <option value="pot">Pots / Containers</option>
+                        <option value="fence">Fences / Trellis</option>
+                        <option value="hedges">Hedges / Privacy</option>
+                     </select>
+                  </div>
+               </div>
             </div>
 
-            <!-- Date & Sort -->
-            <div class="col-lg-4">
-              <h3 class="h6 fw-bold text-uppercase ls-1 mb-4 text-primary">Blooming Time</h3>
-              <select
-                class="form-select form-select-lg rounded-pill border-2 p-3 px-4 font-roboto fs-6 mb-4"
-                @change="handleDateSelect"
-                :value="filters.date"
-                aria-label="Filter by date"
-              >
-                <option v-for="d in dateOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
-              </select>
+            <!-- Right Side: Specific Attributes -->
+            <div class="col-lg-5">
+               <div class="mb-4">
+                  <h3 class="h6 fw-bold text-uppercase ls-1 mb-3 text-primary">Blooming & Care</h3>
+                  <div class="mb-3">
+                     <label class="small fw-bold text-muted text-uppercase mb-1">Time Range</label>
+                     <select class="form-select rounded-pill border-2" :value="filters.date" @change="handleDateSelect">
+                        <option v-for="d in dateOptions" :key="d.value" :value="d.value">{{ d.label }}</option>
+                     </select>
+                  </div>
+                  <div class="mb-3">
+                     <label class="small fw-bold text-muted text-uppercase mb-1">Fragrance Strength</label>
+                     <select class="form-select rounded-pill border-2" :value="filters.strength" @change="e => applyFilters({ filters: { strength: e.target.value }, target: target })">
+                        <option value="all">Any strength</option>
+                        <option value="3">Mild (3+)</option>
+                        <option value="4">Moderate (4+)</option>
+                        <option value="5">Intense (5+)</option>
+                     </select>
+                  </div>
+               </div>
 
-              <button class="btn btn-link text-muted text-decoration-none w-100 fw-bold d-flex align-items-center justify-content-center gap-2" @click="handleReset">
-                <span class="material-symbols-outlined text-xs">refresh</span> Reset Filters
-              </button>
+               <button class="btn btn-link text-muted text-decoration-none w-100 fw-bold d-flex align-items-center justify-content-center gap-2 mt-4" @click="handleReset">
+                 <span class="material-symbols-outlined text-xs">refresh</span> Reset Filters
+               </button>
             </div>
           </div>
         </div>
@@ -219,14 +267,15 @@ export default {
 .search-overlay {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
+  overflow-y: auto;
+  padding: 2rem 1rem;
 }
-
-.inset-0 { top: 0; left: 0; right: 0; bottom: 0; }
 
 .search-modal-container {
   max-width: 960px;
   background: white;
-  min-height: auto;
+  margin: 0 auto;
+  position: relative;
 }
 
 .search-input-wrapper input {

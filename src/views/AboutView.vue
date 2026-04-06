@@ -72,7 +72,8 @@ export default {
         climbing: 'Climbing Rose',
       }
       const cat = categoryMap[this.selectedRoseType]
-      this.$store.dispatch('news/applyFilters', { category: cat })
+      // Requirement (Issue reset): Correct store dispatch signature
+      this.$store.dispatch('news/applyFilters', { filters: { category: cat }, target: 'news' })
       this.$router.push({ path: '/news', query: { category: cat } })
     },
   },

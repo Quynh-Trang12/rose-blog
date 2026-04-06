@@ -29,12 +29,8 @@ export default {
       error: '',
       // Explanation: Controls success message visibility.
       isSubscribed: false,
-      // Explanation: Mock social links for navigation.
-      socialLinks: [
-        { id: 'f', icon: 'facebook', label: 'Facebook', url: 'https://facebook.com' },
-        { id: 'i', icon: 'instagram', label: 'Instagram', url: 'https://instagram.com' },
-        { id: 't', icon: 'twitter', label: 'Twitter', url: 'https://twitter.com' },
-      ],
+      // Explanation: Brief message shown when link is copied.
+      shareMsg: '',
     }
   },
 
@@ -42,6 +38,25 @@ export default {
   // METHODS
   // ==========================================
   methods: {
+    /**
+     * Requirement (Issue 1): Copies the current page URL to clipboard.
+     */
+    shareApp() {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        this.shareMsg = 'Link copied!'
+        setTimeout(() => {
+          this.shareMsg = ''
+        }, 2000)
+      })
+    },
+
+    /**
+     * Requirement (Issue 1): Redirects to the news section.
+     */
+    goToNews() {
+      this.$router.push('/news')
+    },
+
     /**
      * Requirement (Issue 1): checkForm validation pattern.
      * Validates the email format before allowing subscription.
@@ -105,16 +120,34 @@ export default {
             rose varieties.
           </p>
           <!-- Social Icons (hover effects clearly visible) -->
-          <div class="d-flex gap-3 text-gray-800">
-            <a href="#" class="text-gray-800 text-decoration-none hover-slide-primary"
-              ><span class="material-symbols-outlined fs-4">share</span></a
+          <div class="d-flex align-items-center gap-3 text-gray-800 position-relative">
+            <button
+              type="button"
+              class="btn p-0 border-0 text-gray-800 hover-slide-primary d-flex align-items-center justify-content-center"
+              aria-label="Share this blog"
+              @click="shareApp"
             >
-            <a href="#" class="text-gray-800 text-decoration-none hover-slide-primary"
-              ><span class="material-symbols-outlined fs-4">photo_camera</span></a
+              <span class="material-symbols-outlined fs-4">share</span>
+            </button>
+            <button
+              type="button"
+              class="btn p-0 border-0 text-gray-800 hover-slide-primary d-flex align-items-center justify-content-center"
+              aria-label="View our gallery"
+              @click="goToNews"
             >
-            <a href="#" class="text-gray-800 text-decoration-none hover-slide-primary"
-              ><span class="material-symbols-outlined fs-4">mail</span></a
+              <span class="material-symbols-outlined fs-4">photo_camera</span>
+            </button>
+            <a
+              href="mailto:contact@theroseblog.com"
+              class="text-gray-800 text-decoration-none hover-slide-primary d-flex align-items-center justify-content-center"
+              aria-label="Contact via email"
+              rel="noopener noreferrer"
             >
+              <span class="material-symbols-outlined fs-4">mail</span>
+            </a>
+            <transition name="fade">
+              <span v-if="shareMsg" class="small text-secondary fw-bold ms-2">{{ shareMsg }}</span>
+            </transition>
           </div>
         </div>
 

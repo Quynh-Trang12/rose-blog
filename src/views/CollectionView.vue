@@ -8,8 +8,10 @@
  * news items. Displays saved items in a masonry grid using the
  * NewsCard component.
  */
-import { mapGetters, mapState } from 'vuex'
+import { mapGetters, mapState, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
+import NewsSearchBar from '@/components/news/NewsSearchBar.vue'
+import PaginationBar from '@/components/shared/PaginationBar.vue'
 
 export default {
   name: 'CollectionView',
@@ -19,6 +21,17 @@ export default {
   // ==========================================
   components: {
     NewsCard,
+    NewsSearchBar,
+    PaginationBar,
+  },
+
+  // ==========================================
+  // DATA
+  // ==========================================
+  data() {
+    return {
+      showFilterModal: false,
+    }
   },
 
   // ==========================================
@@ -26,25 +39,60 @@ export default {
   // ==========================================
   computed: {
     ...mapState('auth', ['currentUser']),
+    ...mapState('news', {
+        currentPage: state => state.collectionPage
+    }),
     ...mapGetters('auth', ['isLoggedIn', 'mySavedPostIds']),
-    ...mapGetters('news', ['allNewsItems']),
+    ...mapGetters('news', {
+      savedNewsItems: 'paginatedCollectionItems',
+      totalPages: 'collectionTotalPages',
+      totalItems: 'totalCollectionItems'
+    }),
+  },
 
-    /**
-     * Filters the complete news list to only those saved by the user.
-     * @returns {Array} News items whose IDs match the saved list
-     */
-    savedNewsItems() {
-      if (!this.isLoggedIn) return []
-      return this.allNewsItems.filter((item) =>
-        this.mySavedPostIds.some((id) => String(id) === String(item.id)),
-      )
+  // ==========================================
+  // METHODS
+  // ==========================================
+  methods: {
+    ...mapActions('news', ['setPage', 'clearFilters']),
+
+    handlePageChange(page) {
+      this.setPage({ page, target: 'collection' })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     },
+
+    openAuthModal() {
+      window.dispatchEvent(new Event('openAuthModal'))
+    },
+  },
+
+  // ==========================================
+  // LIFECYCLE HOOKS
+  // ==========================================
+  mounted() {
+    this.clearFilters('collection')
   },
 }
 </script>
 
 <template>
   <div class="collection-view min-vh-100 py-5 bg-light-soft position-relative">
+    <!-- Search Bubble Trigger -->
+    <button
+      class="search-bubble-btn shadow-lg rounded-circle position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
+      @click.stop="showFilterModal = true"
+      aria-label="Open collection filters"
+    >
+      <img src="@/assets/images/search-icon.png" style="width: 32px; height: 32px; filter: brightness(0) invert(1);" alt="Search" />
+    </button>
+
+    <!-- Filter Modal (Overlay) -->
+    <NewsSearchBar
+      :model-value="showFilterModal"
+      @update:model-value="showFilterModal = $event"
+      target="collection"
+    />
+
     <div class="container pt-5">
       <!-- 1. Header Section -->
       <div class="text-center mb-5 animate-fade-up">
@@ -66,7 +114,7 @@ export default {
           <p class="text-muted font-roboto mb-4">
             You must be logged in to view your personal botanical collection.
           </p>
-          <button class="btn btn-primary rounded-pill px-5 py-2 fw-bold" @click="$router.push('/')">
+          <button class="btn btn-primary rounded-pill px-5 py-2 fw-bold" @click="openAuthModal">
             Go to Login
           </button>
         </div>
@@ -79,8 +127,10 @@ export default {
           <div v-for="item in savedNewsItems" :key="item.id" class="news-view__card-wrapper">
             <NewsCard
               :item="item"
-              :is-authed="true"
-              :is-owner="String(currentUser.id) === String(item.authorID)"
+              :is-authed="isLoggedIn"
+              :is-owner="currentUser && String(currentUser.id) === String(item.authorID)"
+              @edit="$store.dispatch('news/updateArticle', $event)"
+              @delete="$store.dispatch('news/deleteArticle', $event)"
             />
           </div>
         </div>
@@ -102,8 +152,19 @@ export default {
             >
               Explore News Feed
             </router-link>
+            <button v-if="totalItems === 0" class="btn btn-link text-muted mt-3" @click="clearFilters('collection')">
+              Reset Collection Filters
+            </button>
           </div>
         </div>
+
+        <!-- Pagination Section -->
+        <PaginationBar
+          v-if="totalPages > 1"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          @page-change="handlePageChange"
+        />
       </template>
     </div>
   </div>
@@ -120,6 +181,34 @@ export default {
 
 .collection-divider {
   width: 80px;
+}
+
+/* Floating Search Bubble Styling */
+.search-bubble-btn {
+  width: 64px;
+  height: 64px;
+  bottom: 2rem;
+  right: 2rem;
+  background-color: $primary;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 12px 24px rgba($primary, 0.3);
+  z-index: 100;
+
+  &:hover {
+    transform: scale(1.1) rotate(5deg);
+    background-color: darken($primary, 5%);
+    box-shadow: 0 16px 32px rgba($primary, 0.4);
+  }
+
+  @include media-breakpoint-down(md) {
+    width: 56px;
+    height: 56px;
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
 }
 
 /* Masonry Layout implementation (Requirement 11) */
