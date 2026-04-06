@@ -166,6 +166,7 @@ export default {
                   class="rose-selector-card rounded-4 p-3 border h-100 d-flex flex-column align-items-center text-center cursor-pointer transition-base"
                   :class="{ active: selectedRoseType === 'bush' }"
                   for="roseTypeBush"
+                  @click.prevent="selectedRoseType = 'bush'"
                 >
                   <input
                     id="roseTypeBush"
@@ -195,6 +196,7 @@ export default {
                   class="rose-selector-card rounded-4 p-3 border h-100 d-flex flex-column align-items-center text-center cursor-pointer transition-base"
                   :class="{ active: selectedRoseType === 'climbing' }"
                   for="roseTypeClimbing"
+                  @click.prevent="selectedRoseType = 'climbing'"
                 >
                   <input
                     id="roseTypeClimbing"
