@@ -597,7 +597,7 @@ export default {
             <input
               v-model="editColor"
               type="text"
-              class="form-control form-control-sm rounded-pill border-2"
+              class="form-control form-control-sm rounded-pill border-2 botanical-field"
             />
           </div>
           <div class="col-6 col-md-4">
@@ -607,7 +607,7 @@ export default {
             <input
               v-model="editFragrance"
               type="text"
-              class="form-control form-control-sm rounded-pill border-2"
+              class="form-control form-control-sm rounded-pill border-2 botanical-field"
             />
           </div>
           <div class="col-6 col-md-4">
@@ -617,7 +617,7 @@ export default {
             <input
               v-model="editBloomingSeason"
               type="text"
-              class="form-control form-control-sm rounded-pill border-2"
+              class="form-control form-control-sm rounded-pill border-2 botanical-field"
             />
           </div>
 
@@ -628,7 +628,7 @@ export default {
             >
             <div class="custom-select-wrapper">
               <div
-                class="select-display-custom form-control-sm rounded-pill border-2"
+                class="select-display-custom form-control-sm rounded-pill border-2 botanical-field"
                 @click.stop="toggleDropdown('edit-strength')"
               >
                 <span class="text-xs">
@@ -669,7 +669,7 @@ export default {
             >
             <div class="custom-select-wrapper">
               <div
-                class="select-display-custom form-control-sm rounded-pill border-2"
+                class="select-display-custom form-control-sm rounded-pill border-2 botanical-field"
                 @click.stop="toggleDropdown('edit-thorn')"
               >
                 <span class="text-xs">{{
@@ -707,7 +707,7 @@ export default {
             >
             <div class="custom-select-wrapper">
               <div
-                class="select-display-custom form-control-sm rounded-pill border-2"
+                class="select-display-custom form-control-sm rounded-pill border-2 botanical-field"
                 @click.stop="toggleDropdown('edit-ideal')"
               >
                 <span class="text-xs">{{
@@ -1421,5 +1421,12 @@ export default {
 .edit-form {
   overflow: visible !important;
   position: relative;
+}
+
+.botanical-field {
+  height: 38px !important;
+  line-height: normal !important;
+  display: flex !important;
+  align-items: center !important;
 }
 </style>

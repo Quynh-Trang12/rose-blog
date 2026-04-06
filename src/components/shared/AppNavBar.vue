@@ -287,7 +287,7 @@ export default {
 
 <template>
   <nav class="navbar navbar-expand-lg bg-white sticky-top py-2 border-bottom shadow-sm">
-    <div class="container position-relative">
+    <div class="container">
       <router-link
         class="navbar-brand d-flex align-items-center gap-2 z-3 position-relative"
         to="/"

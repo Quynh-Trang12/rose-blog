@@ -29,6 +29,7 @@ export default {
         password: '513ff9665fc7a9253f3ded3d71f0f96efc1ec96a12a3e3de559d06c698c1a52c',
         role: 'user',
         displayName: 'Rose Garden',
+        avatar: 'https://i.pravatar.cc/150?u=rosegarden',
         savedPosts: ['post-101', 'post-108'],
         reactions: {},
       },
@@ -38,6 +39,7 @@ export default {
         // SHA-256 hash of 'password'
         password: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         displayName: 'Petal Pusher',
+        avatar: 'https://i.pravatar.cc/150?u=petalpusher',
         role: 'user',
         savedPosts: ['post-109'],
         reactions: {},
@@ -48,6 +50,7 @@ export default {
         // SHA-256 hash of 'password'
         password: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8',
         displayName: 'Novice Planter',
+        avatar: 'https://i.pravatar.cc/150?u=novice',
         role: 'user',
         savedPosts: [],
         reactions: {},

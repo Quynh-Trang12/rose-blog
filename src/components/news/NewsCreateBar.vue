@@ -12,7 +12,7 @@
  * B3. Rich text editor (TipTap via RichTextEditor component) replaces plain textarea.
  * C1. Custom dropdown z-index fixed so dropdowns are never clipped by siblings.
  */
-import { mapGetters, mapActions } from 'vuex'
+import { mapGetters, mapActions, mapState } from 'vuex'
 import RichTextEditor from '@/components/news/RichTextEditor.vue'
 
 export default {
@@ -63,7 +63,8 @@ export default {
   },
 
   computed: {
-    ...mapGetters('auth', ['currentUser', 'isLoggedIn']),
+    ...mapState('auth', ['currentUser']),
+    ...mapGetters('auth', ['isLoggedIn']),
 
     /** Avatar with stable pravatar fallback. */
     safeAvatar() {
@@ -165,7 +166,7 @@ export default {
       @click="isExpanded = true"
     >
       <img
-        :src="safeAvatar"
+        v-lazy-load="safeAvatar"
         class="rounded-circle shadow-sm border border-white"
         width="45"
         height="45"
@@ -227,7 +228,7 @@ export default {
             >
             <RichTextEditor
               v-model="content"
-              placeholder="Share your rose story, garden tips, or health remedy..."
+              :placeholder="'Share your botanical wisdom, ' + (currentUser?.displayName || 'Guest') + '...'"
             />
           </div>
 
@@ -248,7 +249,7 @@ export default {
                 <input
                   v-model="color"
                   type="text"
-                  class="form-control rounded-pill border-2"
+                  class="form-control rounded-pill border-2 botanical-field"
                   placeholder="e.g. Peach Pastel"
                 />
               </div>
@@ -259,7 +260,7 @@ export default {
                 <input
                   v-model="fragrance"
                   type="text"
-                  class="form-control rounded-pill border-2"
+                  class="form-control rounded-pill border-2 botanical-field"
                   placeholder="e.g. Citrus Amber"
                 />
               </div>
@@ -270,7 +271,7 @@ export default {
                 <input
                   v-model="bloomingSeason"
                   type="text"
-                  class="form-control rounded-pill border-2"
+                  class="form-control rounded-pill border-2 botanical-field"
                   placeholder="e.g. Summer"
                 />
               </div>
@@ -282,7 +283,7 @@ export default {
                 >
                 <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
                   <div
-                    class="select-display-custom rounded-pill border-2"
+                    class="select-display-custom rounded-pill border-2 botanical-field"
                     @click.stop="toggleDropdown('create-strength')"
                   >
                     {{ strengthOptions.find((o) => o.value === strength)?.label || 'Select...' }}
@@ -319,7 +320,7 @@ export default {
                 >
                 <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
                   <div
-                    class="select-display-custom rounded-pill border-2"
+                    class="select-display-custom rounded-pill border-2 botanical-field"
                     @click.stop="toggleDropdown('create-thorn')"
                   >
                     {{ thornOptions.find((o) => o.value === thornLevel)?.label || 'Select...' }}
@@ -355,7 +356,7 @@ export default {
                 >
                 <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
                   <div
-                    class="select-display-custom rounded-pill border-2"
+                    class="select-display-custom rounded-pill border-2 botanical-field"
                     @click.stop="toggleDropdown('create-ideal')"
                   >
                     {{ idealOptions.find((o) => o.value === idealFor)?.label || 'Select...' }}
@@ -572,5 +573,11 @@ export default {
 .fade-leave-to {
   transform: translateY(-8px) scale(0.97);
   opacity: 0;
+}
+.botanical-field {
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  line-height: normal !important;
 }
 </style>
