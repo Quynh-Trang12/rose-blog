@@ -242,17 +242,19 @@ export default {
           </header>
 
           <!-- Keyword Search Input -->
-          <div class="search-modal__input-wrapper d-flex align-items-stretch mb-5 mx-auto">
+          <div
+            class="search-modal__input-wrapper d-flex align-items-stretch mb-5 mx-auto gap-0 shadow-sm rounded-4"
+          >
             <input
               v-model="localKeyword"
               type="text"
-              class="form-control form-control-lg rounded-start-4 border-2 p-3 ps-4 fs-6 shadow-sm font-roboto"
+              class="form-control form-control-lg rounded-start-4 rounded-end-0 border-2 border-end-0 p-3 ps-4 fs-6 font-roboto"
               placeholder="Search by rose name or guide content..."
               aria-label="Search keywords"
               @keyup.enter="handleSearchSubmit"
             />
             <button
-              class="btn btn-primary rounded-end-4 px-4 shadow-sm border-2 d-flex align-items-center justify-content-center fs-4 font-zilla fw-medium"
+              class="btn btn-primary rounded-start-0 rounded-end-4 px-4 border-2 border-start-0 d-flex align-items-center justify-content-center fs-4 font-zilla fw-medium"
               @click="handleSearchSubmit"
               aria-label="Submit search"
             >
@@ -485,10 +487,7 @@ export default {
 </template>
 
 <style scoped lang="scss">
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/maps';
-@import 'bootstrap/scss/mixins';
+@import '@/assets/base.scss';
 
 // ==========================================
 // SEARCH OVERLAY
@@ -536,13 +535,35 @@ export default {
 
 .search-modal__input-wrapper {
   max-width: 640px;
+  transition: all 0.25s ease-in-out;
+  border-radius: 1rem;
 
   input {
-    border-color: $gray-200;
-
+    border-color: $gray-300;
+    transition: inherit;
     &:focus {
-      border-color: $primary;
-      background-color: rgba($primary, 0.02);
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
+  button {
+    transition: inherit;
+    // Ensure button border matches input border weight
+    border: 2px solid $primary !important;
+  }
+
+  // Explanation: Synchronize the focus state across the entire group
+  &:focus-within {
+    box-shadow: 0 0 0 5px rgba($primary, 0.18) !important;
+
+    input,
+    button {
+      border-color: $primary !important;
+    }
+
+    input {
+      background-color: rgba($primary, 0.01);
     }
   }
 }

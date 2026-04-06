@@ -164,6 +164,9 @@ export default {
     />
 
     <div class="container pt-5">
+      <!-- A11y Requirement: Every page requires a single h1 heading -->
+      <h1 class="visually-hidden">Latest Rose News and Stories</h1>
+
 
       <!-- Create Post Bar (authenticated users only) -->
       <NewsCreateBar v-if="isLoggedIn" class="mb-5 animate-fade-up" />
@@ -320,5 +323,18 @@ export default {
 
 .news-view__empty-icon {
   color: rgba($primary, 0.2);
+}
+
+// ── Accessibility Utilities ──────────────────────────────
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 </style>

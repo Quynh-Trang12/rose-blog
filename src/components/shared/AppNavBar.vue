@@ -309,6 +309,7 @@ export default {
         @click="isMenuOpen = !isMenuOpen"
         :class="{ open: isMenuOpen }"
         aria-label="Toggle navigation"
+        :aria-expanded="isMenuOpen"
       >
         <span class="hamburger-line"></span>
         <span class="hamburger-line"></span>

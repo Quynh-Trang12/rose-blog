@@ -250,7 +250,7 @@ export default {
             >
               {{ weatherIcon }}
             </span>
-            <div class="fw-bolder text-secondary fs-3 lh-md" aria-label="temperature">
+            <div class="fw-bolder text-secondary fs-3 lh-md" :aria-label="temperature">
               {{ temperature }}
             </div>
             <div class="fw-bolder text-secondary fs-3 lh-md" aria-label="degrees Celsius">
@@ -285,30 +285,35 @@ export default {
 .grad-yellow {
   background: linear-gradient(135deg, #ffcb05, #fff9ad);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(2.8px -2.6px 6.8px #fff56d);
 }
 .grad-orange {
   background: linear-gradient(135deg, #f25c54, #f7b267);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 6.8px #ff6e2e);
 }
 .grad-gray {
   background: linear-gradient(135deg, #9a9b9b, #f1f1f1);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(1.8px 2.3px 3.3px #e0e1e1);
 }
 .grad-ice {
   background: radial-gradient(#96cff1, #e5f2f9);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 0 1.6px #bfdff1);
 }
 .grad-white {
   background: linear-gradient(135deg, #e0e0e0, #f0f0f0);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(3px 2.8px 6.8px #efefef);
 }

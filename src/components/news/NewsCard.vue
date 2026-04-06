@@ -473,7 +473,7 @@ export default {
       <div class="d-flex align-items-center gap-2">
         <img
           v-lazy-load="item.authorAvatar || 'https://i.pravatar.cc/150?u=anonymous'"
-          alt="Author Avatar"
+          :alt="'Avatar for ' + (item.authorName || 'Guest')"
           class="rounded-circle avatar-sm shadow-sm"
           width="40"
           height="40"
@@ -902,6 +902,7 @@ export default {
             class="reaction-emoji-btn"
             :class="{ 'is-selected': userReaction && userReaction.key === r.key }"
             @click="selectReaction(r)"
+            :aria-label="'React with ' + r.key"
           >
             {{ r.emoji }}
           </button>
@@ -1097,7 +1098,7 @@ export default {
 // ── A2: Category badges ──────────────────────────────
 .category-badge {
   font-family: 'Roboto Condensed', sans-serif;
-  font-size: 0.65rem;
+  font-size: 0.69rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;

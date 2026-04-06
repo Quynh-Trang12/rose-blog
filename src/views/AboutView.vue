@@ -152,7 +152,8 @@ export default {
           </div>
 
           <!-- Section 3: Rose Type Selection (Radio buttons) -->
-          <div class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5">
+          <fieldset class="frosted-glass rounded-4 p-4 p-md-5 shadow-sm mb-5 border-0">
+            <legend class="visually-hidden">Find Your Perfect Rose Variety</legend>
             <h2 class="fs-3 fw-bold mb-4 font-zilla fst-italic">Find Your Perfect Rose</h2>
             <p class="text-muted mb-4 font-roboto">
               Select which rose variety you wish to explore:
@@ -172,13 +173,13 @@ export default {
                     name="roseType"
                     value="bush"
                     v-model="selectedRoseType"
-                    class="d-none"
+                    class="visually-hidden"
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
                     <img
                       v-lazy-load="'/src/assets/images/image5.jpg'"
                       class="w-100 h-100 object-fit-cover"
-                      alt="Bush Rose"
+                      :alt="'Image for ' + selectedRoseType + 'rose type'"
                     />
                   </div>
                   <h3 class="h5 fw-bold font-zilla fst-italic">Bush Rose</h3>
@@ -201,13 +202,13 @@ export default {
                     name="roseType"
                     value="climbing"
                     v-model="selectedRoseType"
-                    class="d-none"
+                    class="visually-hidden"
                   />
                   <div class="rose-selector-img-box rounded-3 overflow-hidden mb-3">
                     <img
                       v-lazy-load="'/src/assets/images/image10.jpg'"
                       class="w-100 h-100 object-fit-cover"
-                      alt="Climbing Rose"
+                      alt="Image for climbing rose type"
                     />
                   </div>
                   <h3 class="h5 fw-bold font-zilla fst-italic">Climbing Rose</h3>
@@ -221,7 +222,7 @@ export default {
             <!-- Featured Selection Display -->
             <div class="text-center mt-5">
               <div
-                class="position-relative d-inline-block featured-rose-box rounded- circle overflow-hidden mb-4 shadow-lg"
+                class="position-relative d-inline-block featured-rose-box rounded-circle overflow-hidden mb-4 shadow-lg"
               >
                 <img
                   :src="selectedRoseImage"
@@ -231,6 +232,7 @@ export default {
               </div>
               <div class="mt-2">
                 <button
+                  type="button"
                   @click="exploreRoses"
                   class="btn btn-primary rounded-pill px-5 py-3 fw-bold shadow-sm"
                 >
@@ -238,7 +240,7 @@ export default {
                 </button>
               </div>
             </div>
-          </div>
+          </fieldset>
         </div>
       </div>
     </div>
@@ -288,6 +290,18 @@ export default {
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 .fade-enter-active,
