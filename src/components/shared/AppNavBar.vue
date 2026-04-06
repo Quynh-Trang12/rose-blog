@@ -344,7 +344,9 @@ export default {
           <li class="nav-slider-primary d-none d-lg-block" :style="sliderStyle"></li>
         </ul>
 
-        <div class="d-flex flex-column flex-lg-row align-items-center gap-5 pb-4 pt-3 pb-lg-0">
+        <div
+          class="d-flex flex-column flex-lg-row align-items-center gap-4 pb-4 pt-3 pt-lg-0 pb-lg-0"
+        >
           <router-link
             v-if="isLoggedIn"
             to="/collection"

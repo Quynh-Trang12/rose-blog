@@ -6,7 +6,6 @@
 import { mapGetters, mapActions } from 'vuex'
 import ImageLightbox from '@/components/shared/ImageLightbox.vue'
 
-
 const REACTIONS = [
   { key: 'like', emoji: '👍' },
   { key: 'love', emoji: '❤️' },
@@ -39,6 +38,14 @@ export default {
     return {
       isExpanded: false,
 
+      // UI States
+      showEllipsisMenu: false,
+      ellipsisAnchorEl: null,
+      showShareModal: false,
+      toastMessage: '',
+      toastTimer: null,
+      shareCopied: false,
+
       showComments: false,
       commentText: '',
 
@@ -56,6 +63,7 @@ export default {
       editThornLevel: 'few',
       editIdealFor: 'garden',
       activeDropdown: null,
+
       // Lightbox
       lightboxVisible: false,
       lightboxIndex: 0,
@@ -129,16 +137,13 @@ export default {
       return this.categoryBadgeMap[type] || null
     },
 
-
     totalReactions() {
       return this.item.reactions || 0
     },
 
-
     reactionEmoji() {
       return this.userReaction ? this.userReaction.emoji : '👍'
     },
-
 
     userReaction() {
       if (!this.isAuthed || !this.$store.state.auth.currentUser.reactions) return null
@@ -177,7 +182,7 @@ export default {
       }
       this.toggleSavePost(this.item.id)
       this.showEllipsisMenu = false
-      this.showToast(this.isSaved ? 'Post unsaved.' : 'Post saved to your collection!')
+      this.showToast(this.isSaved ? 'Post saved to your collection!' : 'Post unsaved.')
     },
 
     // --- ELLIPSIS MENU ---
@@ -190,7 +195,6 @@ export default {
     closeEllipsis() {
       this.showEllipsisMenu = false
     },
-
 
     ellipsisStyle() {
       if (!this.ellipsisAnchorEl) return {}
@@ -228,7 +232,6 @@ export default {
         this.showReactionPicker = false
       }, 300)
     },
-
 
     applyReaction(reactionKey) {
       if (!this.isAuthed) {
@@ -289,7 +292,6 @@ export default {
       const title = encodeURIComponent(this.item.title || 'The Rose Blog')
 
       if (platform === 'facebook') {
-
         window.open(
           `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
           '_blank',
@@ -453,7 +455,6 @@ export default {
         </div>
       </div>
 
-
       <div class="d-flex align-items-center gap-2">
         <span
           v-if="categoryMeta"
@@ -465,7 +466,6 @@ export default {
           }}</span>
           {{ item.type || item.category }}
         </span>
-
 
         <button
           class="btn btn-sm btn-light rounded-circle shadow-none p-1 d-flex align-items-center justify-content-center ellipsis-btn"
@@ -547,7 +547,6 @@ export default {
         placeholder="Share your botanical wisdom..."
         style="min-height: 120px; resize: vertical; width: 100%; box-sizing: border-box"
       ></textarea>
-
 
       <div
         class="rounded-4 border bg-light p-3 mt-2"
@@ -738,7 +737,6 @@ export default {
           />
         </div>
 
-
         <button
           v-if="extraPhotoCount > 0"
           class="photo-count-badge position-absolute d-flex align-items-center gap-1"
@@ -748,7 +746,6 @@ export default {
           <span class="material-symbols-outlined" style="font-size: 14px">photo_library</span>
           +{{ extraPhotoCount }}
         </button>
-
 
         <div class="layout-b__overlay position-absolute bottom-0 start-0 w-100 p-3 p-md-4">
           <h2
@@ -855,7 +852,6 @@ export default {
     <div
       class="social-row d-flex align-items-center gap-3 pt-2 border-top border-light mt-auto position-relative"
     >
-
       <transition name="reaction-pop">
         <div
           v-if="showReactionPicker && isAuthed"
@@ -878,7 +874,6 @@ export default {
         </div>
       </transition>
 
-
       <button
         class="interaction-btn d-flex align-items-center gap-1 px-2 py-1 rounded-pill transition-base border-0 bg-transparent"
         :class="{ active: !!userReaction }"
@@ -892,7 +887,6 @@ export default {
         <span class="fw-bold text-xs">{{ totalReactions }}</span>
       </button>
 
-
       <button
         class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base border-0 bg-transparent"
         @click="showComments = !showComments"
@@ -902,7 +896,6 @@ export default {
         <span class="material-symbols-outlined fs-5">chat_bubble</span>
         <span class="fw-bold text-xs">{{ (item.comments || []).length }}</span>
       </button>
-
 
       <button
         class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base ms-auto border-0 bg-transparent"
@@ -1057,7 +1050,6 @@ export default {
 @import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
 @import '@/assets/base.scss';
-
 
 .avatar-sm {
   width: 40px;
@@ -1226,7 +1218,6 @@ export default {
     padding-top: 3rem;
   }
 }
-
 
 .layout-a__img {
   max-height: 220px;
