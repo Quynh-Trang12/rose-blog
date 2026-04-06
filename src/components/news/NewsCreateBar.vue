@@ -43,6 +43,26 @@ export default {
       strength: 'all',
       thornLevel: 'all',
       idealFor: 'all',
+      activeDropdown: null,
+      // Shared Option Sets
+      thornOptions: [
+        { label: 'All levels', value: 'all' },
+        { label: 'Thornless', value: 'none' },
+        { label: 'Few thorns', value: 'few' },
+        { label: 'Many thorns', value: 'many' },
+      ],
+      idealOptions: [
+        { label: 'All locations', value: 'all' },
+        { label: 'Pots / Containers', value: 'pot' },
+        { label: 'Fences / Trellis', value: 'fence' },
+        { label: 'Hedges / Privacy', value: 'hedges' },
+      ],
+      strengthOptions: [
+        { label: 'Any strength', value: 'all' },
+        { label: '★★★', value: '3' },
+        { label: '★★★★', value: '4' },
+        { label: '★★★★★', value: '5' },
+      ],
       // Explanation: Validation error feedback.
       error: '',
     }
@@ -136,7 +156,20 @@ export default {
       this.bloomingSeason = ''
       this.strength = 'all'
       this.thornLevel = 'all'
+      this.thornLevel = 'all'
       this.idealFor = 'all'
+      this.activeDropdown = null
+    },
+
+    /**
+     * Toggles the visibility of a custom dropdown.
+     */
+    toggleDropdown(id) {
+      if (this.activeDropdown === id) {
+        this.activeDropdown = null
+      } else {
+        this.activeDropdown = id
+      }
     },
   },
 }
@@ -144,8 +177,8 @@ export default {
 
 <template>
   <div
-    class="news-create-bar frosted-glass rounded-4 shadow-sm border border-light overflow-hidden transition-base animate-fade-up"
-    :class="{ expanded: isExpanded }"
+    class="news-create-bar frosted-glass rounded-4 shadow-sm border border-light transition-base animate-fade-up"
+    :class="{ expanded: isExpanded, 'overflow-visible': isExpanded || activeDropdown, 'z-index-top': isExpanded || activeDropdown, 'overflow-hidden': !isExpanded, 'glass-off': isExpanded || activeDropdown }"
   >
     <!-- Folded State: Header/Trigger -->
     <div
@@ -222,72 +255,139 @@ export default {
           </div>
 
           <!-- Detailed Botanical Fields (Issue 3) -->
-          <div class="row g-3 mt-1">
-            <div class="col-6 col-md-4">
-              <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
-                >Rose Color</label
-              >
-              <input
-                v-model="color"
-                type="text"
-                class="form-control rounded-pill border-2"
-                placeholder="e.g. Peach Pastel"
-              />
-            </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
-                >Fragrance Profile</label
-              >
-              <input
-                v-model="fragrance"
-                type="text"
-                class="form-control rounded-pill border-2"
-                placeholder="e.g. Citrus Amber"
-              />
-            </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
-                >Blooming Season</label
-              >
-              <input
-                v-model="bloomingSeason"
-                type="text"
-                class="form-control rounded-pill border-2"
-                placeholder="e.g. Summer Peaking"
-              />
-            </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
-                >Strength (1-5)</label
-              >
-              <select v-model="strength" class="form-select rounded-pill border-2">
-                <option value="all">Default (3)</option>
-                <option value="3">3 (Mild)</option>
-                <option value="4">4 (Strong)</option>
-                <option value="5">5 (Intense)</option>
-              </select>
-            </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
-                >Thorn Level</label
-              >
-              <select v-model="thornLevel" class="form-select rounded-pill border-2">
-                <option value="all">Default (Few)</option>
-                <option value="none">None</option>
-                <option value="few">Few</option>
-                <option value="many">Many</option>
-              </select>
-            </div>
-            <div class="col-6 col-md-4">
-              <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
-                >Ideal Environment</label
-              >
-              <select v-model="idealFor" class="form-select rounded-pill border-2">
-                <option value="all">Default (Garden)</option>
-                <option value="pot">Pots / Containers</option>
-                <option value="fence">Fence / Climbing</option>
-                <option value="hedges">Hedges</option>
-              </select>
+          <div class="create-bar__botanical-box rounded-4 border-dashed bg-white p-3 mt-4 mb-4 overflow-visible">
+            <h6 class="text-xs text-uppercase ls-wide fw-bold text-primary mb-3">
+              <span class="material-symbols-outlined fs-6 align-middle">psychiatry</span>
+              Growth &amp; Characteristics
+            </h6>
+            <div class="row g-3">
+              <div class="col-6 col-md-4">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  >Rose Color</label
+                >
+                <input
+                  v-model="color"
+                  type="text"
+                  class="form-control rounded-pill border-2"
+                  placeholder="e.g. Peach Pastel"
+                />
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  >Fragrance Profile</label
+                >
+                <input
+                  v-model="fragrance"
+                  type="text"
+                  class="form-control rounded-pill border-2"
+                  placeholder="e.g. Citrus Amber"
+                />
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  >Blooming Season</label
+                >
+                <input
+                  v-model="bloomingSeason"
+                  type="text"
+                  class="form-control rounded-pill border-2"
+                  placeholder="e.g. Summer Peaking"
+                />
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  >Strength</label
+                >
+                <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+                  <div
+                    class="select-display-custom rounded-pill border-2"
+                    @click.stop="toggleDropdown('strength')"
+                  >
+                    {{ strengthOptions.find((o) => o.value === strength)?.label || 'Select...' }}
+                    <span
+                      class="material-symbols-outlined transition-base"
+                      :class="{ 'rotate-180': activeDropdown === 'strength' }"
+                      >expand_more</span
+                    >
+                  </div>
+                  <transition name="fade">
+                    <div class="dropdown-menu-custom" v-if="activeDropdown === 'strength'">
+                      <div
+                        v-for="opt in strengthOptions"
+                        :key="opt.value"
+                        class="dropdown-item-custom"
+                        :class="{ active: strength === opt.value }"
+                        @click.stop="((strength = opt.value), (activeDropdown = null))"
+                      >
+                        <span v-if="opt.value === 'all'">Any strength</span>
+                        <span v-else>{{ '★'.repeat(Number(opt.value)) }}</span>
+                      </div>
+                    </div>
+                  </transition>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  >Thorn Level</label
+                >
+                <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+                  <div
+                    class="select-display-custom rounded-pill border-2"
+                    @click.stop="toggleDropdown('thorn')"
+                  >
+                    {{ thornOptions.find((o) => o.value === thornLevel)?.label || 'Select...' }}
+                    <span
+                      class="material-symbols-outlined transition-base"
+                      :class="{ 'rotate-180': activeDropdown === 'thorn' }"
+                      >expand_more</span
+                    >
+                  </div>
+                  <transition name="fade">
+                    <div class="dropdown-menu-custom" v-if="activeDropdown === 'thorn'">
+                      <div
+                        v-for="opt in thornOptions"
+                        :key="opt.value"
+                        class="dropdown-item-custom"
+                        :class="{ active: thornLevel === opt.value }"
+                        @click.stop="((thornLevel = opt.value), (activeDropdown = null))"
+                      >
+                        {{ opt.label }}
+                      </div>
+                    </div>
+                  </transition>
+                </div>
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label font-roboto fw-bold text-sm text-uppercase small"
+                  >Ideal Environment</label
+                >
+                <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+                  <div
+                    class="select-display-custom rounded-pill border-2"
+                    @click.stop="toggleDropdown('ideal')"
+                  >
+                    {{ idealOptions.find((o) => o.value === idealFor)?.label || 'Select...' }}
+                    <span
+                      class="material-symbols-outlined transition-base"
+                      :class="{ 'rotate-180': activeDropdown === 'ideal' }"
+                      >expand_more</span
+                    >
+                  </div>
+                  <transition name="fade">
+                    <div class="dropdown-menu-custom" v-if="activeDropdown === 'ideal'">
+                      <div
+                        v-for="opt in idealOptions"
+                        :key="opt.value"
+                        class="dropdown-item-custom"
+                        :class="{ active: idealFor === opt.value }"
+                        @click.stop="((idealFor = opt.value), (activeDropdown = null))"
+                      >
+                        {{ opt.label }}
+                      </div>
+                    </div>
+                  </transition>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -298,20 +398,21 @@ export default {
             <label class="form-label font-roboto fw-bold text-sm text-uppercase small mb-3"
               >SELECT TYPE</label
             >
-            <div class="column g-3">
-              <button
-                v-for="cat in availableCategories"
-                :key="cat"
-                class="btn rounded-pill px-3 py-2 m-auto text-md fw-bold text-start transition-base border"
-                :class="[
-                  selectedCategory === cat
-                    ? 'btn-primary'
-                    : 'btn-outline-secondary border-light-subtle',
-                ]"
-                @click="selectedCategory = cat"
-              >
-                {{ cat }}
-              </button>
+            <div class="row g-2">
+              <div v-for="cat in availableCategories" :key="cat" class="col-6">
+                <button
+                  type="button"
+                  class="btn rounded-4 px-3 py-2 w-100 text-sm fw-bold border transition-base"
+                  :class="[
+                    selectedCategory === cat
+                      ? 'btn-primary'
+                      : 'btn-outline-secondary border-light-subtle',
+                  ]"
+                  @click="selectedCategory = cat"
+                >
+                  {{ cat }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -342,7 +443,7 @@ export default {
 
             <div
               v-if="imageUrl"
-              class="selected-photo-preview rounded-4 overflow-hidden mb-3 border shadow-sm ratio ratio-16x9"
+              class="selected-photo-preview rounded-4 overflow-hidden mb-3 border shadow-sm ratio ratio-1x1"
             >
               <img :src="imageUrl" class="object-fit-cover w-100 h-100" />
               <button

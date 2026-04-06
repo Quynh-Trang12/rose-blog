@@ -175,7 +175,7 @@ export default {
     <transition name="fade">
       <div
         v-if="isOpen"
-        class="auth-overlay position-fixed inset-0 z-index-modal"
+        class="auth-overlay position-fixed inset-0"
         @click.self="close"
         role="dialog"
         aria-modal="true"
@@ -188,14 +188,14 @@ export default {
           </button>
 
           <!-- Modal Header -->
-          <header class="text-center mb-5">
-             <div class="footer-logo bg-primary text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center mb-3 shadow-sm">
+          <header class="text-center mb-4">
+             <div class="footer-logo bg-primary text-white rounded-circle p-2 d-inline-flex align-items-center justify-content-center mb-2 shadow-sm">
                 <span class="material-symbols-outlined fs-2">local_florist</span>
              </div>
              <h2 class="display-6 fw-bold font-zilla fst-italic mb-1">
                 {{ mode === 'login' ? 'Welcome Back' : 'Join the Sanctuary' }}
              </h2>
-             <p class="text-muted small text-uppercase ls-wide">
+             <p class="text-muted small text-uppercase ls-wide mb-1">
                 {{ mode === 'login' ? 'Login' : 'Register' }} to access the garden
              </p>
           </header>
@@ -207,7 +207,7 @@ export default {
                <input v-model="username" id="username" type="text" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm font-roboto" placeholder="flower_lover_99" :disabled="isSubmitting" />
              </div>
 
-             <div class="mb-4 position-relative">
+             <div class="mb-3 position-relative">
                <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="password">Password</label>
                <input v-model="password" id="password" :type="showPassword ? 'text' : 'password'" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm font-roboto" placeholder="••••••••" :disabled="isSubmitting" />
                <button type="button" class="btn btn-link position-absolute end-0 top-50 translate-middle-y me-3 mt-3 text-muted" @click="showPassword = !showPassword">
@@ -215,7 +215,7 @@ export default {
                </button>
              </div>
 
-             <div v-if="mode === 'register'" class="mb-4 animate-fade-up">
+             <div v-if="mode === 'register'" class="mb-3 animate-fade-up">
                 <label class="form-label font-roboto fw-bold text-sm text-uppercase small" for="displayName">Display Name</label>
                 <input v-model="displayName" id="displayName" type="text" class="form-control rounded-pill border-2 p-3 px-4 shadow-sm font-roboto" placeholder="Lily Gardener" :disabled="isSubmitting" />
              </div>
@@ -224,7 +224,7 @@ export default {
                 {{ error }}
              </div>
 
-             <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-lg mb-4 text-uppercase ls-1" :disabled="isSubmitting">
+             <button type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-lg mb-3 text-uppercase ls-1" :disabled="isSubmitting">
                 <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-2" role="status"></span>
                 {{ mode === 'login' ? 'Grant Access' : 'Create Sanctuary Account' }}
              </button>
@@ -246,22 +246,23 @@ export default {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex !important;
-  align-items: center;
+  align-items: flex-start; /* Start from top to allow scrolling down */
   justify-content: center;
   overflow-y: auto;
-  z-index: 2000;
-  padding: 2rem 0;
+  z-index: 3000 !important;
+  padding: 3rem 1rem;
 }
 
 .auth-modal {
   background-color: white;
   width: 100%;
-  margin: 0 auto;
+  margin: auto; /* Centers the modal within the flex container */
 }
 
 .inset-0 { top: 0; left: 0; right: 0; bottom: 0; }

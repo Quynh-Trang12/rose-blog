@@ -65,6 +65,25 @@ export default {
         { label: 'This Week', value: 'week' },
         { label: 'This Month', value: 'month' },
       ],
+      thornOptions: [
+        { label: 'All levels', value: 'all' },
+        { label: 'Thornless', value: 'none' },
+        { label: 'Few thorns', value: 'few' },
+        { label: 'Many thorns', value: 'many' },
+      ],
+      idealOptions: [
+        { label: 'All locations', value: 'all' },
+        { label: 'Pots / Containers', value: 'pot' },
+        { label: 'Fences / Trellis', value: 'fence' },
+        { label: 'Hedges / Privacy', value: 'hedges' },
+      ],
+      strengthOptions: [
+        { label: 'Any strength', value: 'all' },
+        { label: '★★★', value: '3' },
+        { label: '★★★★', value: '4' },
+        { label: '★★★★★', value: '5' },
+      ],
+      activeDropdown: null,
     }
   },
 
@@ -134,6 +153,17 @@ export default {
     },
 
     /**
+     * Toggles the visibility of a custom dropdown.
+     */
+    toggleDropdown(id) {
+      if (this.activeDropdown === id) {
+        this.activeDropdown = null
+      } else {
+        this.activeDropdown = id
+      }
+    },
+
+    /**
      * Selects a category filter and dispatches to the store.
      * @param {string} category - The category value to apply.
      */
@@ -194,7 +224,7 @@ export default {
         @click.self="close"
       >
         <div
-          class="search-modal-container frosted-glass rounded-5 shadow-2xl p-4 p-md-5 position-relative animate-fade-up"
+          class="search-modal-container frosted-glass rounded-5 shadow-2xl p-4 p-md-5 position-relative overflow-visible animate-fade-up"
         >
           <!-- Close Button -->
           <button
@@ -216,13 +246,13 @@ export default {
             <input
               v-model="localKeyword"
               type="text"
-              class="form-control form-control-lg rounded-start-pill border-2 p-3 ps-4 fs-6 shadow-sm font-roboto"
+              class="form-control form-control-lg rounded-start-4 border-2 p-3 ps-4 fs-6 shadow-sm font-roboto"
               placeholder="Search by rose name or guide content..."
               aria-label="Search keywords"
               @keyup.enter="handleSearchSubmit"
             />
             <button
-              class="btn btn-primary rounded-end-pill px-4 shadow-sm border-2 d-flex align-items-center justify-content-center fs-4 font-zilla fw-medium"
+              class="btn btn-primary rounded-end-4 px-4 shadow-sm border-2 d-flex align-items-center justify-content-center fs-4 font-zilla fw-medium"
               @click="handleSearchSubmit"
               aria-label="Submit search"
             >
@@ -255,48 +285,107 @@ export default {
                 </div>
               </div>
 
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="search-modal__label text-muted text-uppercase small fw-bold mb-2">
-                    Thorn Level
-                  </label>
-                  <select
-                    class="form-select rounded-pill border-2"
-                    :value="filters.thornLevel"
-                    @change="
-                      (e) => applyFilters({ filters: { thornLevel: e.target.value }, target })
-                    "
-                  >
-                    <option value="all">All levels</option>
-                    <option value="none">Thornless</option>
-                    <option value="few">Few thorns</option>
-                    <option value="many">Many thorns</option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="search-modal__label text-muted text-uppercase small fw-bold mb-2">
-                    Ideal For
-                  </label>
-                  <select
-                    class="form-select rounded-pill border-2"
-                    :value="filters.idealFor"
-                    @change="(e) => applyFilters({ filters: { idealFor: e.target.value }, target })"
-                  >
-                    <option value="all">All locations</option>
-                    <option value="pot">Pots / Containers</option>
-                    <option value="fence">Fences / Trellis</option>
-                    <option value="hedges">Hedges / Privacy</option>
-                  </select>
+              <div class="search-modal__filter-card rounded-4 border-dashed bg-white p-3">
+                <h3
+                  class="search-modal__section-title h6 fw-bold text-uppercase ls-1 mb-3 text-primary"
+                >
+                  <span class="material-symbols-outlined fs-6 align-middle">psychiatry</span>
+                  Thorns &amp; Placement
+                </h3>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="search-modal__label text-muted text-uppercase small fw-bold mb-2">
+                      Thorn Level
+                    </label>
+                    <div
+                      class="custom-select-wrapper"
+                      v-click-outside="() => (activeDropdown = null)"
+                    >
+                      <div
+                        class="select-display-custom rounded-pill border-2"
+                        @click.stop="toggleDropdown('thorn')"
+                      >
+                        {{
+                          thornOptions.find((o) => o.value === filters.thornLevel)?.label ||
+                          'Select...'
+                        }}
+                        <span
+                          class="material-symbols-outlined transition-base"
+                          :class="{ 'rotate-180': activeDropdown === 'thorn' }"
+                          >expand_more</span
+                        >
+                      </div>
+                      <transition name="fade">
+                        <div class="dropdown-menu-custom" v-if="activeDropdown === 'thorn'">
+                          <div
+                            v-for="opt in thornOptions"
+                            :key="opt.value"
+                            class="dropdown-item-custom"
+                            :class="{ active: filters.thornLevel === opt.value }"
+                            @click.stop="
+                              (applyFilters({ filters: { thornLevel: opt.value }, target }),
+                              (activeDropdown = null))
+                            "
+                          >
+                            {{ opt.label }}
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="search-modal__label text-muted text-uppercase small fw-bold mb-2">
+                      Ideal For
+                    </label>
+                    <div
+                      class="custom-select-wrapper"
+                      v-click-outside="() => (activeDropdown = null)"
+                    >
+                      <div
+                        class="select-display-custom rounded-pill border-2"
+                        @click.stop="toggleDropdown('ideal')"
+                      >
+                        {{
+                          idealOptions.find((o) => o.value === filters.idealFor)?.label ||
+                          'Select...'
+                        }}
+                        <span
+                          class="material-symbols-outlined transition-base"
+                          :class="{ 'rotate-180': activeDropdown === 'ideal' }"
+                          >expand_more</span
+                        >
+                      </div>
+                      <transition name="fade">
+                        <div class="dropdown-menu-custom" v-if="activeDropdown === 'ideal'">
+                          <div
+                            v-for="opt in idealOptions"
+                            :key="opt.value"
+                            class="dropdown-item-custom"
+                            :class="{ active: filters.idealFor === opt.value }"
+                            @click.stop="
+                              (applyFilters({ filters: { idealFor: opt.value }, target }),
+                              (activeDropdown = null))
+                            "
+                          >
+                            {{ opt.label }}
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Right: Date and Strength Selects -->
             <div class="col-lg-5">
-              <div class="mb-4">
+              <div
+                class="search-modal__filter-card rounded-4 border-dashed bg-white p-3 mb-4 h-100"
+              >
                 <h3
                   class="search-modal__section-title h6 fw-bold text-uppercase ls-1 mb-3 text-primary"
                 >
+                  <span class="material-symbols-outlined fs-6 align-middle">calendar_month</span>
                   Blooming &amp; Care
                 </h3>
 
@@ -304,42 +393,91 @@ export default {
                   <label class="search-modal__label text-muted text-uppercase small fw-bold mb-1">
                     Time Range
                   </label>
-                  <select
-                    class="form-select rounded-pill border-2"
-                    :value="filters.date"
-                    @change="handleDateSelect"
+                  <div
+                    class="custom-select-wrapper"
+                    v-click-outside="() => (activeDropdown = null)"
                   >
-                    <option v-for="d in dateOptions" :key="d.value" :value="d.value">
-                      {{ d.label }}
-                    </option>
-                  </select>
+                    <div
+                      class="select-display-custom rounded-pill border-2"
+                      @click.stop="toggleDropdown('date')"
+                    >
+                      {{ dateOptions.find((o) => o.value === filters.date)?.label || 'All Time' }}
+                      <span
+                        class="material-symbols-outlined transition-base"
+                        :class="{ 'rotate-180': activeDropdown === 'date' }"
+                        >expand_more</span
+                      >
+                    </div>
+                    <transition name="fade">
+                      <div class="dropdown-menu-custom" v-if="activeDropdown === 'date'">
+                        <div
+                          v-for="d in dateOptions"
+                          :key="d.value"
+                          class="dropdown-item-custom"
+                          :class="{ active: filters.date === d.value }"
+                          @click.stop="
+                            (applyFilters({ filters: { date: d.value }, target }),
+                            (activeDropdown = null))
+                          "
+                        >
+                          {{ d.label }}
+                        </div>
+                      </div>
+                    </transition>
+                  </div>
                 </div>
 
                 <div class="mb-3">
                   <label class="search-modal__label text-muted text-uppercase small fw-bold mb-1">
                     Fragrance Strength
                   </label>
-                  <select
-                    class="form-select rounded-pill border-2"
-                    :value="filters.strength"
-                    @change="(e) => applyFilters({ filters: { strength: e.target.value }, target })"
+                  <div
+                    class="custom-select-wrapper"
+                    v-click-outside="() => (activeDropdown = null)"
                   >
-                    <option value="all">Any strength</option>
-                    <option value="3">Mild (3+)</option>
-                    <option value="4">Moderate (4+)</option>
-                    <option value="5">Intense (5+)</option>
-                  </select>
+                    <div
+                      class="select-display-custom rounded-pill border-2"
+                      @click.stop="toggleDropdown('strength')"
+                    >
+                      {{
+                        strengthOptions.find((o) => o.value === filters.strength)?.label ||
+                        'Any strength'
+                      }}
+                      <span
+                        class="material-symbols-outlined transition-base"
+                        :class="{ 'rotate-180': activeDropdown === 'strength' }"
+                        >expand_more</span
+                      >
+                    </div>
+                    <transition name="fade">
+                      <div class="dropdown-menu-custom" v-if="activeDropdown === 'strength'">
+                        <div
+                          v-for="opt in strengthOptions"
+                          :key="opt.value"
+                          class="dropdown-item-custom"
+                          :class="{ active: filters.strength === opt.value }"
+                          @click.stop="
+                            (applyFilters({ filters: { strength: opt.value }, target }),
+                            (activeDropdown = null))
+                          "
+                        >
+                          <span v-if="opt.value === 'all'">Any strength</span>
+                          <span v-else>{{ '★'.repeat(Number(opt.value)) }}</span>
+                        </div>
+                      </div>
+                    </transition>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Reset Filters -->
-              <button
-                class="btn btn-link text-muted text-decoration-none w-100 fw-bold d-flex align-items-center justify-content-center gap-2 mt-3"
-                @click="handleReset"
-              >
-                <span class="material-symbols-outlined text-sm">refresh</span>
-                Reset Filters
-              </button>
+                <!-- Reset Filters -->
+                <button
+                  class="btn btn-link text-muted text-decoration-none w-100 fw-bold d-flex align-items-center justify-content-center gap-2 mt-2"
+                  @click="handleReset"
+                >
+                  <span class="material-symbols-outlined text-sm">refresh</span>
+                  Reset Filters
+                </button>
+              </div>
             </div>
           </div>
         </div>

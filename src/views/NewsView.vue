@@ -288,6 +288,9 @@ export default {
 .news-view__masonry-grid {
   columns: 1;
   column-gap: 1.25rem;
+  overflow: visible !important;
+  position: relative;
+  z-index: 1;
 
   @include media-breakpoint-up(md) {
     columns: 2;

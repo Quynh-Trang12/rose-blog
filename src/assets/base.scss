@@ -284,6 +284,93 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1060;
 }
 
+// --- Custom Rounded Select (Requirement: Rounded Dropdown Menus) ---
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+  outline: none;
+
+  .select-display-custom {
+    cursor: pointer;
+    background-color: white !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 0.25rem 0.75rem 0.25rem 1rem; // Less padding overall
+    font-size: 0.9rem; // Slightly smaller to fit content
+    font-weight: 500;
+    line-height: 1.2;
+    color: #444;
+    border: 2px solid #e9ecef;
+    transition: all .2s ease;
+    appearance: none;
+    overflow: hidden;
+    white-space: nowrap; // Don't wrap weirdly
+    text-overflow: ellipsis;
+
+    &:hover {
+      border-color: var(--bs-primary);
+    }
+  }
+
+
+  .dropdown-menu-custom {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 3000; // Higher than all other relative UI
+    background: white;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    border-radius: 1.25rem !important;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    margin-top: 0.65rem;
+    padding: 0.6rem;
+    list-style: none;
+    transform-origin: top center;
+  }
+
+
+
+  .dropdown-item-custom {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    color: #444;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    &:hover {
+      background: #f8f9fa;
+      color: var(--bs-primary);
+    }
+
+    &.active {
+      background: rgba(var(--bs-primary-rgb), 0.1);
+      color: var(--bs-primary);
+      font-weight: 700;
+    }
+  }
+}
+
+// Fade Animation
+.fade-enter-active, .fade-leave-active {
+  transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.fade-enter-from, .fade-leave-to {
+  transform: translateY(-10px) scale(0.95);
+  opacity: 0;
+}
+
+
+
 .z-index-lightbox {
   z-index: 1070;
 }
@@ -576,6 +663,26 @@ body::-webkit-scrollbar {
 // Explanation: A class version of $transition-fast for template use.
 .transition-base {
   transition: $transition-fast;
+}
+
+.overflow-visible {
+  overflow: visible !important;
+}
+
+.overflow-hidden {
+  overflow: hidden !important;
+}
+
+.z-index-top {
+  z-index: 5000 !important;
+  isolation: isolate;
+}
+
+.glass-off {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: white !important;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12) !important;
 }
 
 // ==========================================

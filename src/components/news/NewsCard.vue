@@ -86,6 +86,25 @@ export default {
       editStrength: 3,
       editThornLevel: 'few',
       editIdealFor: 'garden',
+      activeDropdown: null,
+      // Shared Option Sets
+      thornOptions: [
+        { label: 'All levels', value: 'all' },
+        { label: 'Thornless', value: 'none' },
+        { label: 'Few thorns', value: 'few' },
+        { label: 'Many thorns', value: 'many' },
+      ],
+      idealOptions: [
+        { label: 'Garden', value: 'garden' },
+        { label: 'Pots', value: 'pot' },
+        { label: 'Fence', value: 'fence' },
+        { label: 'Hedges', value: 'hedges' },
+      ],
+      strengthOptions: [
+        { label: '★★★', value: '3' },
+        { label: '★★★★', value: '4' },
+        { label: '★★★★★', value: '5' },
+      ],
     }
   },
 
@@ -219,6 +238,17 @@ export default {
     },
 
     /**
+     * Toggles a custom dropdown visibility.
+     */
+    toggleDropdown(id) {
+      if (this.activeDropdown === id) {
+        this.activeDropdown = null
+      } else {
+        this.activeDropdown = id
+      }
+    },
+
+    /**
      * Prepares the card for inline editing if ownership is verified.
      */
     initiateEdit() {
@@ -234,6 +264,7 @@ export default {
       this.editStrength = this.item.strength || 3
       this.editThornLevel = this.item.thornLevel || 'few'
       this.editIdealFor = this.item.idealFor || 'garden'
+      this.activeDropdown = null
     },
 
     /**
@@ -370,7 +401,7 @@ export default {
   <!-- Main card container (Issue 8: semantic role article) -->
   <article
     class="news-card frosted-glass rounded-4 shadow-sm p-3 position-relative d-flex flex-column gap-3 mb-1 w-100"
-    :class="{ 'card-editing': isEditing }"
+    :class="{ 'card-editing': isEditing, 'overflow-visible': isEditing || activeDropdown, 'z-index-top': isEditing || activeDropdown, 'glass-off': isEditing || activeDropdown }"
     :id="'post-' + item.id"
     role="article"
     :aria-labelledby="'post-title-' + item.id"
@@ -453,7 +484,7 @@ export default {
     <!-- 2. Edit Overlay Section (Issue 1 fix: Removed absolute positioning to prevent masonry grid overlap) -->
     <div
       v-if="isEditing"
-      class="edit-overlay edit-form bg-white rounded-4 z-index-top p-3 d-flex flex-column gap-2"
+      class="edit-overlay edit-form bg-white rounded-4 z-index-top p-3 d-flex flex-column gap-2 overflow-visible"
       style="min-height: 380px"
     >
       <div class="d-flex justify-content-between align-items-center mb-2">
@@ -483,67 +514,145 @@ export default {
       ></textarea>
 
       <!-- Detailed Botanical Fields (Issue 3) -->
-      <div class="row g-2 mt-1">
-        <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
-            >Color</label
-          >
-          <input
-            v-model="editColor"
-            type="text"
-            class="form-control form-control-sm rounded-pill border-2"
-          />
-        </div>
-        <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
-            >Fragrance</label
-          >
-          <input
-            v-model="editFragrance"
-            type="text"
-            class="form-control form-control-sm rounded-pill border-2"
-          />
-        </div>
-        <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
-            >Blooming</label
-          >
-          <input
-            v-model="editBloomingSeason"
-            type="text"
-            class="form-control form-control-sm rounded-pill border-2"
-          />
-        </div>
-        <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
-            >Strength</label
-          >
-          <select v-model="editStrength" class="form-select form-select-sm rounded-pill border-2">
-            <option :value="3">3 (Mild)</option>
-            <option :value="4">4 (Strong)</option>
-            <option :value="5">5 (Intense)</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
-            >Thorns</label
-          >
-          <select v-model="editThornLevel" class="form-select form-select-sm rounded-pill border-2">
-            <option value="none">None</option>
-            <option value="few">Few</option>
-            <option value="many">Many</option>
-          </select>
-        </div>
-        <div class="col-6 col-md-4">
-          <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
-            >Ideal For</label
-          >
-          <select v-model="editIdealFor" class="form-select form-select-sm rounded-pill border-2">
-            <option value="garden">Garden</option>
-            <option value="pot">Pots</option>
-            <option value="fence">Fence</option>
-            <option value="hedges">Hedges</option>
-          </select>
+      <div class="edit-modal__botanical-container rounded-4 border-dashed bg-light-soft p-3 mt-2 overflow-visible">
+        <h6
+          class="text-xs text-uppercase ls-wide fw-bold text-muted mb-3 d-flex align-items-center gap-2"
+        >
+          <span class="material-symbols-outlined fs-6">psychiatry</span> Botanical Attributes
+        </h6>
+        <div class="row g-2">
+          <div class="col-6 col-md-4">
+            <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+              >Color</label
+            >
+            <input
+              v-model="editColor"
+              type="text"
+              class="form-control form-control-sm rounded-pill border-2"
+            />
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+              >Fragrance</label
+            >
+            <input
+              v-model="editFragrance"
+              type="text"
+              class="form-control form-control-sm rounded-pill border-2"
+            />
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+              >Blooming</label
+            >
+            <input
+              v-model="editBloomingSeason"
+              type="text"
+              class="form-control form-control-sm rounded-pill border-2"
+            />
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+              >Strength</label
+            >
+            <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+              <div
+                class="select-display-custom form-control-sm rounded-pill border-2"
+                @click.stop="toggleDropdown('strength')"
+              >
+                <span class="text-xs">
+                  {{
+                    strengthOptions.find((o) => Number(o.value) === Number(editStrength))?.label ||
+                    'Select...'
+                  }}
+                </span>
+                <span
+                  class="material-symbols-outlined fs-6 transition-base"
+                  :class="{ 'rotate-180': activeDropdown === 'strength' }"
+                  >expand_more</span
+                >
+              </div>
+              <transition name="fade">
+                <div class="dropdown-menu-custom" v-if="activeDropdown === 'strength'">
+                  <div
+                    v-for="opt in strengthOptions"
+                    :key="opt.value"
+                    class="dropdown-item-custom py-1"
+                    :class="{ active: Number(editStrength) === Number(opt.value) }"
+                    @click.stop="((editStrength = Number(opt.value)), (activeDropdown = null))"
+                  >
+                    <span class="text-xs">{{ opt.label }}</span>
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+              >Thorns</label
+            >
+            <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+              <div
+                class="select-display-custom form-control-sm rounded-pill border-2"
+                @click.stop="toggleDropdown('thorn')"
+              >
+                <span class="text-xs">
+                  {{ thornOptions.find((o) => o.value === editThornLevel)?.label || 'Select...' }}
+                </span>
+                <span
+                  class="material-symbols-outlined fs-6 transition-base"
+                  :class="{ 'rotate-180': activeDropdown === 'thorn' }"
+                  >expand_more</span
+                >
+              </div>
+              <transition name="fade">
+                <div class="dropdown-menu-custom" v-if="activeDropdown === 'thorn'">
+                  <div
+                    v-for="opt in thornOptions"
+                    :key="opt.value"
+                    class="dropdown-item-custom py-1"
+                    :class="{ active: editThornLevel === opt.value }"
+                    @click.stop="((editThornLevel = opt.value), (activeDropdown = null))"
+                  >
+                    <span class="text-xs">{{ opt.label }}</span>
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
+          <div class="col-6 col-md-4">
+            <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
+              >Ideal For</label
+            >
+            <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+              <div
+                class="select-display-custom form-control-sm rounded-pill border-2"
+                @click.stop="toggleDropdown('ideal')"
+              >
+                <span class="text-xs">
+                  {{ idealOptions.find((o) => o.value === editIdealFor)?.label || 'Select...' }}
+                </span>
+                <span
+                  class="material-symbols-outlined fs-6 transition-base"
+                  :class="{ 'rotate-180': activeDropdown === 'ideal' }"
+                  >expand_more</span
+                >
+              </div>
+              <transition name="fade">
+                <div class="dropdown-menu-custom" v-if="activeDropdown === 'ideal'">
+                  <div
+                    v-for="opt in idealOptions"
+                    :key="opt.value"
+                    class="dropdown-item-custom py-1"
+                    :class="{ active: editIdealFor === opt.value }"
+                    @click.stop="((editIdealFor = opt.value), (activeDropdown = null))"
+                  >
+                    <span class="text-xs">{{ opt.label }}</span>
+                  </div>
+                </div>
+              </transition>
+            </div>
+          </div>
         </div>
       </div>
       <div class="d-flex justify-content-end gap-2 mt-2">
@@ -567,7 +676,7 @@ export default {
         class="layout-b rounded-4 overflow-hidden position-relative card-hover shadow-sm mb-2"
         :class="{ 'expanded-layout-b': isExpanded }"
       >
-        <div class="img-wrapper ratio ratio-16x9 cursor-pointer" @click="showLightbox(0)">
+        <div class="img-wrapper ratio ratio-1x1 cursor-pointer" @click="showLightbox(0)">
           <img
             v-lazy-load="item.images?.[0] || item.image"
             class="object-fit-cover"
@@ -772,8 +881,7 @@ export default {
 </template>
 
 <style scoped lang="scss">
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
+@import '@/assets/base.scss';
 
 .avatar-sm {
   width: 40px;
@@ -834,13 +942,23 @@ export default {
 .layout-b {
   .photo-badge {
     position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
-    background: rgba(0, 0, 0, 0.6);
+    bottom: 0.75rem;
+    right: 0.75rem;
+    @include glassmorphism(#1a1a1a, 8px, 0.6);
     color: white;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    font-weight: 600;
+    backdrop-filter: blur(8px) brightness(1.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      transform: scale(1.05) translateY(-2px);
+      background-color: rgba(0, 0, 0, 0.8) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
   }
   .overlay-text {
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
