@@ -793,7 +793,8 @@ export default {
         <div class="d-flex gap-3">
           <div
             v-if="hasImage"
-            class="thumb-box flex-shrink-0 cursor-pointer position-relative"
+            class="thumb-box flex-shrink-0 cursor-pointer position-relative shadow-sm"
+            style="width: 80px; height: 80px"
             @click="showLightbox(0)"
           >
             <img
@@ -803,7 +804,7 @@ export default {
             />
             <button
               v-if="extraPhotoCount > 0"
-              class="photo-count-badge position-absolute d-flex align-items-center gap-1"
+              class="photo-count-badge position-absolute d-flex align-items-center gap-1 scale-down"
               @click.stop="showLightbox(1)"
               :aria-label="`${extraPhotoCount} more photos`"
             >
@@ -817,14 +818,15 @@ export default {
             >
               {{ item.title }}
             </h2>
-            <div v-if="!isExpanded" class="text-muted text-xs font-roboto text-truncate">
-              {{ contentText.replace(/<[^>]*>/g, '') }}
+            <div class="text-muted text-xs font-roboto opacity-75">
+              {{ formattedDate }} • {{ item.type || item.category }}
             </div>
           </div>
         </div>
+        <!-- Content for C (now using same logic as A) -->
         <div
-          v-if="isExpanded"
-          class="content-teaser text-muted text-sm font-roboto animate-fade-up"
+          class="content-teaser font-roboto text-muted text-sm mb-2"
+          :class="{ 'is-expanded': isExpanded, 'has-mask': isLongContent && !isExpanded }"
           v-html="contentText"
         ></div>
         <button v-if="isLongContent" class="read-more-link" @click="isExpanded = !isExpanded">
@@ -1303,9 +1305,11 @@ export default {
   max-height: 4.8rem;
   overflow: hidden;
   transition: max-height 0.4s ease;
+
   &.is-expanded {
     max-height: 200rem;
   }
+
   &.has-mask {
     -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
     mask-image: linear-gradient(180deg, black 60%, transparent 100%);
