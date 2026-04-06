@@ -273,7 +273,7 @@ export default {
   font-size: 2.4rem;
 }
 
-/* AAA-Compliant gradients applied to the Material Icon text */
+/* Gradients applied to the Material Icon text */
 .icon-solid {
   font-variation-settings:
     'FILL' 1,
