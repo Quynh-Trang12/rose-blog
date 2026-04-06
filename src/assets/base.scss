@@ -73,7 +73,7 @@ $utilities: map-merge(
       values: (
         lighter: $font-weight-lighter,
         light: $font-weight-light,
-        normal: $font-weight-normal,
+        normal: 460,
         medium: $font-weight-medium,
         semibold: $font-weight-semibold,
         bold: $font-weight-bold,
@@ -303,7 +303,7 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     line-height: 1.2;
     color: #444;
     border: 2px solid #e9ecef;
-    transition: all .2s ease;
+    transition: all 0.2s ease;
     appearance: none;
     overflow: hidden;
     white-space: nowrap; // Don't wrap weirdly
@@ -313,7 +313,6 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
       border-color: var(--bs-primary);
     }
   }
-
 
   .dropdown-menu-custom {
     position: absolute;
@@ -330,8 +329,6 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     list-style: none;
     transform-origin: top center;
   }
-
-
 
   .dropdown-item-custom {
     padding: 0.75rem 1rem;
@@ -358,18 +355,18 @@ $custom-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 // Fade Animation
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
   transform: translateY(0) scale(1);
   opacity: 1;
 }
 
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   transform: translateY(-10px) scale(0.95);
   opacity: 0;
 }
-
-
 
 .z-index-lightbox {
   z-index: 1070;

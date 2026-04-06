@@ -5,81 +5,69 @@
  * ==========================================
  * Description:
  * A versatile news display card supporting multiple layouts (A, B, C).
- * Handles social interactions (likes, comments, shares), inline editing
- * for post owners, and image lightbox.
+ * Handles social interactions (reactions with hover emoji picker, comments,
+ * shares via centered modal), inline editing for post owners, image lightbox,
+ * category badges, and custom toast notifications.
  *
- * Requirements (Issue 5, 7, 8, 10, Bug B):
- *  - Fixed: Type-B cards have improved mobile readability.
- *  - Fixed: Read more link is a sleek 600-weight link with font-roboto.
- *  - Fixed: Edit textarea and comment textarea no longer overflow containers.
- *  - Fixed: Comment data structure is consistent (Bug B).
- *  - Renamed: Internal references from 'article' to 'newsItem' (Issue 8).
- *  - Fully Options API migration.
+ * Fixes applied:
+ * A1. Redesigned +N photos badge for better visibility and interaction.
+ * A2. Category badge top-right of each card.
+ * A3. Ellipsis tooltip positions directly below its trigger button.
+ * A4. Share modal centered on screen; Facebook share opens new post composer.
+ * A5. Facebook-style reaction picker on hover with animated emoji set.
+ * A6. Gradient overlay fixed so images are clearly visible.
+ * C1. Custom dropdown z-index fixed so dropdowns are never clipped.
  */
 import { mapGetters, mapActions } from 'vuex'
 import ImageLightbox from '@/components/shared/ImageLightbox.vue'
 
+// Reaction set replicating Facebook's picker
+const REACTIONS = [
+  { key: 'like', emoji: '👍', label: 'Like' },
+  { key: 'love', emoji: '❤️', label: 'Love' },
+  { key: 'haha', emoji: '😂', label: 'Haha' },
+  { key: 'wow', emoji: '😮', label: 'Wow' },
+  { key: 'sad', emoji: '😢', label: 'Sad' },
+  { key: 'angry', emoji: '😡', label: 'Angry' },
+]
+
 export default {
   name: 'NewsCard',
 
-  // ==========================================
-  // COMPONENTS
-  // ==========================================
-  components: {
-    ImageLightbox,
-  },
+  components: { ImageLightbox },
 
-  // ==========================================
-  // PROPS
-  // ==========================================
   props: {
-    item: {
-      type: Object,
-      required: true,
-    },
-    isAuthed: {
-      type: Boolean,
-      default: false,
-    },
-    isOwner: {
-      type: Boolean,
-      default: false,
-    },
+    item: { type: Object, required: true },
+    isAuthed: { type: Boolean, default: false },
+    isOwner: { type: Boolean, default: false },
   },
 
-  // ==========================================
-  // EMITS
-  // ==========================================
   emits: ['react', 'comment', 'share', 'edit', 'delete'],
 
-  // ==========================================
-  // DATA
-  // ==========================================
   data() {
     return {
-      // Explanation: Controls the expanded/collapsed state of long content.
       isExpanded: false,
-      // Explanation: Toggles the post options (ellipsis) dropdown menu.
+      // Ellipsis menu
       showEllipsisMenu: false,
-      // Explanation: Toggles the comments section visibility.
+      ellipsisAnchorEl: null,
+      // Comments
       showComments: false,
-      // Explanation: Toggles the share popup modal visibility.
-      showShareMenu: false,
-      // Explanation: Two-way bound text for the new comment input.
       commentText: '',
-      // Explanation: Whether the card is in inline-edit mode.
+      // Share modal
+      showShareModal: false,
+      shareCopied: false,
+      // Reactions
+      showReactionPicker: false,
+      reactionHoverTimer: null,
+      reactionLeaveTimer: null,
+      userReaction: null, // { key, emoji, label } or null
+      // Toast notification
+      toastMessage: '',
+      toastTimer: null,
+      // Edit mode
       isEditing: false,
-      // Explanation: Edit form title field bound to v-model.
       editTitle: '',
-      // Explanation: Edit form content field bound to v-model.
       editContent: '',
-      // Explanation: Controls the custom ImageLightbox visibility.
-      lightboxVisible: false,
-      // Explanation: Index of the initially displayed lightbox image.
-      lightboxIndex: 0,
-      // Explanation: Tracks elipsis button positioning for teleported menu.
-      ellipsisMenuPos: { top: 0, left: 0 },
-      // Botanical fields for editing (Issue 3)
       editColor: '',
       editFragrance: '',
       editBloomingSeason: '',
@@ -87,7 +75,10 @@ export default {
       editThornLevel: 'few',
       editIdealFor: 'garden',
       activeDropdown: null,
-      // Shared Option Sets
+      // Lightbox
+      lightboxVisible: false,
+      lightboxIndex: 0,
+      // Shared option sets
       thornOptions: [
         { label: 'All levels', value: 'all' },
         { label: 'Thornless', value: 'none' },
@@ -105,179 +96,277 @@ export default {
         { label: '★★★★', value: '4' },
         { label: '★★★★★', value: '5' },
       ],
+      // Category badge map
+      categoryBadgeMap: {
+        'Bush Rose': { icon: 'local_florist', cls: 'badge-bush' },
+        'Climbing Rose': { icon: 'nature', cls: 'badge-climbing' },
+        'Planting Guide': { icon: 'eco', cls: 'badge-guide' },
+        'Botanical Tips': { icon: 'psychiatry', cls: 'badge-tips' },
+      },
+      reactions: REACTIONS,
     }
   },
 
-  // ==========================================
-  // COMPUTED
-  // ==========================================
   computed: {
     ...mapGetters('auth', ['mySavedPostIds']),
 
-    /**
-     * Determines if the current post has associated imagery.
-     * @returns {boolean}
-     */
     hasImage() {
       return (this.item.images && this.item.images.length > 0) || !!this.item.image
     },
 
-    /**
-     * Normalizes the content source (handling legacy content vs description fields).
-     * @returns {string}
-     */
     contentText() {
       return this.item.content || this.item.description || ''
     },
 
-    /**
-     * Flag for content that exceeds the standard teaser height (around 3 lines).
-     * @returns {boolean}
-     */
     isLongContent() {
-      // Using 250 as a rough estimate for 3 lines of text
       return this.contentText.length > 250
     },
 
-    /**
-     * Formats the ISO date string into a user-friendly local date.
-     * @returns {string}
-     */
     formattedDate() {
-      const d = new Date(this.item.date)
-      return d.toLocaleDateString(undefined, {
+      return new Date(this.item.date).toLocaleDateString(undefined, {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
       })
     },
 
-    /**
-     * Checks if this post ID is in the current user's saved list via Vuex.
-     * @returns {boolean}
-     */
     isSaved() {
       return this.mySavedPostIds.some((id) => String(id) === String(this.item.id))
     },
 
-    /**
-     * Returns the array of image URLs for the lightbox component.
-     * @returns {string[]}
-     */
     lightboxImages() {
-      if (this.item.images && this.item.images.length > 0) {
-        return this.item.images
-      }
-      if (this.item.image) {
-        return [this.item.image]
-      }
+      if (this.item.images && this.item.images.length > 0) return this.item.images
+      if (this.item.image) return [this.item.image]
       return []
+    },
+
+    categoryMeta() {
+      const type = this.item.type || this.item.category || ''
+      return this.categoryBadgeMap[type] || null
+    },
+
+    /** Reaction count including the user's own reaction. */
+    totalReactions() {
+      return this.item.reactions || 0
+    },
+
+    /** Label shown on the reaction button. */
+    reactionLabel() {
+      return this.userReaction ? this.userReaction.label : 'Like'
+    },
+
+    /** Emoji shown on the reaction button. */
+    reactionEmoji() {
+      return this.userReaction ? this.userReaction.emoji : '👍'
+    },
+
+    extraPhotoCount() {
+      if (this.item.images && this.item.images.length > 1) return this.item.images.length - 1
+      return 0
     },
   },
 
-  // ==========================================
-  // METHODS
-  // ==========================================
   methods: {
     ...mapActions('auth', ['toggleSavePost']),
     ...mapActions('news', ['reactToNewsItem', 'addComment', 'incrementShare']),
 
-    /**
-     * Requirement (Issue 8): Renamed from toggleSave.
-     * Toggles bookmark state for the current post.
-     */
+    // ==========================================
+    // TOAST NOTIFICATIONS
+    // ==========================================
+    showToast(message) {
+      clearTimeout(this.toastTimer)
+      this.toastMessage = message
+      this.toastTimer = setTimeout(() => {
+        this.toastMessage = ''
+      }, 3000)
+    },
+
+    // ==========================================
+    // SAVE / BOOKMARK
+    // ==========================================
     handleToggleSave() {
-      if (!this.isAuthed) return
+      if (!this.isAuthed) {
+        this.showToast('Please log in to save posts.')
+        return
+      }
       this.toggleSavePost(this.item.id)
       this.showEllipsisMenu = false
+      this.showToast(this.isSaved ? 'Post unsaved.' : 'Post saved to your collection!')
     },
 
-    /**
-     * Toggles the post options menu (ellipsis) and calculates position.
-     * Explanation: Uses getBoundingClientRect to position the teleported menu.
-     */
+    // ==========================================
+    // ELLIPSIS MENU — positioned directly below button
+    // ==========================================
     toggleEllipsis(event) {
       this.showEllipsisMenu = !this.showEllipsisMenu
-      if (this.showEllipsisMenu) {
-        const rect = event.currentTarget.getBoundingClientRect()
-        this.ellipsisMenuPos = {
-          top: rect.bottom + window.scrollY,
-          left: rect.right + window.scrollX - 150, // 150 is the min-width of the menu
-        }
-      }
-      this.showShareMenu = false
+      this.ellipsisAnchorEl = event.currentTarget
+      this.showShareModal = false
     },
 
-    /**
-     * Requirement (Issue 4): Toggles the share options menu and calculates position.
-     */
-    toggleShare(event) {
-      this.showShareMenu = !this.showShareMenu
-      if (this.showShareMenu) {
-        const rect = event.currentTarget.getBoundingClientRect()
-        this.ellipsisMenuPos = {
-          top: rect.bottom + window.scrollY,
-          left: rect.left + window.scrollX - 100, // Better offset for share menu
-        }
-      }
-      this.showEllipsisMenu = false
-    },
-
-    /**
-     * Closes the ellipsis menu.
-     */
     closeEllipsis() {
       this.showEllipsisMenu = false
     },
 
-    /**
-     * Closes the share menu.
-     */
-    closeShare() {
-      this.showShareMenu = false
-    },
-
-    /**
-     * Toggles a custom dropdown visibility.
-     */
-    toggleDropdown(id) {
-      if (this.activeDropdown === id) {
-        this.activeDropdown = null
-      } else {
-        this.activeDropdown = id
+    /** Compute teleported menu position directly below the trigger. */
+    ellipsisStyle() {
+      if (!this.ellipsisAnchorEl) return {}
+      const rect = this.ellipsisAnchorEl.getBoundingClientRect()
+      return {
+        position: 'fixed',
+        top: `${rect.bottom + 6}px`,
+        right: `${window.innerWidth - rect.right}px`,
+        zIndex: 9999,
       }
     },
 
-    /**
-     * Prepares the card for inline editing if ownership is verified.
-     */
+    // ==========================================
+    // REACTIONS — Facebook-style hover picker
+    // ==========================================
+    onReactionButtonEnter() {
+      clearTimeout(this.reactionLeaveTimer)
+      if (!this.isAuthed) return
+      this.reactionHoverTimer = setTimeout(() => {
+        this.showReactionPicker = true
+      }, 500)
+    },
+
+    onReactionButtonLeave() {
+      clearTimeout(this.reactionHoverTimer)
+      this.reactionLeaveTimer = setTimeout(() => {
+        this.showReactionPicker = false
+      }, 300)
+    },
+
+    onReactionPickerEnter() {
+      clearTimeout(this.reactionLeaveTimer)
+    },
+
+    onReactionPickerLeave() {
+      this.reactionLeaveTimer = setTimeout(() => {
+        this.showReactionPicker = false
+      }, 300)
+    },
+
+    selectReaction(reaction) {
+      if (!this.isAuthed) {
+        this.showToast('Please log in to react.')
+        return
+      }
+      if (this.userReaction && this.userReaction.key === reaction.key) {
+        // Toggle off
+        this.userReaction = null
+      } else {
+        this.userReaction = reaction
+        this.reactToNewsItem(this.item.id)
+        this.$emit('react', { id: this.item.id, reaction: reaction.key })
+      }
+      this.showReactionPicker = false
+    },
+
+    handleReactClick() {
+      if (!this.isAuthed) {
+        this.showToast('Please log in to react.')
+        return
+      }
+      if (this.userReaction) {
+        this.userReaction = null
+      } else {
+        this.userReaction = REACTIONS[0]
+        this.reactToNewsItem(this.item.id)
+        this.$emit('react', { id: this.item.id, reaction: 'like' })
+      }
+    },
+
+    // ==========================================
+    // SHARE MODAL — centered on screen
+    // ==========================================
+    openShareModal() {
+      this.showShareModal = true
+      this.showEllipsisMenu = false
+    },
+
+    closeShareModal() {
+      this.showShareModal = false
+      this.shareCopied = false
+    },
+
+    getShareUrl() {
+      return `${window.location.origin}/news#post-${this.item.id}`
+    },
+
+    handleShare(platform) {
+      const url = this.getShareUrl()
+      const title = encodeURIComponent(this.item.title || 'The Rose Blog')
+
+      if (platform === 'facebook') {
+        // Opens Facebook's "Create Post" composer — user pastes the link themselves.
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+          '_blank',
+          'width=626,height=436,noopener,noreferrer',
+        )
+      } else if (platform === 'twitter') {
+        window.open(
+          `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${title}`,
+          '_blank',
+          'width=550,height=420,noopener,noreferrer',
+        )
+      } else if (platform === 'whatsapp') {
+        window.open(
+          `https://wa.me/?text=${title}%20${encodeURIComponent(url)}`,
+          '_blank',
+          'noopener,noreferrer',
+        )
+      } else if (platform === 'copy') {
+        navigator.clipboard.writeText(url).then(() => {
+          this.shareCopied = true
+          this.showToast('Link copied to clipboard!')
+          setTimeout(() => {
+            this.shareCopied = false
+          }, 2500)
+        })
+      }
+
+      this.incrementShare(this.item.id)
+      this.$emit('share', { id: this.item.id, platform })
+    },
+
+    // ==========================================
+    // LIGHTBOX
+    // ==========================================
+    showLightbox(index) {
+      this.lightboxIndex = index || 0
+      this.lightboxVisible = true
+    },
+
+    hideLightbox() {
+      this.lightboxVisible = false
+    },
+
+    // ==========================================
+    // EDITING
+    // ==========================================
     initiateEdit() {
       this.showEllipsisMenu = false
       if (!this.isOwner) return
       this.isEditing = true
       this.editTitle = this.item.title
       this.editContent = this.contentText
-      // Populate botanical fields (Issue 3)
-      this.editColor = this.item.color || 'Unknown'
-      this.editFragrance = this.item.fragrance || 'Classic'
-      this.editBloomingSeason = this.item.bloomingSeason || 'Spring to Fall'
+      this.editColor = this.item.color || ''
+      this.editFragrance = this.item.fragrance || ''
+      this.editBloomingSeason = this.item.bloomingSeason || ''
       this.editStrength = this.item.strength || 3
       this.editThornLevel = this.item.thornLevel || 'few'
       this.editIdealFor = this.item.idealFor || 'garden'
       this.activeDropdown = null
     },
 
-    /**
-     * Emits the updated content to the parent for persistence.
-     * Requirement (Issue 7): sends a single merged object payload { id, title, content }.
-     */
     saveEdit() {
       if (this.editTitle.trim() && this.editContent.trim()) {
         this.$emit('edit', {
           id: this.item.id,
           title: this.editTitle.trim(),
           content: this.editContent.trim(),
-          // Include botanical fields in update (Issue 3)
           color: this.editColor,
           fragrance: this.editFragrance,
           bloomingSeason: this.editBloomingSeason,
@@ -286,20 +375,15 @@ export default {
           idealFor: this.editIdealFor,
         })
         this.isEditing = false
+        this.showToast('Post updated successfully!')
       }
     },
 
-    /**
-     * Exits edit mode without saving.
-     */
     cancelEdit() {
       this.isEditing = false
+      this.activeDropdown = null
     },
 
-    /**
-     * Emits a delete request if confirmed by the user.
-     * Requirement (Issue 5/7 D): Added guard for active edit mode.
-     */
     requestDelete() {
       if (this.isEditing) this.cancelEdit()
       this.closeEllipsis()
@@ -309,104 +393,67 @@ export default {
       }
     },
 
-    /**
-     * Requirement (Issue 8/5): Let user know they have to login.
-     * Dispatches a reaction event to Vuex.
-     */
-    handleReact(reaction) {
-      if (!this.isAuthed) return
-      // The store handles the logic for reactToNewsItem
-      this.reactToNewsItem(this.item.id)
-      this.$emit('react', { id: this.item.id, reaction })
+    toggleDropdown(id) {
+      this.activeDropdown = this.activeDropdown === id ? null : id
     },
 
-    /**
-     * Opens the lightbox at the specified image index.
-     * @param {number} index - The image index to display
-     */
-    showLightbox(index) {
-      this.lightboxIndex = index || 0
-      this.lightboxVisible = true
-    },
-
-    /**
-     * Closes the lightbox.
-     */
-    hideLightbox() {
-      this.lightboxVisible = false
-    },
-
-    /**
-     * Validates and dispatches a new comment (Bug B fix).
-     * Explanation: Ensures consistent comment object { text, author }.
-     */
+    // ==========================================
+    // COMMENTS
+    // ==========================================
     submitComment() {
-      if (this.commentText.trim() && this.isAuthed) {
-        const commentData = {
-          text: this.commentText.trim(),
-          author: {
-            displayName: this.$store.state.auth.currentUser.displayName,
-            avatar: `https://i.pravatar.cc/40?u=${this.$store.state.auth.currentUser.username}`,
-          },
-        }
-        this.addComment({ id: this.item.id, comment: commentData })
-        this.$emit('comment', { id: this.item.id, comment: commentData })
-        this.commentText = ''
+      if (!this.commentText.trim() || !this.isAuthed) return
+      const commentData = {
+        text: this.commentText.trim(),
+        author: {
+          displayName: this.$store.state.auth.currentUser.displayName,
+          avatar: `https://i.pravatar.cc/40?u=${this.$store.state.auth.currentUser.username}`,
+        },
       }
+      this.addComment({ id: this.item.id, comment: commentData })
+      this.$emit('comment', { id: this.item.id, comment: commentData })
+      this.commentText = ''
+      this.showToast('Comment posted!')
     },
+  },
 
-    /**
-     * Constructs the shareable URL for the current post.
-     */
-    getShareUrl() {
-      return `${window.location.origin}/news#post-${this.item.id}`
-    },
-
-    /**
-     * Handles sharing to various platforms.
-     */
-    handleShare(platform) {
-      const shareUrl = this.getShareUrl()
-      const shareTitle = encodeURIComponent(this.item.title || 'Check out this rose!')
-
-      if (platform === 'facebook') {
-        window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${shareTitle}`,
-          'facebook-share-dialog',
-          `width=626,height=436`,
-        )
-      } else if (platform === 'twitter') {
-        window.open(
-          `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${shareTitle}`,
-          'twitter-share-dialog',
-          `width=550,height=420`,
-        )
-      } else if (platform === 'link') {
-        try {
-          navigator.clipboard.writeText(shareUrl)
-          alert('Link copied to clipboard!')
-        } catch (err) {
-          console.error('Failed to copy link', err)
-        }
-      }
-      this.incrementShare(this.item.id)
-      this.$emit('share', { id: this.item.id, platform })
-      this.showShareMenu = false
-    },
+  beforeUnmount() {
+    clearTimeout(this.toastTimer)
+    clearTimeout(this.reactionHoverTimer)
+    clearTimeout(this.reactionLeaveTimer)
   },
 }
 </script>
 
 <template>
-  <!-- Main card container (Issue 8: semantic role article) -->
+  <!-- Toast Notification -->
+  <teleport to="body">
+    <transition name="toast-fade">
+      <div
+        v-if="toastMessage"
+        class="news-card__toast position-fixed d-flex align-items-center gap-2 shadow-lg"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="material-symbols-outlined fs-5 text-primary">info</span>
+        {{ toastMessage }}
+      </div>
+    </transition>
+  </teleport>
+
+  <!-- Main Card -->
   <article
     class="news-card frosted-glass rounded-4 shadow-sm p-3 position-relative d-flex flex-column gap-3 mb-1 w-100"
-    :class="{ 'card-editing': isEditing, 'overflow-visible': isEditing || activeDropdown, 'z-index-top': isEditing || activeDropdown, 'glass-off': isEditing || activeDropdown }"
+    :class="{
+      'card-editing': isEditing,
+      'overflow-visible': isEditing || activeDropdown,
+      'z-index-top': isEditing || activeDropdown,
+      'glass-off': isEditing || activeDropdown,
+    }"
     :id="'post-' + item.id"
     role="article"
     :aria-labelledby="'post-title-' + item.id"
   >
-    <!-- 1. Header: Author and Options -->
+    <!-- ── Header ── -->
     <div class="d-flex justify-content-between align-items-start">
       <div class="d-flex align-items-center gap-2">
         <img
@@ -418,81 +465,85 @@ export default {
         />
         <div class="lh-sm">
           <p class="fw-bold text-dark mb-0 text-sm font-roboto">{{ item.authorName || 'Guest' }}</p>
-          <div class="d-flex align-items-center gap-1 opacity-75">
-            <span class="text-muted text-xs font-roboto">{{ formattedDate }}</span>
-            <span
-              class="material-symbols-outlined text-muted text-xs"
-              aria-hidden="true"
-              style="font-size: 12px"
-            >
-              {{ item.isPublic !== false ? 'public' : 'lock' }}
-            </span>
-          </div>
+          <span class="text-muted text-xs font-roboto">{{ formattedDate }}</span>
         </div>
       </div>
 
-      <!-- Ellipsis Menu -->
-      <div class="position-relative">
+      <!-- A2: Category badge -->
+      <div class="d-flex align-items-center gap-2">
+        <span
+          v-if="categoryMeta"
+          class="category-badge d-inline-flex align-items-center gap-1"
+          :class="categoryMeta.cls"
+        >
+          <span class="material-symbols-outlined" style="font-size: 11px">{{
+            categoryMeta.icon
+          }}</span>
+          {{ item.type || item.category }}
+        </span>
+
+        <!-- Ellipsis -->
         <button
           class="btn btn-sm btn-light rounded-circle shadow-none p-1 d-flex align-items-center justify-content-center ellipsis-btn"
           @click.stop="toggleEllipsis"
           aria-label="Post options"
+          aria-haspopup="true"
+          :aria-expanded="showEllipsisMenu"
         >
           <span class="material-symbols-outlined fs-5">more_horiz</span>
         </button>
-
-        <teleport to="body">
-          <div
-            v-if="showEllipsisMenu"
-            v-click-outside="closeEllipsis"
-            class="frosted-glass rounded-3 shadow-lg position-absolute py-1 d-flex flex-column z-index-modal ellipsis-menu"
-            :style="{ top: ellipsisMenuPos.top + 'px', left: ellipsisMenuPos.left + 'px' }"
-            role="menu"
-          >
-            <button
-              role="menuitem"
-              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
-              @click="handleToggleSave"
-              :disabled="!isAuthed"
-            >
-              <span class="material-symbols-outlined fs-5">
-                {{ isSaved ? 'bookmark_added' : 'bookmark_add' }}
-              </span>
-              {{ isSaved ? 'Unsave' : 'Save' }}
-            </button>
-            <button
-              v-if="isOwner"
-              role="menuitem"
-              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
-              @click="initiateEdit"
-            >
-              <span class="material-symbols-outlined fs-5">edit</span> Edit
-            </button>
-            <button
-              v-if="isOwner"
-              role="menuitem"
-              class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
-              @click="requestDelete"
-            >
-              <span class="material-symbols-outlined fs-5">delete</span> Delete
-            </button>
-          </div>
-        </teleport>
       </div>
     </div>
 
-    <!-- 2. Edit Overlay Section (Issue 1 fix: Removed absolute positioning to prevent masonry grid overlap) -->
+    <!-- A3: Ellipsis menu — teleported and positioned directly below its button -->
+    <teleport to="body">
+      <div
+        v-if="showEllipsisMenu"
+        v-click-outside="closeEllipsis"
+        class="news-card__ellipsis-menu frosted-glass rounded-3 shadow-lg py-1 d-flex flex-column"
+        :style="ellipsisStyle()"
+        role="menu"
+      >
+        <button
+          role="menuitem"
+          class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+          @click="handleToggleSave"
+        >
+          <span class="material-symbols-outlined fs-5">{{
+            isSaved ? 'bookmark_added' : 'bookmark_add'
+          }}</span>
+          {{ isSaved ? 'Unsave' : 'Save' }}
+        </button>
+        <button
+          v-if="isOwner"
+          role="menuitem"
+          class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item"
+          @click="initiateEdit"
+        >
+          <span class="material-symbols-outlined fs-5">edit</span> Edit
+        </button>
+        <button
+          v-if="isOwner"
+          role="menuitem"
+          class="btn btn-sm text-start px-3 py-2 w-100 d-flex align-items-center gap-2 menu-item text-danger"
+          @click="requestDelete"
+        >
+          <span class="material-symbols-outlined fs-5">delete</span> Delete
+        </button>
+      </div>
+    </teleport>
+
+    <!-- ── Edit form ── -->
     <div
       v-if="isEditing"
-      class="edit-overlay edit-form bg-white rounded-4 z-index-top p-3 d-flex flex-column gap-2 overflow-visible"
-      style="min-height: 380px"
+      class="edit-form bg-white rounded-4 p-3 d-flex flex-column gap-2"
+      style="min-height: 380px; overflow: visible; position: relative; z-index: 200"
     >
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 class="fw-bold font-zilla fst-italic mb-0 text-primary">Update News Item</h5>
+        <h5 class="fw-bold font-zilla fst-italic mb-0 text-primary">Update Post</h5>
         <button class="btn-close" @click="cancelEdit" aria-label="Cancel edit"></button>
       </div>
 
-      <!-- Basic Fields -->
       <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-0 opacity-75"
         >Title</label
       >
@@ -508,13 +559,16 @@ export default {
       >
       <textarea
         v-model="editContent"
-        class="form-control form-control-sm font-roboto edit-textarea border-2"
+        class="form-control form-control-sm font-roboto border-2"
         placeholder="Share your botanical wisdom..."
-        style="min-height: 120px"
+        style="min-height: 120px; resize: vertical; width: 100%; box-sizing: border-box"
       ></textarea>
 
-      <!-- Detailed Botanical Fields (Issue 3) -->
-      <div class="edit-modal__botanical-container rounded-4 border-dashed bg-light-soft p-3 mt-2 overflow-visible">
+      <!-- Botanical Attributes — C1: dropdown z-index fixed via inline position:relative + high z-index -->
+      <div
+        class="rounded-4 border bg-light p-3 mt-2"
+        style="position: relative; z-index: 300; overflow: visible"
+      >
         <h6
           class="text-xs text-uppercase ls-wide fw-bold text-muted mb-3 d-flex align-items-center gap-2"
         >
@@ -551,14 +605,16 @@ export default {
               class="form-control form-control-sm rounded-pill border-2"
             />
           </div>
-          <div class="col-6 col-md-4">
+
+          <!-- C1: Each dropdown wrapper gets position:relative + explicit z-index that decrements per row -->
+          <div class="col-6 col-md-4" style="position: relative; z-index: 150">
             <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
               >Strength</label
             >
-            <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+            <div class="custom-select-wrapper">
               <div
                 class="select-display-custom form-control-sm rounded-pill border-2"
-                @click.stop="toggleDropdown('strength')"
+                @click.stop="toggleDropdown('edit-strength')"
               >
                 <span class="text-xs">
                   {{
@@ -568,12 +624,16 @@ export default {
                 </span>
                 <span
                   class="material-symbols-outlined fs-6 transition-base"
-                  :class="{ 'rotate-180': activeDropdown === 'strength' }"
+                  :class="{ 'rotate-180': activeDropdown === 'edit-strength' }"
                   >expand_more</span
                 >
               </div>
               <transition name="fade">
-                <div class="dropdown-menu-custom" v-if="activeDropdown === 'strength'">
+                <div
+                  class="dropdown-menu-custom"
+                  v-if="activeDropdown === 'edit-strength'"
+                  style="z-index: 9999; position: absolute"
+                >
                   <div
                     v-for="opt in strengthOptions"
                     :key="opt.value"
@@ -587,26 +647,31 @@ export default {
               </transition>
             </div>
           </div>
-          <div class="col-6 col-md-4">
+
+          <div class="col-6 col-md-4" style="position: relative; z-index: 140">
             <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
               >Thorns</label
             >
-            <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+            <div class="custom-select-wrapper">
               <div
                 class="select-display-custom form-control-sm rounded-pill border-2"
-                @click.stop="toggleDropdown('thorn')"
+                @click.stop="toggleDropdown('edit-thorn')"
               >
-                <span class="text-xs">
-                  {{ thornOptions.find((o) => o.value === editThornLevel)?.label || 'Select...' }}
-                </span>
+                <span class="text-xs">{{
+                  thornOptions.find((o) => o.value === editThornLevel)?.label || 'Select...'
+                }}</span>
                 <span
                   class="material-symbols-outlined fs-6 transition-base"
-                  :class="{ 'rotate-180': activeDropdown === 'thorn' }"
+                  :class="{ 'rotate-180': activeDropdown === 'edit-thorn' }"
                   >expand_more</span
                 >
               </div>
               <transition name="fade">
-                <div class="dropdown-menu-custom" v-if="activeDropdown === 'thorn'">
+                <div
+                  class="dropdown-menu-custom"
+                  v-if="activeDropdown === 'edit-thorn'"
+                  style="z-index: 9999; position: absolute"
+                >
                   <div
                     v-for="opt in thornOptions"
                     :key="opt.value"
@@ -620,26 +685,31 @@ export default {
               </transition>
             </div>
           </div>
-          <div class="col-6 col-md-4">
+
+          <div class="col-6 col-md-4" style="position: relative; z-index: 130">
             <label class="form-label font-roboto fw-bold text-xs text-uppercase mb-1 opacity-75"
               >Ideal For</label
             >
-            <div class="custom-select-wrapper" v-click-outside="() => (activeDropdown = null)">
+            <div class="custom-select-wrapper">
               <div
                 class="select-display-custom form-control-sm rounded-pill border-2"
-                @click.stop="toggleDropdown('ideal')"
+                @click.stop="toggleDropdown('edit-ideal')"
               >
-                <span class="text-xs">
-                  {{ idealOptions.find((o) => o.value === editIdealFor)?.label || 'Select...' }}
-                </span>
+                <span class="text-xs">{{
+                  idealOptions.find((o) => o.value === editIdealFor)?.label || 'Select...'
+                }}</span>
                 <span
                   class="material-symbols-outlined fs-6 transition-base"
-                  :class="{ 'rotate-180': activeDropdown === 'ideal' }"
+                  :class="{ 'rotate-180': activeDropdown === 'edit-ideal' }"
                   >expand_more</span
                 >
               </div>
               <transition name="fade">
-                <div class="dropdown-menu-custom" v-if="activeDropdown === 'ideal'">
+                <div
+                  class="dropdown-menu-custom"
+                  v-if="activeDropdown === 'edit-ideal'"
+                  style="z-index: 9999; position: absolute"
+                >
                   <div
                     v-for="opt in idealOptions"
                     :key="opt.value"
@@ -655,6 +725,7 @@ export default {
           </div>
         </div>
       </div>
+
       <div class="d-flex justify-content-end gap-2 mt-2">
         <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" @click="cancelEdit">
           Cancel
@@ -668,42 +739,48 @@ export default {
       </div>
     </div>
 
-    <!-- 3. Layout Rendering -->
+    <!-- ── Layout rendering ── -->
     <div class="card-content-area" v-else>
-      <!-- Layout Type B (Issue 4 fix: improved mobile text & expansion) -->
+      <!-- Layout B -->
       <div
         v-if="item.layoutType === 'B' && hasImage"
         class="layout-b rounded-4 overflow-hidden position-relative card-hover shadow-sm mb-2"
-        :class="{ 'expanded-layout-b': isExpanded }"
       >
         <div class="img-wrapper ratio ratio-1x1 cursor-pointer" @click="showLightbox(0)">
           <img
             v-lazy-load="item.images?.[0] || item.image"
-            class="object-fit-cover"
+            class="object-fit-cover w-100 h-100"
             :alt="item.title"
           />
-          <div v-if="item.images && item.images.length > 1" class="photo-badge">
-            +{{ item.images.length - 1 }} photos
-          </div>
         </div>
-        <div
-          class="overlay-text position-absolute bottom-0 start-0 w-100 p-3 p-md-4 pt-5 text-white"
-          :class="{ 'relative-overlay': isExpanded }"
+
+        <!-- A1: Redesigned photo count badge — top-right, high contrast -->
+        <button
+          v-if="extraPhotoCount > 0"
+          class="photo-count-badge position-absolute d-flex align-items-center gap-1"
+          @click.stop="showLightbox(1)"
+          :aria-label="`View ${extraPhotoCount} more photo${extraPhotoCount > 1 ? 's' : ''}`"
         >
+          <span class="material-symbols-outlined" style="font-size: 14px">photo_library</span>
+          +{{ extraPhotoCount }}
+        </button>
+
+        <!-- A6: Gradient only on bottom third, not covering entire image -->
+        <div class="layout-b__overlay position-absolute bottom-0 start-0 w-100 p-3 p-md-4">
           <h2
             :id="'post-title-' + item.id"
-            class="fs-4 fw-bold fst-italic font-zilla mb-1 text-shadow"
+            class="fs-4 fw-bold fst-italic font-zilla mb-1 text-white text-shadow"
           >
             {{ item.title }}
           </h2>
           <div
-            class="content-teaser text-white-50 text-xs font-roboto mb-1"
+            class="content-teaser text-gray-200 fw-normal font-roboto text-sm mb-1"
             :class="{ 'is-expanded': isExpanded }"
             v-html="contentText"
           ></div>
           <button
             v-if="isLongContent"
-            class="read-more-link text-white text-decoration-underline"
+            class="read-more-link text-white"
             @click="isExpanded = !isExpanded"
           >
             {{ isExpanded ? 'Read less' : 'Read more' }}
@@ -711,18 +788,27 @@ export default {
         </div>
       </div>
 
-      <!-- Layout Type C (Compact) -->
+      <!-- Layout C -->
       <div v-else-if="item.layoutType === 'C'" class="layout-c d-flex flex-column gap-2">
         <div class="d-flex gap-3">
           <div
             v-if="hasImage"
-            class="thumb-box flex-shrink-0 cursor-pointer"
+            class="thumb-box flex-shrink-0 cursor-pointer position-relative"
             @click="showLightbox(0)"
           >
             <img
               v-lazy-load="item.images?.[0] || item.image"
               class="rounded-3 object-fit-cover w-100 h-100"
+              :alt="item.title"
             />
+            <button
+              v-if="extraPhotoCount > 0"
+              class="photo-count-badge position-absolute d-flex align-items-center gap-1"
+              @click.stop="showLightbox(1)"
+              :aria-label="`${extraPhotoCount} more photos`"
+            >
+              +{{ extraPhotoCount }}
+            </button>
           </div>
           <div class="flex-grow-1 overflow-hidden d-flex flex-column justify-content-center">
             <h2
@@ -746,8 +832,25 @@ export default {
         </button>
       </div>
 
-      <!-- Layout Type A (Standard) -->
+      <!-- Layout A (default) -->
       <div v-else class="layout-a">
+        <div v-if="hasImage" class="position-relative mb-3 rounded-4 overflow-hidden">
+          <img
+            v-lazy-load="item.images?.[0] || item.image"
+            class="w-100 rounded-4 object-fit-cover cursor-pointer layout-a__img"
+            :alt="item.title"
+            @click="showLightbox(0)"
+          />
+          <button
+            v-if="extraPhotoCount > 0"
+            class="photo-count-badge position-absolute d-flex align-items-center gap-1"
+            @click.stop="showLightbox(1)"
+            :aria-label="`${extraPhotoCount} more photos`"
+          >
+            <span class="material-symbols-outlined" style="font-size: 14px">photo_library</span>
+            +{{ extraPhotoCount }}
+          </button>
+        </div>
         <h2 :id="'post-title-' + item.id" class="fs-4 fw-bold fst-italic font-zilla mb-2 text-dark">
           {{ item.title }}
         </h2>
@@ -762,54 +865,87 @@ export default {
       </div>
     </div>
 
-    <!-- 4. Social Row -->
-    <div class="social-row d-flex align-items-center gap-3 pt-2 border-top border-light mt-auto">
+    <!-- ── A5: Social row with Facebook-style reaction picker ── -->
+    <div
+      class="social-row d-flex align-items-center gap-3 pt-2 border-top border-light mt-auto position-relative"
+    >
+      <!-- Reaction picker popup -->
+      <transition name="reaction-pop">
+        <div
+          v-if="showReactionPicker && isAuthed"
+          class="reaction-picker d-flex align-items-center gap-1 position-absolute"
+          @mouseenter="onReactionPickerEnter"
+          @mouseleave="onReactionPickerLeave"
+          role="toolbar"
+          aria-label="React to post"
+        >
+          <button
+            v-for="r in reactions"
+            :key="r.key"
+            class="reaction-emoji-btn"
+            :class="{ 'is-selected': userReaction && userReaction.key === r.key }"
+            :title="r.label"
+            :aria-label="r.label"
+            @click="selectReaction(r)"
+          >
+            {{ r.emoji }}
+          </button>
+        </div>
+      </transition>
+
+      <!-- Reaction button -->
       <button
-        class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base cursor-pointer border-0 bg-transparent"
-        :class="{ active: item.userReaction }"
-        @click="handleReact('thumb_up')"
-        :disabled="!isAuthed"
-        :title="!isAuthed ? 'Log in to react' : ''"
+        class="interaction-btn d-flex align-items-center gap-1 px-2 py-1 rounded-pill transition-base border-0 bg-transparent"
+        :class="{ active: !!userReaction }"
+        @mouseenter="onReactionButtonEnter"
+        @mouseleave="onReactionButtonLeave"
+        @click="handleReactClick"
+        :aria-label="reactionLabel"
+        :aria-pressed="!!userReaction"
       >
-        <span class="material-symbols-outlined fs-5">thumb_up</span>
-        <span class="fw-bold text-xs">{{ item.reactions || 0 }}</span>
+        <span class="reaction-current">{{ reactionEmoji }}</span>
+        <span class="fw-bold text-xs">{{ totalReactions }}</span>
+        <span
+          class="text-xs d-none d-sm-inline reaction-label"
+          :class="{ 'text-primary': !!userReaction }"
+        >
+          {{ reactionLabel }}
+        </span>
       </button>
 
+      <!-- Comments toggle -->
       <button
-        class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base cursor-pointer border-0 bg-transparent"
+        class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base border-0 bg-transparent"
         @click="showComments = !showComments"
+        :aria-expanded="showComments"
+        aria-label="Toggle comments"
       >
         <span class="material-symbols-outlined fs-5">chat_bubble</span>
         <span class="fw-bold text-xs">{{ (item.comments || []).length }}</span>
       </button>
 
+      <!-- Share button -->
       <button
-        class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base cursor-pointer ms-auto border-0 bg-transparent"
-        @click="toggleShare($event)"
+        class="interaction-btn d-flex align-items-center gap-2 px-2 py-1 rounded-pill transition-base ms-auto border-0 bg-transparent"
+        @click="openShareModal"
+        aria-label="Share this post"
       >
         <span class="material-symbols-outlined fs-5">share</span>
         <span class="fw-bold text-xs">{{ item.shares || 0 }}</span>
       </button>
     </div>
 
-    <!-- Reaction notification for unauthed -->
-    <div v-if="!isAuthed" class="mt-1 animate-fade-up">
-      <p class="text-secondary text-xs fst-italic mb-0">Log in to react or comment.</p>
-    </div>
-
-    <!-- 5. Comments Section (Bug B fixed) -->
+    <!-- ── Comments ── -->
     <transition name="fade">
-      <div
-        v-show="showComments"
-        class="comments-box pt-3 border-top border-light mt-2 animate-fade-up"
-      >
+      <div v-show="showComments" class="comments-box pt-3 border-top border-light">
         <div class="d-flex flex-column gap-3 mb-3">
           <div v-for="c in item.comments || []" :key="c.id" class="d-flex gap-2">
             <img
               v-lazy-load="c.authorAvatar || c.author?.avatar"
-              class="rounded-circle mt-1"
+              class="rounded-circle mt-1 flex-shrink-0"
               width="28"
               height="28"
+              alt="Avatar"
             />
             <div class="bg-light p-2 px-3 rounded-4 flex-grow-1">
               <p class="mb-0 fw-bold text-dark text-xs font-roboto">
@@ -819,56 +955,36 @@ export default {
             </div>
           </div>
         </div>
-        <div v-if="isAuthed" class="d-flex gap-2">
+        <div v-if="isAuthed" class="d-flex gap-2 align-items-end">
           <textarea
             v-model="commentText"
-            class="form-control form-control-sm rounded-4 text-xs comment-textarea"
+            class="form-control form-control-sm rounded-4 text-xs"
             placeholder="Write a comment..."
             rows="2"
+            style="resize: vertical; max-width: 100%; box-sizing: border-box"
+            :aria-label="'Comment on ' + item.title"
           ></textarea>
           <button
-            class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center p-0"
+            class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 p-0"
             style="width: 36px; height: 36px"
             :disabled="!commentText.trim()"
             @click="submitComment"
+            aria-label="Post comment"
           >
             <span class="material-symbols-outlined fs-5">send</span>
           </button>
         </div>
         <div v-else class="text-center p-3 rounded-4 bg-light border border-white">
-          <p class="text-muted small fst-italic mb-0">Log in to join the conversation.</p>
+          <p class="text-muted small fst-italic mb-1">Join the conversation.</p>
+          <button
+            class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
+            @click="$emit('open-auth')"
+          >
+            Log in
+          </button>
         </div>
       </div>
     </transition>
-
-    <!-- Share Tooltip (Teleported) -->
-    <teleport to="body">
-      <div
-        v-if="showShareMenu"
-        v-click-outside="closeShare"
-        class="share-dropdown frosted-glass rounded-4 shadow-lg p-2 position-absolute z-index-modal d-flex flex-column"
-        :style="{ top: ellipsisMenuPos.top + 'px', left: ellipsisMenuPos.left + 'px' }"
-      >
-        <button
-          class="btn btn-sm text-start p-2 px-3 d-flex align-items-center gap-2 menu-item"
-          @click="handleShare('facebook')"
-        >
-          <i class="bi bi-facebook text-primary"></i> Facebook
-        </button>
-        <button
-          class="btn btn-sm text-start p-2 px-3 d-flex align-items-center gap-2 menu-item"
-          @click="handleShare('twitter')"
-        >
-          <i class="bi bi-twitter-x text-dark"></i> Twitter
-        </button>
-        <button
-          class="btn btn-sm text-start p-2 px-3 d-flex align-items-center gap-2 menu-item"
-          @click="handleShare('link')"
-        >
-          <span class="material-symbols-outlined fs-5">link</span> Copy Link
-        </button>
-      </div>
-    </teleport>
 
     <!-- Lightbox -->
     <ImageLightbox
@@ -878,11 +994,114 @@ export default {
       @close="hideLightbox"
     />
   </article>
+
+  <!-- ── A4: Share Modal — centered on screen ── -->
+  <teleport to="body">
+    <transition name="modal-fade">
+      <div
+        v-if="showShareModal"
+        class="share-modal-overlay d-flex align-items-center justify-content-center"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Share post"
+        @click.self="closeShareModal"
+      >
+        <div
+          class="share-modal-box frosted-glass rounded-4 shadow-lg p-4 animate-fade-up glass-off"
+        >
+          <!-- Header -->
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="fw-bold font-zilla fst-italic fs-5 mb-0 text-dark">Share Post</h3>
+            <button
+              class="btn-close"
+              @click="closeShareModal"
+              aria-label="Close share modal"
+            ></button>
+          </div>
+
+          <!-- Post preview -->
+          <div
+            class="share-modal__preview d-flex align-items-center gap-3 rounded-3 bg-light p-3 mb-4"
+          >
+            <img
+              v-if="item.images?.[0] || item.image"
+              :src="item.images?.[0] || item.image"
+              class="rounded-3 object-fit-cover flex-shrink-0"
+              style="width: 56px; height: 56px"
+              :alt="item.title"
+            />
+            <div>
+              <p class="fw-bold text-sm font-zilla mb-0 text-dark">{{ item.title }}</p>
+              <p class="text-xs text-muted mb-0 font-roboto">The Rose Blog</p>
+            </div>
+          </div>
+
+          <!-- Share options -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <button
+                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 bg-white shadow-sm fw-bold text-sm font-roboto"
+                @click="handleShare('facebook')"
+              >
+                <i class="bi bi-facebook text-primary fs-5"></i> Facebook
+              </button>
+            </div>
+            <div class="col-6">
+              <button
+                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 bg-white shadow-sm fw-bold text-sm font-roboto"
+                @click="handleShare('twitter')"
+              >
+                <i class="bi bi-twitter-x text-dark fs-5"></i> Twitter / X
+              </button>
+            </div>
+            <div class="col-6">
+              <button
+                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 bg-white shadow-sm fw-bold text-sm font-roboto"
+                @click="handleShare('whatsapp')"
+              >
+                <i class="bi bi-whatsapp text-success fs-5"></i> WhatsApp
+              </button>
+            </div>
+            <div class="col-6">
+              <button
+                class="share-option-btn w-100 d-flex align-items-center gap-2 rounded-3 p-3 border-0 shadow-sm fw-bold text-sm font-roboto"
+                :class="shareCopied ? 'bg-primary text-white' : 'bg-white'"
+                @click="handleShare('copy')"
+              >
+                <span class="material-symbols-outlined fs-5">{{
+                  shareCopied ? 'check_circle' : 'link'
+                }}</span>
+                {{ shareCopied ? 'Copied!' : 'Copy Link' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- URL display -->
+          <div class="share-modal__url d-flex align-items-center gap-2 rounded-3 bg-light p-2 px-3">
+            <span class="text-xs text-muted font-roboto flex-grow-1 text-truncate">{{
+              getShareUrl()
+            }}</span>
+            <button
+              class="btn btn-sm btn-primary rounded-pill px-3 fw-bold text-xs"
+              @click="handleShare('copy')"
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </teleport>
 </template>
 
 <style scoped lang="scss">
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/maps';
+@import 'bootstrap/scss/mixins';
 @import '@/assets/base.scss';
 
+// ── Sizing ──────────────────────────────────────────
 .avatar-sm {
   width: 40px;
   height: 40px;
@@ -890,30 +1109,185 @@ export default {
 .cursor-pointer {
   cursor: pointer;
 }
-.inset-0 {
-  top: 0;
+
+// ── A2: Category badges ──────────────────────────────
+.category-badge {
+  font-family: 'Roboto Condensed', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+
+  &.badge-bush {
+    background: rgba($pink, 0.35);
+    color: darken($red, 10%);
+    border: 1px solid rgba($red, 0.2);
+  }
+  &.badge-climbing {
+    background: rgba(#c8f7c5, 0.6);
+    color: #1a6b17;
+    border: 1px solid rgba(#1a6b17, 0.2);
+  }
+  &.badge-guide {
+    background: rgba(#fef3c7, 0.8);
+    color: #92400e;
+    border: 1px solid rgba(#92400e, 0.2);
+  }
+  &.badge-tips {
+    background: rgba(#dbeafe, 0.8);
+    color: #1e40af;
+    border: 1px solid rgba(#1e40af, 0.2);
+  }
+}
+
+// ── A1: Photo count badge ────────────────────────────
+.photo-count-badge {
+  top: 0.6rem;
+  right: 0.6rem;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  font-family: 'Roboto Condensed', sans-serif;
+  letter-spacing: 0.3px;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
+  line-height: 1;
+  z-index: 5;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+// ── A3: Ellipsis menu ───────────────────────────────
+.news-card__ellipsis-menu {
+  min-width: 150px;
+  background: white;
+
+  .menu-item {
+    border-radius: 8px;
+    &:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+// ── A5: Reaction picker ─────────────────────────────
+.reaction-picker {
+  bottom: calc(100% + 8px);
   left: 0;
-  right: 0;
-  bottom: 0;
+  background: white;
+  border-radius: 999px;
+  padding: 0.4rem 0.6rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  z-index: 500;
+  gap: 0.15rem;
+}
+
+.reaction-emoji-btn {
+  font-size: 1.4rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 50%;
+  line-height: 1;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: bottom center;
+
+  &:hover,
+  &.is-selected {
+    transform: scale(1.5) translateY(-4px);
+  }
+
+  &.is-selected {
+    background: rgba($red, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+  }
+}
+
+.reaction-current {
+  font-size: 1rem;
+  line-height: 1;
+}
+.reaction-label {
+  font-family: 'Roboto Condensed', sans-serif;
 }
 
 .interaction-btn {
   color: $gray-600;
+  cursor: pointer;
+  font-size: 0.82rem;
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background: rgba(0, 0, 0, 0.05);
   }
   &.active {
-    color: var(--bs-primary);
-    background-color: rgba(226, 6, 95, 0.08);
+    color: $primary;
+    background: rgba($red, 0.08);
   }
 }
 
-/* Issue 5: Sleek Read More Link */
+// ── A6: Layout B — gradient on bottom third only ────
+.layout-b {
+  .img-wrapper img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .layout-b__overlay {
+    // Gradient starts transparent and only darkens at the very bottom
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.82) 0%,
+      rgba(0, 0, 0, 0.45) 40%,
+      rgba(0, 0, 0, 0) 75%
+    );
+    padding-top: 3rem;
+  }
+}
+
+// ── Layout A image height ────────────────────────────
+.layout-a__img {
+  max-height: 220px;
+  width: 100%;
+  object-fit: cover;
+}
+
+// ── Layout C thumb ───────────────────────────────────
+.layout-c .thumb-box {
+  width: 70px;
+  height: 70px;
+}
+
+// ── Read more ────────────────────────────────────────
 .read-more-link {
   background: none;
   border: none;
   padding: 0;
-  color: var(--bs-primary);
+  color: $primary;
   font-family: 'Roboto Condensed', sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
@@ -929,7 +1303,6 @@ export default {
   max-height: 4.8rem;
   overflow: hidden;
   transition: max-height 0.4s ease;
-  position: relative;
   &.is-expanded {
     max-height: 200rem;
   }
@@ -939,97 +1312,128 @@ export default {
   }
 }
 
-.layout-b {
-  .photo-badge {
-    position: absolute;
-    bottom: 0.75rem;
-    right: 0.75rem;
-    @include glassmorphism(#1a1a1a, 8px, 0.6);
-    color: white;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    padding: 0.35rem 0.75rem;
-    font-weight: 600;
-    backdrop-filter: blur(8px) brightness(1.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-
-    &:hover {
-      transform: scale(1.05) translateY(-2px);
-      background-color: rgba(0, 0, 0, 0.8) !important;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-    }
-  }
-  .overlay-text {
-    background: linear-gradient(0deg, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
-  }
-}
-
-.layout-c .thumb-box {
-  width: 70px;
-  height: 70px;
-}
-
-.menu-item {
-  border-radius: 8px;
-  &:hover {
-    background: rgba(0, 0, 0, 0.05);
-  }
-}
-
-.share-dropdown {
-  min-width: 150px;
-  max-width: 200px;
-  /* Issue 6: Ensure it doesn't overflow horizontally on small screens */
-  transform: translateX(-50%);
-}
-@media (max-width: 480px) {
-  .share-dropdown {
-    transform: translateX(-80%);
-  }
-}
-
 .text-shadow {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-/* Issue 5/7 B, C: Textarea & Form Guards */
-.edit-form {
-  overflow: hidden !important;
+// ── A4: Share modal ──────────────────────────────────
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 3500;
+  padding: 1rem;
+}
+
+.share-modal-box {
   width: 100%;
-}
-.edit-textarea,
-.comment-textarea {
-  resize: vertical !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  width: 100% !important;
-  overflow-y: auto !important;
+  max-width: 400px;
+  background: white;
 }
 
-/* Issue 4: Layout Type B expansion fixes */
-.expanded-layout-b {
-  min-height: 400px !important;
-  overflow: visible !important;
-}
-.relative-overlay {
-  position: relative !important;
-  background: rgba(0, 0, 0, 0.85) !important;
-  padding-top: 1.5rem !important;
-  min-height: 200px;
+.share-option-btn {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  text-align: left;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12) !important;
+  }
 }
 
+// ── Toast ────────────────────────────────────────────
+.news-card__toast {
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+// ── Transitions ──────────────────────────────────────
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(12px);
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.reaction-pop-enter-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.reaction-pop-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+.reaction-pop-enter-from,
+.reaction-pop-leave-to {
+  opacity: 0;
+  transform: translateY(6px) scale(0.9);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// ── Rotate chevron ───────────────────────────────────
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+// ── z-index-top ─────────────────────────────────────
 .z-index-top {
   z-index: 100 !important;
 }
-
 .card-editing {
   z-index: 500 !important;
 }
+.overflow-visible {
+  overflow: visible !important;
+}
+.glass-off {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: white !important;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12) !important;
+}
 
-/* Fix for Issue 6: ensure comments don't obstruct entire card incorrectly */
-.comments-box {
+// ── Edit form botanical container ────────────────────
+.edit-form {
+  overflow: visible !important;
   position: relative;
-  z-index: 1;
 }
 </style>

@@ -7,7 +7,7 @@
     "date": "2026-03-15T09:00:00Z",
     "title": "Pink Paradise",
     "type": "Bush Rose",
-    "layoutType": "A",
+    "layoutType": "C",
     "color": "Soft Pink",
     "fragrance": "Sweet and light",
     "bloomingSeason": "Spring to Fall",
@@ -50,7 +50,7 @@
     "date": "2026-03-20T10:15:00Z",
     "title": "Fairytale Magic",
     "type": "Bush Rose",
-    "layoutType": "C",
+    "layoutType": "B",
     "color": "Soft Pink with Apricot Centre",
     "fragrance": "Strong fruity",
     "bloomingSeason": "Spring to Fall",
@@ -73,7 +73,7 @@
     "date": "2026-03-23T08:00:00Z",
     "title": "Bengali",
     "type": "Bush Rose",
-    "layoutType": "A",
+    "layoutType": "C",
     "color": "Orange",
     "fragrance": "Fruity (moderate to strong)",
     "bloomingSeason": "Late Spring to Early Fall",
@@ -81,11 +81,7 @@
     "thornLevel": "many",
     "content": "Bengali is an ADR-certified Kordes floribunda, awarded the Allgemeine Deutsche Rosenneuheitenprüfung rating in 2010 for the best disease resistance among all orange-hued roses. It produces large, cupped double blooms in an intense apricot-orange shade that softens to salmon-pink as the flowers mature. The fragrance is a sweet blend of apricot and apple-lemon notes, strongest in the early morning hours. Growing to approximately 1 metre tall and 50 cm wide, Bengali is a reliable repeat-flowering variety blooming from late spring to early autumn. Its compact, upright habit with glossy dark green foliage makes it suitable for beds, borders, and training along fences. Water deeply once a week, feed with potassium-rich fertiliser monthly, and deadhead regularly to encourage successive flushes throughout the season.",
     "idealFor": "fence",
-    "images": [
-      "https://www.baumschule-horstmann.de/bilder/popup/beetrose-bengali--m005798_h_0.jpg",
-      "https://www.baumschule-horstmann.de/bilder/popup/beetrose-bengali--m005798_w_4.jpg",
-      "https://www.baumschule-horstmann.de/bilder/popup/beetrose-bengali--m005798_w_3.jpg"
-    ]
+    "images": []
   },
   {
     "id": "post-105",
@@ -104,7 +100,6 @@
     "content": "Coral Lions-Rose® is a Kordes Fantasia® floribunda introduced in 2019, awarded the prestigious ADR certificate in 2020 for exceptional disease resistance. The medium-sized (7–8 cm), cup-shaped double flowers open in a vibrant coral-salmon hue, gradually deepening to apricot-orange towards the centre. As blooms age, the outermost petals fade to a creamy ivory-pink, creating a beautiful multi-tonal effect. Buds are noticeably darker orange than the open flowers. Growing 0.8–1.2 metres tall and 50 cm wide, this variety has a bushy, upright habit perfect for borders, beds, and larger containers near fences. The light herbal fragrance is subtle but pleasant. Plant in full sun with good air circulation, and water at the base to avoid wetting the foliage. It has won numerous international prizes, including medals in Lyon, Le Roeulx, Kortrijk, and Warsaw.",
     "idealFor": "fence",
     "images": [
-      "https://lens-roses.com/web/image/product.product/52569/image_1024/Coral%20Lions-Rose%20%C2%AE%20%28Pot%204L%29?unique=b18ae3a",
       "https://www.rosen.de/thumbnail/b5/0f/f3/1761660889/coral_lions_rose_09_800x800.jpg?ts=1761662006",
       "https://www.rosen.de/thumbnail/f1/06/2c/1761660830/coral-lions-rose_07_800x800.jpg?ts=1761661755",
       "https://www.rosen.de/thumbnail/14/89/51/1761660781/coral-lions-rose_02_800x800.jpg?ts=1761661557"
@@ -140,7 +135,7 @@
     "date": "2026-03-30T16:45:00Z",
     "title": "Crimson Majesty",
     "type": "Bush Rose",
-    "layoutType": "A",
+    "layoutType": "C",
     "color": "Deep Crimson",
     "fragrance": "Rich and intense",
     "bloomingSeason": "Spring to Fall",
@@ -161,7 +156,7 @@
     "date": "2026-04-01T13:00:00Z",
     "title": "Royal Climber",
     "type": "Climbing Rose",
-    "layoutType": "B",
+    "layoutType": "C",
     "color": "Pink and Red mix",
     "fragrance": "Sweet and strong",
     "bloomingSeason": "Spring to Summer",
@@ -183,7 +178,7 @@
     "date": "2026-04-03T07:30:00Z",
     "title": "Sunset Vine",
     "type": "Climbing Rose",
-    "layoutType": "C",
+    "layoutType": "B",
     "color": "Orange to Yellow",
     "fragrance": "Citrus and honey",
     "bloomingSeason": "Summer to Fall",
@@ -205,7 +200,7 @@
     "date": "2026-04-05T14:20:00Z",
     "title": "Snow Cascade",
     "type": "Climbing Rose",
-    "layoutType": "B",
+    "layoutType": "A",
     "color": "Pure White",
     "fragrance": "Light and fresh",
     "bloomingSeason": "All Season",
