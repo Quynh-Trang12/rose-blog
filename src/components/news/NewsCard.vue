@@ -1067,7 +1067,7 @@ export default {
   cursor: pointer;
 }
 
-// ── A2: Category badges ──────────────────────────────
+// --- Category badges ---
 /* CATEGORY BADGES */
 .category-badge {
   font-family: 'Roboto Condensed', sans-serif;
@@ -1101,7 +1101,7 @@ export default {
   }
 }
 
-// ── A1: Photo count badge ────────────────────────────
+// --- Photo count badge ---
 .photo-count-badge {
   top: 0.6rem;
   right: 0.6rem;
@@ -1133,7 +1133,7 @@ export default {
   }
 }
 
-// ── A3: Ellipsis menu ───────────────────────────────
+// --- Ellipsis menu ---
 .news-card__ellipsis-menu {
   min-width: 150px;
   background: white;
@@ -1146,7 +1146,7 @@ export default {
   }
 }
 
-// ── A5: Reaction picker ─────────────────────────────
+// --- Reaction picker ---
 .reaction-picker {
   bottom: calc(100% + 8px);
   left: 0;
@@ -1234,13 +1234,13 @@ export default {
   object-fit: cover;
 }
 
-// ── Layout C thumb ───────────────────────────────────
+// --- Layout C thumb ---
 .layout-c .thumb-box {
   width: 70px;
   height: 70px;
 }
 
-// ── Read more ────────────────────────────────────────
+// --- Read more ---
 .read-more-link {
   background: none;
   border: none;
@@ -1276,7 +1276,7 @@ export default {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
 }
 
-// ── A4: Share modal ──────────────────────────────────
+// --- Share modal ---
 .share-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1322,7 +1322,7 @@ export default {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-// ── Transitions ──────────────────────────────────────
+// --- Transitions ---
 .toast-fade-enter-active,
 .toast-fade-leave-active {
   transition:
@@ -1369,12 +1369,12 @@ export default {
   opacity: 0;
 }
 
-// ── Rotate chevron ───────────────────────────────────
+// --- Rotate chevron ---
 .rotate-180 {
   transform: rotate(180deg);
 }
 
-// ── z-index-top ─────────────────────────────────────
+// --- z-index-top ---
 .z-index-top {
   z-index: 100 !important;
 }
@@ -1391,7 +1391,7 @@ export default {
   box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12) !important;
 }
 
-// ── Edit form botanical container ────────────────────
+// --- Edit form botanical container ---
 .edit-form {
   overflow: visible !important;
   position: relative;

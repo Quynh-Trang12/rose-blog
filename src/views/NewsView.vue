@@ -15,7 +15,6 @@ import PaginationBar from '@/components/shared/PaginationBar.vue'
 export default {
   name: 'NewsView',
 
-
   // ==========================================
   // COMPONENTS
   // ==========================================
@@ -26,24 +25,20 @@ export default {
     PaginationBar,
   },
 
-
   // ==========================================
   // DATA
   // ==========================================
   data() {
     return {
-
       showFilterModal: false,
     }
   },
-
 
   // ==========================================
   // COMPUTED
   // ==========================================
   computed: {
     ...mapState('news', {
-
       currentPage: (state) => state.newsPage,
     }),
     ...mapState('auth', ['currentUser']),
@@ -54,7 +49,6 @@ export default {
       totalNewsItems: 'totalNewsItems',
     }),
   },
-
 
   // ==========================================
   // METHODS
@@ -94,7 +88,6 @@ export default {
     },
   },
 
-
   // ==========================================
   // WATCH
   // ==========================================
@@ -110,19 +103,16 @@ export default {
     },
   },
 
-
   // ==========================================
   // LIFECYCLE HOOKS
   // ==========================================
   mounted() {
-
     const category = this.$route.query.category
     if (category) {
       this.applyFilters({ filters: { category }, target: 'news' })
     } else {
       this.clearFilters('news')
     }
-
 
     if (this.$route.hash) {
       this.scrollToTarget(this.$route.hash)
@@ -134,8 +124,6 @@ export default {
 <template>
   <!-- PAGE CONTENT -->
   <div class="news-view min-vh-100 py-5 bg-light-soft position-relative">
-
-
     <button
       type="button"
       class="news-view__search-bubble border-0 bg-transparent p-0 position-fixed d-flex align-items-center justify-content-center animate-fade-up"
@@ -163,7 +151,6 @@ export default {
       <!-- A11y Requirement: Every page requires a single h1 heading -->
       <h1 class="visually-hidden">Latest Rose News and Stories</h1>
 
-
       <!-- Create Post Bar (authenticated users only) -->
       <NewsCreateBar v-if="isLoggedIn" class="mb-5 animate-fade-up" />
 
@@ -172,11 +159,7 @@ export default {
         v-if="paginatedNewsItems.length > 0"
         class="news-view__masonry-grid pb-4 animate-fade-up"
       >
-        <div
-          v-for="item in paginatedNewsItems"
-          :key="item.id"
-          class="news-view__card-wrapper"
-        >
+        <div v-for="item in paginatedNewsItems" :key="item.id" class="news-view__card-wrapper">
           <NewsCard
             :item="item"
             :is-authed="isLoggedIn"
@@ -212,7 +195,6 @@ export default {
         :total-pages="totalPages"
         @page-change="handlePageChange"
       />
-
     </div>
   </div>
 </template>
@@ -236,7 +218,6 @@ export default {
 // ==========================================
 
 .news-view__search-bubble {
-
   bottom: 2rem;
   right: 2rem;
 
@@ -320,7 +301,7 @@ export default {
   color: rgba($primary, 0.2);
 }
 
-// ── Accessibility Utilities ──────────────────────────────
+// --- Accessibility Utilities ---
 .visually-hidden {
   position: absolute !important;
   width: 1px !important;
