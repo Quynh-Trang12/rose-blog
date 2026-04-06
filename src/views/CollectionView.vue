@@ -4,9 +4,13 @@
  * COMPONENT: CollectionView.vue
  * ==========================================
  * Description:
- * A private view for authenticated users to manage their bookmarked
- * news items. Displays saved items in a masonry grid using the
- * NewsCard component.
+ * A private view for authenticated users to manage their bookmarked news items.
+ * Displays saved items in a responsive masonry grid using the NewsCard component.
+ * Includes filtering via NewsSearchBar and pagination via PaginationBar.
+ *
+ * Fix applied: The search bubble button now uses the same corrected pattern
+ * as NewsView — a plain <button> with an explicit `openFilterModal` handler
+ * and pointer-events: none on the inner <img> so click events are never blocked.
  */
 import { mapGetters, mapState, mapActions } from 'vuex'
 import NewsCard from '@/components/news/NewsCard.vue'
@@ -30,6 +34,7 @@ export default {
   // ==========================================
   data() {
     return {
+      // Explanation: Controls whether the NewsSearchBar overlay is visible.
       showFilterModal: false,
     }
   },
@@ -40,13 +45,14 @@ export default {
   computed: {
     ...mapState('auth', ['currentUser']),
     ...mapState('news', {
-        currentPage: state => state.collectionPage
+      // Explanation: Map collectionPage from the news module as currentPage.
+      currentPage: (state) => state.collectionPage,
     }),
     ...mapGetters('auth', ['isLoggedIn', 'mySavedPostIds']),
     ...mapGetters('news', {
       savedNewsItems: 'paginatedCollectionItems',
       totalPages: 'collectionTotalPages',
-      totalItems: 'totalCollectionItems'
+      totalItems: 'totalCollectionItems',
     }),
   },
 
@@ -56,11 +62,25 @@ export default {
   methods: {
     ...mapActions('news', ['setPage', 'clearFilters']),
 
+    /**
+     * Opens the search and filter overlay modal.
+     */
+    openFilterModal() {
+      this.showFilterModal = true
+    },
+
+    /**
+     * Handles page changes emitted by the PaginationBar component.
+     * @param {number} page - The target page number.
+     */
     handlePageChange(page) {
       this.setPage({ page, target: 'collection' })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     },
 
+    /**
+     * Dispatches a custom event to open the AppNavBar auth modal.
+     */
     openAuthModal() {
       window.dispatchEvent(new Event('openAuthModal'))
     },
@@ -70,6 +90,7 @@ export default {
   // LIFECYCLE HOOKS
   // ==========================================
   mounted() {
+    // Explanation: Clear any stale collection filters when entering the view.
     this.clearFilters('collection')
   },
 }
@@ -77,23 +98,28 @@ export default {
 
 <template>
   <div class="collection-view min-vh-100 py-5 bg-light-soft position-relative">
-    <!-- Search Bubble Trigger -->
+
+    <!-- ==========================================
+         FLOATING SEARCH BUBBLE
+         Explanation: Same corrected pattern as NewsView — explicit click handler
+         on the <button>, pointer-events: none on the <img> child via SCSS.
+         ========================================== -->
     <button
       type="button"
-      class="search-bubble-btn collection-view__search-bubble border-0 bg-transparent p-0 position-fixed d-flex align-items-center justify-content-center z-index-filter animate-fade-up"
-      @click="showFilterModal = true"
+      class="collection-view__search-bubble border-0 bg-transparent p-0 position-fixed d-flex align-items-center justify-content-center animate-fade-up"
+      @click="openFilterModal"
       aria-label="Open collection filters"
       :aria-expanded="showFilterModal"
     >
       <img
         src="@/assets/images/search-icon.png"
-        alt="Search and filter"
+        alt=""
+        aria-hidden="true"
         class="collection-view__search-icon"
-        style="pointer-events: none;"
       />
     </button>
 
-    <!-- Filter Modal (Overlay) -->
+    <!-- NewsSearchBar teleports its own overlay to <body> -->
     <NewsSearchBar
       :model-value="showFilterModal"
       @update:model-value="showFilterModal = $event"
@@ -101,7 +127,8 @@ export default {
     />
 
     <div class="container pt-5">
-      <!-- 1. Header Section -->
+
+      <!-- Page Header -->
       <div class="text-center mb-5 animate-fade-up">
         <h1 class="display-4 fw-bold fst-italic mb-3 font-zilla text-dark">
           My botanical <span class="text-primary">sanctuary</span>
@@ -110,28 +137,39 @@ export default {
           Curating your personal collection of rose wisdom. Everything you save is kept here for
           quick reference.
         </p>
-        <div class="mx-auto border-bottom border-primary border-4 collection-divider"></div>
+        <div class="collection-view__divider mx-auto border-bottom border-primary border-4"></div>
       </div>
 
-      <!-- 2. Auth Guard State -->
+      <!-- Unauthenticated Guard State -->
       <div v-if="!isLoggedIn" class="text-center py-5 animate-fade-up">
-        <div class="glassmorphism-pink rounded-5 p-5 border border-white mw-480 mx-auto">
-          <span class="material-symbols-outlined display-1 text-primary-light mb-4">lock</span>
+        <div class="glassmorphism-pink rounded-5 p-5 border border-white collection-view__auth-card mx-auto">
+          <span class="material-symbols-outlined display-1 collection-view__empty-icon mb-4">lock</span>
           <h2 class="font-zilla fst-italic h3 mb-3">Locked Garden</h2>
           <p class="text-muted font-roboto mb-4">
             You must be logged in to view your personal botanical collection.
           </p>
-          <button class="btn btn-primary rounded-pill px-5 py-2 fw-bold" @click="openAuthModal">
+          <button
+            class="btn btn-primary rounded-pill px-5 py-2 fw-bold"
+            @click="openAuthModal"
+          >
             Go to Login
           </button>
         </div>
       </div>
 
-      <!-- 3. Main Collection Content -->
+      <!-- Authenticated Content -->
       <template v-else>
-        <!-- Saved Items Feed -->
-        <div v-if="savedNewsItems.length > 0" class="news-masonry-grid pb-4 animate-fade-up">
-          <div v-for="item in savedNewsItems" :key="item.id" class="news-view__card-wrapper">
+
+        <!-- Saved Items Masonry Grid -->
+        <div
+          v-if="savedNewsItems.length > 0"
+          class="collection-view__masonry-grid pb-4 animate-fade-up"
+        >
+          <div
+            v-for="item in savedNewsItems"
+            :key="item.id"
+            class="collection-view__card-wrapper"
+          >
             <NewsCard
               :item="item"
               :is-authed="isLoggedIn"
@@ -144,14 +182,14 @@ export default {
 
         <!-- Empty Collection State -->
         <div v-else class="text-center py-5 animate-fade-up">
-          <div class="glassmorphism-pink rounded-5 p-5 border border-white mw-600 mx-auto">
-            <span class="material-symbols-outlined display-1 text-primary-light mb-4"
-              >bookmark_border</span
-            >
+          <div class="glassmorphism-pink rounded-5 p-5 border border-white collection-view__empty-card mx-auto">
+            <span class="material-symbols-outlined display-1 collection-view__empty-icon mb-4">
+              bookmark_border
+            </span>
             <h3 class="font-zilla fst-italic h4 mb-3">Your garden is empty... for now.</h3>
             <p class="text-muted font-roboto mb-5">
-              Found an article you love? Click the bookmark icon in the news feed to save it to your
-              private sanctuary.
+              Found an article you love? Click the bookmark icon in the news feed to save it to
+              your private sanctuary.
             </p>
             <router-link
               to="/news"
@@ -159,19 +197,24 @@ export default {
             >
               Explore News Feed
             </router-link>
-            <button v-if="totalItems === 0" class="btn btn-link text-muted mt-3" @click="clearFilters('collection')">
+            <button
+              v-if="totalItems === 0"
+              class="btn btn-link text-muted mt-3 d-block mx-auto"
+              @click="clearFilters('collection')"
+            >
               Reset Collection Filters
             </button>
           </div>
         </div>
 
-        <!-- Pagination Section -->
+        <!-- Pagination -->
         <PaginationBar
           v-if="totalPages > 1"
           :current-page="currentPage"
           :total-pages="totalPages"
           @page-change="handlePageChange"
         />
+
       </template>
     </div>
   </div>
@@ -180,46 +223,77 @@ export default {
 <style scoped lang="scss">
 @import 'bootstrap/scss/functions';
 @import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/maps';
 @import 'bootstrap/scss/mixins';
+
+// ==========================================
+// PAGE BACKGROUND
+// ==========================================
 
 .bg-light-soft {
   background-color: #fcfcfc;
 }
 
-.collection-divider {
+// ==========================================
+// PAGE HEADER DIVIDER
+// ==========================================
+
+.collection-view__divider {
   width: 80px;
 }
 
-/* Floating Search Bubble Styling */
-.search-bubble-btn {
-  width: 64px;
-  height: 64px;
+// ==========================================
+// FLOATING SEARCH BUBBLE BUTTON
+// ==========================================
+
+.collection-view__search-bubble {
   bottom: 2rem;
   right: 2rem;
-  background-color: $primary;
-  color: white;
-  border: none;
+  // Explanation: Must sit above standard page content but below modals.
+  z-index: 1050;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: 0 12px 24px rgba($primary, 0.3);
-  z-index: 100;
+  transition: transform 0.2s ease-in-out;
 
   &:hover {
-    transform: scale(1.1) rotate(5deg);
-    background-color: darken($primary, 5%);
-    box-shadow: 0 16px 32px rgba($primary, 0.4);
+    transform: scale(1.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 4px;
+    border-radius: 50%;
   }
 
   @include media-breakpoint-down(md) {
-    width: 56px;
-    height: 56px;
     bottom: 1.5rem;
     right: 1.5rem;
   }
 }
 
-/* Masonry Layout implementation (Requirement 11) */
-.news-masonry-grid {
+// ==========================================
+// SEARCH ICON IMAGE
+// ==========================================
+
+.collection-view__search-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  object-fit: cover;
+  // Explanation: pointer-events: none ensures clicks pass through to the <button>.
+  pointer-events: none;
+  filter: drop-shadow(0 4px 16px rgba($pink, 0.35));
+  transition: filter 0.2s ease-in-out;
+
+  .collection-view__search-bubble:hover & {
+    filter: drop-shadow(0 8px 32px rgba($pink, 0.5));
+  }
+}
+
+// ==========================================
+// MASONRY GRID LAYOUT
+// ==========================================
+
+.collection-view__masonry-grid {
   columns: 1;
   column-gap: 1.25rem;
 
@@ -232,56 +306,30 @@ export default {
   }
 }
 
-.news-view__card-wrapper {
+.collection-view__card-wrapper {
   break-inside: avoid;
   page-break-inside: avoid;
   -webkit-column-break-inside: avoid;
-  display: block; // Fix Safari/Firefox masonry bugs
+  display: block;
   width: 100%;
   margin-bottom: 1.25rem;
 }
 
-.text-primary-light {
+// ==========================================
+// AUTH GUARD / EMPTY STATE CARDS
+// ==========================================
+
+.collection-view__auth-card,
+.collection-view__empty-card {
+  max-width: 480px;
+}
+
+.collection-view__empty-card {
+  max-width: 600px;
+}
+
+.collection-view__empty-icon {
   color: rgba($primary, 0.2);
-}
-/* Floating Search Bubble Styling */
-.search-bubble-btn {
-  bottom: 2rem;
-  right: 2rem;
-
-  @include media-breakpoint-down(md) {
-    width: 56px;
-    height: 56px;
-    bottom: 1.5rem;
-    right: 1.5rem;
-  }
-}
-
-.collection-view {
-  &__search-bubble {
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out;
-
-    &:hover {
-      transform: scale(1.08);
-    }
-
-    &:focus {
-      outline: none;
-    }
-  }
-
-  &__search-icon {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    object-fit: cover;
-    filter: drop-shadow(0 4px 16px rgba($pink, 0.3));
-    transition: filter 0.2s ease-in-out;
-
-    &:hover {
-      filter: drop-shadow(0 8px 32px rgba($pink, 0.45));
-    }
-  }
+  display: block;
 }
 </style>
