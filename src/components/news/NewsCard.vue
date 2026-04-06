@@ -939,51 +939,46 @@ export default {
 
     <!-- ── Comments ── -->
     <transition name="fade">
-      <div v-show="showComments" class="comments-box pt-3 border-top border-light">
+      <div v-show="showComments" class="pt-3 border-top border-light mt-1 w-100">
         <div class="d-flex flex-column gap-3 mb-3">
           <div v-for="c in item.comments || []" :key="c.id" class="d-flex gap-2">
             <img
-              v-lazy-load="c.authorAvatar || c.author?.avatar"
-              class="rounded-circle mt-1 flex-shrink-0"
+              v-lazy-load="c.authorAvatar"
+              alt="Avatar"
+              class="rounded-circle mt-1"
               width="28"
               height="28"
-              alt="Avatar"
             />
-            <div class="bg-light p-2 px-3 rounded-4 flex-grow-1">
-              <p class="mb-0 fw-bold text-dark text-xs font-roboto">
-                {{ c.authorName || c.author?.displayName }}
-              </p>
-              <p class="mb-0 text-muted text-xs lh-sm font-roboto">{{ c.text }}</p>
+            <div class="bg-light p-2 px-3 rounded-4 w-100">
+              <p class="mb-0 fw-bold text-dark text-sm font-roboto">{{ c.authorName }}</p>
+              <p class="mb-0 text-muted text-sm lh-sm font-roboto">{{ c.text }}</p>
             </div>
           </div>
         </div>
-        <div v-if="isAuthed" class="d-flex gap-2 align-items-end">
+        <div v-if="isAuthed" class="d-flex gap-2">
           <textarea
-            v-model="commentText"
-            class="form-control form-control-sm rounded-4 text-xs"
-            placeholder="Write a comment..."
+            class="form-control rounded-3 text-sm"
             rows="2"
-            style="resize: vertical; max-width: 100%; box-sizing: border-box"
+            placeholder="Write a comment..."
+            v-model="commentText"
             :aria-label="'Comment on ' + item.title"
           ></textarea>
           <button
-            class="btn btn-primary btn-sm rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 p-0"
-            style="width: 36px; height: 36px"
-            :disabled="!commentText.trim()"
+            class="btn btn-primary rounded-pill btn-sm d-flex align-items-center"
             @click="submitComment"
+            :disabled="!commentText.trim()"
             aria-label="Post comment"
           >
             <span class="material-symbols-outlined fs-5">send</span>
           </button>
         </div>
-        <div v-else class="text-center p-3 rounded-4 bg-light border border-white">
-          <p class="text-muted small fst-italic mb-1">Join the conversation.</p>
-          <button
-            class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold"
-            @click="$emit('open-auth')"
-          >
-            Log in
-          </button>
+        <!-- Lock placeholder for guests -->
+        <div
+          v-else
+          class="text-center p-2 rounded-3 bg-light d-flex align-items-center justify-content-center gap-2 mt-2 border"
+        >
+          <span class="material-symbols-outlined text-muted fs-6">lock</span>
+          <p class="mb-0 text-muted fst-italic text-sm">Log in to join the conversation.</p>
         </div>
       </div>
     </transition>

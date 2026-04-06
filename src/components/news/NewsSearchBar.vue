@@ -275,9 +275,7 @@ export default {
                     v-for="cat in categoryOptions"
                     :key="cat.value"
                     class="btn btn-sm rounded-pill px-3 py-2 fw-bold transition-base border"
-                    :class="
-                      filters.category === cat.value ? 'btn-primary' : 'btn-outline-secondary'
-                    "
+                    :class="filters.category === cat.value ? 'btn-primary' : 'btn-outline-primary'"
                     @click="handleCategorySelect(cat.value)"
                   >
                     {{ cat.label }}
